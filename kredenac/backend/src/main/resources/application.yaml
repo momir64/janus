@@ -1,0 +1,9 @@
+ktor:
+  deployment:
+    port: 8080
+  application:
+    modules:
+      - rs.moma.janus.kredenac.HttpKt.configureHttp
+      - rs.moma.janus.kredenac.SerializationKt.configureSerialization
+      - rs.moma.janus.kredenac.StatusPagesKt.configureStatusPages
+      - rs.moma.janus.kredenac.RoutingKt.configureRouting
