@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac
+package rs.moma.janus.kredenac.plugins
 
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.kotlinx.json.json

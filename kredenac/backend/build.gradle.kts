@@ -1,29 +1,36 @@
 plugins {
     alias(libs.plugins.kotlin.jvm)
-    alias(ktorLibs.plugins.ktor)
     alias(libs.plugins.kotlin.serialization)
+    alias(ktorLibs.plugins.ktor)
 }
 
 group = "rs.moma.janus"
 version = "0.0.1"
 
 application {
-    mainClass = "io.ktor.server.netty.EngineMain"
+    mainClass = "rs.moma.janus.kredenac.MainKt"
 }
 
 kotlin {
     jvmToolchain(21)
 }
+
 dependencies {
     implementation(ktorLibs.server.auth)
-    implementation(ktorLibs.server.config.yaml)
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.server.core)
-    implementation(ktorLibs.server.cors)
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.statusPages)
-    implementation(libs.logback.classic)
+    implementation(ktorLibs.server.defaultHeaders)
     implementation(ktorLibs.serialization.kotlinx.json)
+    implementation(libs.logback.classic)
+
+    implementation(libs.exposed.core)
+    implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.kotlin.datetime)
+    implementation(libs.hikaricp)
+    implementation(libs.postgresql)
+    implementation(libs.koin.ktor)
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
