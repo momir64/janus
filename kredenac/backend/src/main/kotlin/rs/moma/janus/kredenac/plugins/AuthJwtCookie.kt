@@ -1,8 +1,8 @@
 package rs.moma.janus.kredenac.plugins
 
+import rs.moma.janus.kredenac.crypto.authentication.CsrfService
+import rs.moma.janus.kredenac.crypto.authentication.JwtService
 import io.ktor.server.auth.AuthenticationFailedCause.Error
-import rs.moma.janus.kredenac.service.CsrfService
-import rs.moma.janus.kredenac.service.JwtService
 import io.ktor.server.request.httpMethod
 import io.ktor.server.application.*
 import io.ktor.server.response.*

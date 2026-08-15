@@ -1,5 +1,7 @@
 package rs.moma.janus.kredenac.utils
 
+import kotlin.io.encoding.Base64.PaddingOption.PRESENT_OPTIONAL
+import kotlin.io.encoding.Base64
 import kotlin.io.path.*
 
 private val dotenv: Map<String, String> by lazy { loadDotenv() }
@@ -22,4 +24,6 @@ private fun loadDotenv(): Map<String, String> {
 
 object Env {
     fun get(key: String): String = System.getenv(key) ?: dotenv[key] ?: error("Missing required environment variable: $key")
+
+    fun getBytes(key: String): ByteArray = Base64.withPadding(PRESENT_OPTIONAL).decode(get(key))
 }

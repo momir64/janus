@@ -7,6 +7,7 @@ import rs.moma.janus.kredenac.plugins.configureDependencies
 import rs.moma.janus.kredenac.plugins.configureStatusPages
 import rs.moma.janus.kredenac.plugins.configureDatabase
 import rs.moma.janus.kredenac.plugins.configureRouting
+import rs.moma.janus.kredenac.plugins.configureCleanup
 import io.ktor.server.application.*
 
 fun Application.module() {
@@ -17,4 +18,5 @@ fun Application.module() {
     configureSecurityHeaders()
     configureAuthentication()
     configureRouting()
+    configureCleanup()
 }

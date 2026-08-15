@@ -31,6 +31,7 @@ dependencies {
     implementation(libs.hikaricp)
     implementation(libs.postgresql)
     implementation(libs.koin.ktor)
+    implementation(libs.lettuce.core)
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)

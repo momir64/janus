@@ -5,6 +5,7 @@ exposed = "1.4.0"
 hikaricp = "7.1.0"
 postgresql = "42.7.13"
 koin = "4.2.2"
+lettuce = "7.6.0.RELEASE"
 
 [libraries]
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
@@ -14,6 +15,7 @@ exposed-kotlin-datetime = { module = "org.jetbrains.exposed:exposed-kotlin-datet
 hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
+lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

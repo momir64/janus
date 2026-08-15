@@ -9,9 +9,8 @@ object RefreshTokenTable : Table("refresh_tokens") {
     val userId = uuid("user_id").references(UserTable.id)
     val chainId = uuid("chain_id")
     val tokenHash = varchar("token_hash", 64).uniqueIndex()
-    val issuedAt = timestamp("issued_at")
     val expiresAt = timestamp("expires_at")
-    val revokedAt = timestamp("revoked_at").nullable()
     val rotatedAt = timestamp("rotated_at").nullable()
+    val integrityHash = varchar("integrity_hash", 64)
     override val primaryKey = PrimaryKey(id)
 }
