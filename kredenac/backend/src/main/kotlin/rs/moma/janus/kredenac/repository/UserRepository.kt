@@ -64,7 +64,7 @@ class UserRepository(
         val aad = id.toString().toByteArray()
         try {
             AesUtil.decrypt(masterKey, row[UserTable.wrappedNoteKey], row[UserTable.wrappedNoteKeyIv], aad)
-        } catch (e: AEADBadTagException) {
+        } catch (_: AEADBadTagException) {
             throw UnauthorizedException("Note key failed integrity check")
         }
     }
@@ -74,7 +74,7 @@ class UserRepository(
         val aad = id.toString().toByteArray()
         val email = try {
             String(AesUtil.decrypt(emailEncryptionKey, this[UserTable.emailEncrypted], this[UserTable.emailEncryptedIv], aad))
-        } catch (e: AEADBadTagException) {
+        } catch (_: AEADBadTagException) {
             throw UnauthorizedException("User email failed integrity check")
         }
         return StoredUser(id, email)

@@ -23,8 +23,7 @@ class JwtService(secret: ByteArray) {
     fun issue(userId: Uuid, sid: String, ttl: Duration = 900.seconds): String {
         val now = Clock.System.now()
         val claims = JwtClaims(userId.toString(), sid, now.epochSeconds, (now + ttl).epochSeconds)
-        val header = """{"alg":"HS256","typ":"JWT"}"""
-        val headerEncoded = base64.encode(header.toByteArray())
+        val headerEncoded = base64.encode("""{"alg":"HS256","typ":"JWT"}""".toByteArray())
         val payloadEncoded = base64.encode(json.encodeToString(claims).toByteArray())
         val signingInput = "$headerEncoded.$payloadEncoded"
         val signatureEncoded = base64.encode(sign(signingInput))
@@ -37,22 +36,22 @@ class JwtService(secret: ByteArray) {
         val (headerEncoded, payloadEncoded, signatureEncoded) = parts
         val signingInput = "$headerEncoded.$payloadEncoded"
 
-        val expectedSignature = sign(signingInput)
         val actualSignature = try {
             base64.decode(signatureEncoded)
-        } catch (e: IllegalArgumentException) {
+        } catch (_: IllegalArgumentException) {
             return null
         }
-        if (!MessageDigest.isEqual(expectedSignature, actualSignature)) return null
+
+        if (!MessageDigest.isEqual(sign(signingInput), actualSignature))
+            return null
 
         val claims = try {
             json.decodeFromString<JwtClaims>(String(base64.decode(payloadEncoded), Charsets.UTF_8))
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             return null
         }
 
-        if (claims.exp < Clock.System.now().epochSeconds) return null
-        return claims
+        return if (claims.exp < Clock.System.now().epochSeconds) claims else null
     }
 
     private fun sign(input: String): ByteArray {
