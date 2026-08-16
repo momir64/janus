@@ -1,14 +1,12 @@
 package rs.moma.janus.kredenac.plugins
 
 import rs.moma.janus.kredenac.crypto.authentication.RefreshTokenService
-import rs.moma.janus.kredenac.crypto.webauthn.RegistrationService
 import kotlin.io.encoding.Base64.PaddingOption.PRESENT_OPTIONAL
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
 import rs.moma.janus.kredenac.repository.RefreshTokenRepository
 import rs.moma.janus.kredenac.crypto.authentication.JwtService
-import rs.moma.janus.kredenac.crypto.webauthn.AssertionService
-import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnCeremony
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
+import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
 import rs.moma.janus.kredenac.repository.CredentialRepository
 import rs.moma.janus.kredenac.repository.ChallengeRepository
 import rs.moma.janus.kredenac.repository.NotesRepository
@@ -55,9 +53,7 @@ fun Application.configureDependencies() {
             single { UserRepository(hmacSecret, emailEncryptionKey, masterKey) }
             single { CredentialRepository(hmacSecret) }
 
-            single { WebAuthnCeremony(get(named("rpId")), get(named("rpOrigin")), hmacSecret) }
-            single { RegistrationService(get(), get()) }
-            single { AssertionService(get(), get(), get(), get()) }
+            single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get()) }
 
             single { UserService(get(), get()) }
             singleOf(::NotesService)

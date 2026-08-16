@@ -18,9 +18,6 @@ data class RegisterFinishRequest(
 )
 
 @Serializable
-data class LoginStartRequest(val email: String? = null)
-
-@Serializable
 data class LoginFinishRequest(
     val credentialId: Base64Url,
     val clientDataJSON: Base64Url,

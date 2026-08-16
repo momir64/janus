@@ -1,5 +1,6 @@
 package rs.moma.janus.kredenac.crypto.algorithms
 
+import rs.moma.janus.kredenac.crypto.algorithms.EcCurve.*
 import rs.moma.janus.kredenac.utils.BadRequestException
 import java.security.spec.MGF1ParameterSpec.SHA256
 import java.security.spec.X509EncodedKeySpec
@@ -9,20 +10,20 @@ import java.security.Signature
 
 enum class VerifyUtil(
     val coseCode: Long,
-    val algorithm: String,
     private val keyFactoryAlgorithm: String,
-    private val signatureAlgorithm: String
+    private val signatureAlgorithm: String,
+    val curve: EcCurve? = null
 ) {
-    ES256(-7, "ES256", "EC", "SHA256withECDSA"),
-    ESP256(-9, "ESP256", "EC", "SHA256withECDSA"),
-    ES384(-35, "ES384", "EC", "SHA384withECDSA"),
-    ESP384(-51, "ESP384", "EC", "SHA384withECDSA"),
-    ES512(-36, "ES512", "EC", "SHA512withECDSA"),
-    ESP512(-52, "ESP512", "EC", "SHA512withECDSA"),
-    RS256(-257, "RS256", "RSA", "SHA256withRSA"),
-    PS256(-37, "PS256", "RSA", "RSASSA-PSS"),
-    ED25519(-8, "EdDSA", "Ed25519", "Ed25519");
-
+    ES256(-7, "EC", "SHA256withECDSA", P256),
+    ESP256(-9, "EC", "SHA256withECDSA", P256),
+    ES384(-35, "EC", "SHA384withECDSA", P384),
+    ESP384(-51, "EC", "SHA384withECDSA", P384),
+    ES512(-36, "EC", "SHA512withECDSA", P521),
+    ESP512(-52, "EC", "SHA512withECDSA", P521),
+    RS256(-257, "RSA", "SHA256withRSA"),
+    PS256(-37, "RSA", "RSASSA-PSS"),
+    EdDSA(-8, "Ed25519", "Ed25519"),
+    Ed25519(-19, "Ed25519", "Ed25519");
 
     fun verify(publicKeyBytes: ByteArray, signedData: ByteArray, signatureBytes: ByteArray): Boolean {
         val keyFactory = KeyFactory.getInstance(keyFactoryAlgorithm)
@@ -39,7 +40,7 @@ enum class VerifyUtil(
         operator fun invoke(coseCode: Long): VerifyUtil =
             entries.find { it.coseCode == coseCode } ?: throw BadRequestException("Unsupported algorithm: $coseCode")
 
-        operator fun invoke(algorithm: String): VerifyUtil =
-            entries.find { it.algorithm == algorithm } ?: throw BadRequestException("Unsupported algorithm: $algorithm")
+        operator fun invoke(name: String): VerifyUtil =
+            entries.find { it.name == name } ?: throw BadRequestException("Unsupported algorithm: $name")
     }
 }

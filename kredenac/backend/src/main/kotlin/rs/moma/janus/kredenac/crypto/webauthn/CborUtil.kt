@@ -5,12 +5,16 @@ class CborParseException(message: String) : RuntimeException(message)
 sealed class CborValue {
     data class UInt(val value: Long) : CborValue()
     data class NInt(val value: Long) : CborValue()
-    data class ByteStr(val value: ByteArray) : CborValue()
+    class ByteStr(val value: ByteArray) : CborValue()
     data class TextStr(val value: String) : CborValue()
     data class Arr(val value: List<CborValue>) : CborValue()
     data class Map(val value: kotlin.collections.Map<CborValue, CborValue>) : CborValue()
     data class Bool(val value: Boolean) : CborValue()
     object Null : CborValue()
+
+    fun asByteStr() = (this as? ByteStr)?.value
+    fun asUInt() = (this as? UInt)?.value
+    fun asNInt() = (this as? NInt)?.value
 
     companion object {
         fun from(bytes: ByteArray, startOffset: Int = 0) = Cursor(bytes, startOffset).readValue() as? Map
@@ -21,9 +25,6 @@ sealed class CborValue {
             return value[wrapped]
         }
     }
-
-    fun asUInt() = (this as? UInt)?.value
-    fun asByteStr() = (this as? ByteStr)?.value
 
     private class Cursor(private val bytes: ByteArray, startOffset: Int) {
         private var position: Int = startOffset

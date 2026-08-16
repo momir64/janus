@@ -28,7 +28,12 @@ object RsaUtil {
 }
 
 object EdUtil {
-    private val ED25519_X509_PREFIX = byteArrayOf(0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00)
+    private val ED25519_X509_PREFIX = byteArrayOf(
+        0x30, 0x2A,                   // SEQUENCE, length 42 - SubjectPublicKeyInfo
+        0x30, 0x05,                   // SEQUENCE, length 5 - AlgorithmIdentifier
+        0x06, 0x03, 0x2B, 0x65, 0x70, // OBJECT IDENTIFIER, length 3, value 1.3.101.112 - Ed25519
+        0x03, 0x21, 0x00              // BIT STRING, length 33, 0 unused bits - wraps the 32 key bytes that follow
+    )
 
     fun toPublicKey(key: ByteArray): ByteArray {
         require(key.size == 32) { "Ed25519 public key must be 32 bytes" }

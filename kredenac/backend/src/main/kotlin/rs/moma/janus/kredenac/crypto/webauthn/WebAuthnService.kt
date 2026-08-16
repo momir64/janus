@@ -1,5 +1,7 @@
 package rs.moma.janus.kredenac.crypto.webauthn
 
+import rs.moma.janus.kredenac.repository.CredentialRepository
+import rs.moma.janus.kredenac.repository.ChallengeRepository
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import rs.moma.janus.kredenac.utils.BadRequestException
 import kotlin.io.encoding.Base64.PaddingOption.ABSENT
@@ -12,26 +14,35 @@ import kotlin.io.encoding.Base64
 @Serializable
 data class ClientDataJson(val type: String, val challenge: String, val origin: String)
 
-class WebAuthnCeremony(
+data class ChallengeSession(val challenge: String, val cookie: String)
+
+class WebAuthnService(
     private val rpId: String,
     private val rpOrigin: String,
-    private val hmacSecret: ByteArray
+    private val hmacSecret: ByteArray,
+    private val challengeRepository: ChallengeRepository,
+    internal val credentialRepository: CredentialRepository,
 ) {
     private val secureRandom = SecureRandom()
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun generateChallenge(): String {
+    suspend fun start(): ChallengeSession {
         val bytes = ByteArray(32)
         secureRandom.nextBytes(bytes)
-        return Base64.UrlSafe.withPadding(ABSENT).encode(bytes)
+        val challenge = Base64.UrlSafe.withPadding(ABSENT).encode(bytes)
+        val challengeHash = HmacUtil.hash(hmacSecret, challenge)
+        val sessionCookie = HmacUtil.hash(hmacSecret, "$challenge:cookie")
+        challengeRepository.insert(challengeHash)
+        return ChallengeSession(challenge, sessionCookie)
     }
 
-    fun challengeHash(challenge: String, kind: ChallengeKind): String =
-        HmacUtil.hash(hmacSecret, "${kind.value}:$challenge")
-
-    fun verifyChallengeHash(challenge: String, kind: ChallengeKind, cookieValue: String?) {
-        if (cookieValue == null || cookieValue != challengeHash(challenge, kind))
-            throw BadRequestException("Challenge binding mismatch")
+    suspend fun verifyChallengeSession(challenge: String, cookie: String?) {
+        val challengeHash = HmacUtil.hash(hmacSecret, challenge)
+        val sessionCookie = HmacUtil.hash(hmacSecret, "$challenge:cookie")
+        if (cookie == null || sessionCookie != cookie)
+            throw BadRequestException("Challenge session cookie is missing or isn't valid")
+        if (!challengeRepository.consume(challengeHash))
+            throw BadRequestException("Challenge isn't pending, it might have expired")
     }
 
     fun decodeClientData(bytes: ByteArray, expectedType: String): ClientDataJson {
@@ -48,13 +59,9 @@ class WebAuthnCeremony(
         if (!MessageDigest.isEqual(rpIdHash, expectedHash)) throw BadRequestException("RP ID hash mismatch")
     }
 
-    fun verifyUserPresent(authData: ByteArray) {
+    fun verifyUserVerified(authData: ByteArray) {
         if (authData.size < 33) throw BadRequestException("authData too short")
         if ((authData[32].toInt() and 0x01) == 0) throw BadRequestException("User presence flag not set")
-    }
-
-    fun verifyUserVerified(authData: ByteArray) {
-        verifyUserPresent(authData)
         if ((authData[32].toInt() and 0x04) == 0) throw BadRequestException("User verification required but not performed")
     }
 }
