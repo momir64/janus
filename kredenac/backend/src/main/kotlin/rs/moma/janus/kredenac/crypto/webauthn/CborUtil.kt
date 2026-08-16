@@ -1,10 +1,11 @@
 package rs.moma.janus.kredenac.crypto.webauthn
 
+import rs.moma.janus.kredenac.common.readBigEndianLong
+
 class CborParseException(message: String) : RuntimeException(message)
 
 sealed class CborValue {
-    data class UInt(val value: Long) : CborValue()
-    data class NInt(val value: Long) : CborValue()
+    data class Integer(val value: Long) : CborValue()
     class ByteStr(val value: ByteArray) : CborValue()
     data class TextStr(val value: String) : CborValue()
     data class Arr(val value: List<CborValue>) : CborValue()
@@ -13,17 +14,13 @@ sealed class CborValue {
     object Null : CborValue()
 
     fun asByteStr() = (this as? ByteStr)?.value
-    fun asUInt() = (this as? UInt)?.value
-    fun asNInt() = (this as? NInt)?.value
+    fun asInteger() = (this as? Integer)?.value
 
     companion object {
         fun from(bytes: ByteArray, startOffset: Int = 0) = Cursor(bytes, startOffset).readValue() as? Map
 
         operator fun Map.get(key: String) = value[TextStr(key)]
-        operator fun Map.get(key: Long): CborValue? {
-            val wrapped: CborValue = if (key >= 0) UInt(key) else NInt(key)
-            return value[wrapped]
-        }
+        operator fun Map.get(key: Long) = value[Integer(key)]
     }
 
     private class Cursor(private val bytes: ByteArray, startOffset: Int) {
@@ -35,8 +32,8 @@ sealed class CborValue {
             val additionalInfo = initialByte.toInt() and 0x1F
 
             return when (majorType) {
-                0 -> UInt(readLength(additionalInfo))
-                1 -> NInt(-1L - readLength(additionalInfo))
+                0 -> Integer(readLength(additionalInfo))
+                1 -> Integer(-1L - readLength(additionalInfo))
                 2 -> ByteStr(readBytes(readLength(additionalInfo).toInt()))
                 3 -> TextStr(String(readBytes(readLength(additionalInfo).toInt()), Charsets.UTF_8))
                 4 -> Arr((0 until readLength(additionalInfo)).map { readValue() })
@@ -49,14 +46,12 @@ sealed class CborValue {
                     }
                     Map(map)
                 }
-
                 7 -> when (additionalInfo) {
                     20 -> Bool(false)
                     21 -> Bool(true)
                     22 -> Null
                     else -> throw CborParseException("Unsupported simple value: $additionalInfo")
                 }
-
                 else -> throw CborParseException("Unsupported major type: $majorType")
             }
         }
@@ -67,7 +62,7 @@ sealed class CborValue {
             25 -> readBigEndianLong(2)
             26 -> readBigEndianLong(4)
             27 -> readBigEndianLong(8)
-            31 -> throw CborParseException("Indefinite-length encoding is not supported (violates CTAP2 canonical CBOR)")
+            31 -> throw CborParseException("Indefinite-length encoding is not supported")
             else -> throw CborParseException("Unsupported additional info: $additionalInfo")
         }
 
@@ -89,11 +84,4 @@ sealed class CborValue {
             return value
         }
     }
-}
-
-fun readBigEndianLong(bytes: ByteArray, offset: Int, length: Int): Long {
-    var result = 0L
-    for (i in 0 until length)
-        result = (result shl 8) or (bytes[offset + i].toLong() and 0xFF)
-    return result
 }

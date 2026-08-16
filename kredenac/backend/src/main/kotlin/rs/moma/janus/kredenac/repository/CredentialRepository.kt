@@ -1,17 +1,20 @@
 package rs.moma.janus.kredenac.repository
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import rs.moma.janus.kredenac.utils.UnauthorizedException
+import rs.moma.janus.kredenac.common.UnauthorizedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
+import rs.moma.janus.kredenac.common.toByteArray
 import rs.moma.janus.kredenac.db.CredentialTable
 import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.update
+import rs.moma.janus.kredenac.common.Owner
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.nio.ByteBuffer
 import kotlin.uuid.Uuid
 
 class StoredCredential(
@@ -24,7 +27,10 @@ class StoredCredential(
 )
 
 class CredentialRepository(private val hmacSecret: ByteArray) {
-    suspend fun insert(userId: Uuid, credentialId: ByteArray, algorithm: String, publicKey: ByteArray): Uuid = withContext(Dispatchers.IO) {
+    suspend fun insert(
+        userId: Uuid, credentialId: ByteArray,
+        algorithm: String, publicKey: ByteArray
+    ): Uuid = withContext(Dispatchers.IO) {
         val id = Uuid.random()
         val signCount = 0L
 
@@ -51,28 +57,33 @@ class CredentialRepository(private val hmacSecret: ByteArray) {
         }
     }
 
-    suspend fun findAllForUser(userId: Uuid): List<StoredCredential> = withContext(Dispatchers.IO) {
+    context(owner: Owner)
+    suspend fun findAll(): List<StoredCredential> = withContext(Dispatchers.IO) {
         transaction {
             CredentialTable.selectAll()
-                .where { CredentialTable.userId eq userId }
+                .where { CredentialTable.userId eq owner.userId }
                 .map { it.toStoredCredential() }
         }
     }
 
     suspend fun updateSignCount(stored: StoredCredential, newSignCount: Long) = withContext(Dispatchers.IO) {
         transaction {
-            CredentialTable.update({ CredentialTable.id eq stored.id }) {
+            CredentialTable.update({ (CredentialTable.id eq stored.id) and (CredentialTable.userId eq stored.userId) }) {
                 it[signCount] = newSignCount
                 it[integrityHash] = hashFor(stored.id, stored.userId, newSignCount, stored.publicKey)
             }
         }
     }
 
+    context(owner: Owner)
+    suspend fun delete(id: Uuid): Boolean = withContext(Dispatchers.IO) {
+        transaction {
+            CredentialTable.deleteWhere { (CredentialTable.id eq id) and (CredentialTable.userId eq owner.userId) } > 0
+        }
+    }
+
     private fun hashFor(id: Uuid, userId: Uuid, signCount: Long, publicKey: ByteArray): String {
-        val idBytes = id.toString().toByteArray()
-        val userIdBytes = userId.toString().toByteArray()
-        val signCountBytes = ByteBuffer.allocate(8).putLong(signCount).array()
-        return HmacUtil.hash(hmacSecret, idBytes + userIdBytes + signCountBytes + publicKey)
+        return HmacUtil.hash(hmacSecret, id.toByteArray() + userId.toByteArray() + signCount.toByteArray() + publicKey)
     }
 
     private fun ResultRow.toStoredCredential(): StoredCredential {

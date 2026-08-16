@@ -8,7 +8,7 @@ import org.jetbrains.exposed.v1.jdbc.Database
 import rs.moma.janus.kredenac.db.NotesTable
 import rs.moma.janus.kredenac.db.UserTable
 import com.zaxxer.hikari.HikariDataSource
-import rs.moma.janus.kredenac.utils.Env
+import rs.moma.janus.kredenac.common.Env
 import com.zaxxer.hikari.HikariConfig
 
 fun configureDatabase() {

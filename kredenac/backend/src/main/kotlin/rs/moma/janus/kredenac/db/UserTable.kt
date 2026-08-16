@@ -5,9 +5,9 @@ import org.jetbrains.exposed.v1.core.Table
 object UserTable : Table("users") {
     val id = uuid("id")
     val emailHash = varchar("email_hash", 64).uniqueIndex()
-    val emailEncrypted = binary("email_encrypted")
-    val emailEncryptedIv = binary("email_encrypted_iv")
-    val wrappedNoteKey = binary("wrapped_note_key")
-    val wrappedNoteKeyIv = binary("wrapped_note_key_iv")
+    val encryptedEmail = binary("encrypted_email")
+    val encryptedEmailIv = binary("encrypted_email_iv")
+    val encryptedUserKey = binary("encrypted_user_key")
+    val encryptedUserKeyIv = binary("encrypted_user_key_iv")
     override val primaryKey = PrimaryKey(id)
 }

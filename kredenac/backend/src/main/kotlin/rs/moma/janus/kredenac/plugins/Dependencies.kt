@@ -15,7 +15,7 @@ import rs.moma.janus.kredenac.repository.UserRepository
 import rs.moma.janus.kredenac.service.NotesService
 import rs.moma.janus.kredenac.service.UserService
 import org.koin.core.module.dsl.singleOf
-import rs.moma.janus.kredenac.utils.Env
+import rs.moma.janus.kredenac.common.Env
 import io.lettuce.core.api.coroutines
 import org.koin.core.qualifier.named
 import io.ktor.server.application.*
@@ -55,7 +55,7 @@ fun Application.configureDependencies() {
 
             single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get()) }
 
-            single { UserService(get(), get()) }
+            single { UserService(get(), get(), get()) }
             singleOf(::NotesService)
         })
     }

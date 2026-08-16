@@ -1,15 +1,19 @@
 package rs.moma.janus.kredenac.crypto.webauthn
 
 import rs.moma.janus.kredenac.crypto.algorithms.VerifyUtil
-import rs.moma.janus.kredenac.utils.UnauthorizedException
-import rs.moma.janus.kredenac.utils.BadRequestException
+import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.common.BadRequestException
+import rs.moma.janus.kredenac.common.readBigEndianLong
 import rs.moma.janus.kredenac.model.Base64Url
 import org.slf4j.LoggerFactory.getLogger
 import java.security.MessageDigest
 import kotlin.uuid.Uuid
 
 private object AssertionLog
+
 private val log = getLogger(AssertionLog::class.java)
+
+data class LoginResult(val userId: Uuid, val credentialRowId: Uuid)
 
 suspend fun WebAuthnService.verifyLogin(
     credentialId: Base64Url,
@@ -17,14 +21,15 @@ suspend fun WebAuthnService.verifyLogin(
     authenticatorData: Base64Url,
     signature: Base64Url,
     cookie: String?
-): Uuid {
+): LoginResult {
     val clientDataBytes = clientDataJSON.decode()
     val clientData = decodeClientData(clientDataBytes, "webauthn.get")
 
     verifyChallengeSession(clientData.challenge, cookie)
 
     val credentialIdBytes = credentialId.decode()
-    val credential = credentialRepository.findByCredentialId(credentialIdBytes) ?: throw UnauthorizedException("Unknown credential")
+    val credential = credentialRepository.findByCredentialId(credentialIdBytes)
+        ?: throw UnauthorizedException("Unknown credential")
 
     val authenticatorDataBytes = authenticatorData.decode()
     verifyRpIdHash(authenticatorDataBytes)
@@ -47,5 +52,5 @@ suspend fun WebAuthnService.verifyLogin(
         throw UnauthorizedException("Signature verification failed")
 
     credentialRepository.updateSignCount(credential, signCount)
-    return credential.userId
+    return LoginResult(credential.userId, credential.id)
 }

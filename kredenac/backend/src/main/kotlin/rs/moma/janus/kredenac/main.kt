@@ -2,7 +2,7 @@ package rs.moma.janus.kredenac
 
 import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
-import rs.moma.janus.kredenac.utils.Env
+import rs.moma.janus.kredenac.common.Env
 import io.ktor.server.netty.Netty
 
 fun main() {

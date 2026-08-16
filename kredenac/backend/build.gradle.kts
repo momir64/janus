@@ -23,6 +23,7 @@ dependencies {
     implementation(ktorLibs.server.statusPages)
     implementation(ktorLibs.server.defaultHeaders)
     implementation(ktorLibs.serialization.kotlinx.json)
+    implementation(ktorLibs.server.rateLimit)
     implementation(libs.logback.classic)
 
     implementation(libs.exposed.core)

@@ -3,7 +3,7 @@ package rs.moma.janus.kredenac.crypto.webauthn
 import rs.moma.janus.kredenac.repository.CredentialRepository
 import rs.moma.janus.kredenac.repository.ChallengeRepository
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
-import rs.moma.janus.kredenac.utils.BadRequestException
+import rs.moma.janus.kredenac.common.BadRequestException
 import kotlin.io.encoding.Base64.PaddingOption.ABSENT
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -62,6 +62,6 @@ class WebAuthnService(
     fun verifyUserVerified(authData: ByteArray) {
         if (authData.size < 33) throw BadRequestException("authData too short")
         if ((authData[32].toInt() and 0x01) == 0) throw BadRequestException("User presence flag not set")
-        if ((authData[32].toInt() and 0x04) == 0) throw BadRequestException("User verification required but not performed")
+        if ((authData[32].toInt() and 0x04) == 0) throw BadRequestException("User verification not performed")
     }
 }

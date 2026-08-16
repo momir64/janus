@@ -51,7 +51,8 @@ class JwtService(secret: ByteArray) {
             return null
         }
 
-        return if (claims.exp < Clock.System.now().epochSeconds) claims else null
+        if (claims.exp < Clock.System.now().epochSeconds) return null
+        return claims
     }
 
     private fun sign(input: String): ByteArray {

@@ -1,11 +1,11 @@
 package rs.moma.janus.kredenac.plugins
 
 import io.ktor.server.plugins.MissingRequestParameterException
-import rs.moma.janus.kredenac.utils.UnauthorizedException
-import rs.moma.janus.kredenac.utils.BadRequestException
-import rs.moma.janus.kredenac.utils.ForbiddenException
-import rs.moma.janus.kredenac.utils.ConflictException
-import rs.moma.janus.kredenac.utils.NotFoundException
+import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.common.BadRequestException
+import rs.moma.janus.kredenac.common.ForbiddenException
+import rs.moma.janus.kredenac.common.ConflictException
+import rs.moma.janus.kredenac.common.NotFoundException
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
@@ -34,6 +34,9 @@ fun Application.configureStatusPages() {
         exception<Throwable> { call, cause ->
             call.application.log.error("Unhandled exception", cause)
             call.respondText(text = "Internal server error", status = HttpStatusCode.InternalServerError)
+        }
+        status(HttpStatusCode.TooManyRequests) { call, status ->
+            call.respondText(text = "Too many requests", status = status)
         }
     }
 }

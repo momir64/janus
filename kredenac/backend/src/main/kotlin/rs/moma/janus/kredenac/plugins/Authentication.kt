@@ -3,14 +3,21 @@ package rs.moma.janus.kredenac.plugins
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
 import rs.moma.janus.kredenac.crypto.authentication.JwtService
 import io.ktor.server.auth.AuthenticationFailedCause.Error
+import rs.moma.janus.kredenac.common.Owner
 import io.ktor.server.request.httpMethod
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.principal
+import io.ktor.server.routing.Route
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import org.koin.ktor.ext.inject
+import io.ktor.server.routing.*
+import io.ktor.http.HttpMethod
 import io.ktor.server.auth.*
+import kotlin.uuid.Uuid
 import io.ktor.http.*
 
-data class SessionPrincipal(val userId: String, val sid: String)
+data class SessionPrincipal(val userId: Uuid)
 
 private val safeMethods = setOf(HttpMethod.Get, HttpMethod.Head, HttpMethod.Options)
 
@@ -42,8 +49,31 @@ fun Application.configureAuthentication() {
                     }
                 }
 
-                context.principal(SessionPrincipal(claims.sub, claims.sid))
+                context.principal(SessionPrincipal(Uuid.parse(claims.sub)))
             }
         }
     }
 }
+
+fun Route.authenticated(method: HttpMethod, path: String, body: suspend context(Owner) RoutingContext.() -> Unit) {
+    authenticate("jwt-cookie") {
+        route(path, method) {
+            handle {
+                val owner = Owner(call.principal<SessionPrincipal>()!!.userId)
+                context(owner) { body() }
+            }
+        }
+    }
+}
+
+fun Route.authenticatedGet(path: String, body: suspend context(Owner) RoutingContext.() -> Unit) =
+    authenticated(HttpMethod.Get, path, body)
+
+fun Route.authenticatedPost(path: String, body: suspend context(Owner) RoutingContext.() -> Unit) =
+    authenticated(HttpMethod.Post, path, body)
+
+fun Route.authenticatedPut(path: String, body: suspend context(Owner) RoutingContext.() -> Unit) =
+    authenticated(HttpMethod.Put, path, body)
+
+fun Route.authenticatedDelete(path: String, body: suspend context(Owner) RoutingContext.() -> Unit) =
+    authenticated(HttpMethod.Delete, path, body)

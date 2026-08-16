@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac.utils
+package rs.moma.janus.kredenac.common
 
 sealed class ApiException(message: String) : RuntimeException(message)
 

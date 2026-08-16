@@ -1,17 +1,23 @@
 package rs.moma.janus.kredenac.routes
 
 import rs.moma.janus.kredenac.crypto.authentication.RefreshTokenService
+import rs.moma.janus.kredenac.crypto.webauthn.verifyRegistration
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
 import rs.moma.janus.kredenac.crypto.authentication.JwtService
-import rs.moma.janus.kredenac.crypto.webauthn.verifyRegistration
 import rs.moma.janus.kredenac.model.AddCredentialFinishRequest
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
-import rs.moma.janus.kredenac.model.RegisterFinishRequest
-import rs.moma.janus.kredenac.utils.UnauthorizedException
-import rs.moma.janus.kredenac.model.LoginFinishRequest
-import rs.moma.janus.kredenac.plugins.SessionPrincipal
+import rs.moma.janus.kredenac.plugins.authChallengeRateLimit
+import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.plugins.authRefreshRateLimit
 import rs.moma.janus.kredenac.crypto.webauthn.verifyLogin
+import rs.moma.janus.kredenac.model.RegisterFinishRequest
+import rs.moma.janus.kredenac.plugins.authenticatedDelete
+import rs.moma.janus.kredenac.plugins.authenticatedPost
+import rs.moma.janus.kredenac.model.LoginFinishRequest
+import rs.moma.janus.kredenac.plugins.authenticatedGet
+import io.ktor.server.plugins.ratelimit.rateLimit
 import rs.moma.janus.kredenac.service.UserService
+import io.ktor.server.util.getOrFail
 import org.koin.core.qualifier.named
 import io.ktor.server.application.*
 import io.ktor.util.date.GMTDate
@@ -19,7 +25,6 @@ import io.ktor.server.response.*
 import org.koin.ktor.ext.inject
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
-import io.ktor.server.auth.*
 import kotlin.uuid.Uuid
 import io.ktor.http.*
 
@@ -38,67 +43,81 @@ fun Route.authRoutes() {
     }
 
     route("/auth") {
-        post("/register/start") { startChallenge(call) }
-        post("/register/finish") {
-            val request = call.receive<RegisterFinishRequest>()
-            val cookie = call.request.cookies["challenge_session"]
-
-            val parsed = webAuthnService.verifyRegistration(request.clientDataJSON, request.attestationObject, cookie)
-            userService.createUser(request.email, parsed.credentialId, parsed.algorithm, parsed.publicKey)
-
-            call.clearChallengeSessionCookie()
-            call.respond(HttpStatusCode.Created)
-        }
-
-        post("/login/start") { startChallenge(call) }
-        post("/login/finish") {
-            val request = call.receive<LoginFinishRequest>()
-            val cookie = call.request.cookies["challenge_session"]
-
-            val userId = webAuthnService.verifyLogin(
-                request.credentialId, request.clientDataJSON,
-                request.authenticatorData, request.signature, cookie
-            )
-
-            val sid = Uuid.random().toString()
-            val accessToken = jwtService.issue(userId, sid)
-            val refresh = refreshTokenService.issue(userId)
-
-            call.clearChallengeSessionCookie()
-            call.setAuthCookies(accessToken, refresh.refreshToken)
-            call.respond(mapOf("csrfToken" to csrfService.tokenFor(sid)))
-        }
-
-        post("/refresh") {
-            val refreshToken = call.request.cookies["refresh_token"]
-                ?: throw UnauthorizedException("Missing refresh token")
-
-            val (userId, next) = refreshTokenService.rotate(refreshToken)
-            val sid = Uuid.random().toString()
-            val accessToken = jwtService.issue(userId, sid)
-
-            call.setAuthCookies(accessToken, next.refreshToken)
-            call.respond(mapOf("csrfToken" to csrfService.tokenFor(sid)))
-        }
-
-        post("/logout") {
-            call.clearAuthCookies()
-            call.respond(HttpStatusCode.NoContent)
-        }
-
-        authenticate("jwt-cookie") {
-            post("/credentials/add/start") { startChallenge(call) }
-            post("/credentials/add/finish") {
-                val principal = call.principal<SessionPrincipal>()!!
-                val request = call.receive<AddCredentialFinishRequest>()
+        rateLimit(authChallengeRateLimit) {
+            post("/register/start") { startChallenge(call) }
+            post("/register/finish") {
+                val request = call.receive<RegisterFinishRequest>()
                 val cookie = call.request.cookies["challenge_session"]
-
-                val parsed = webAuthnService.verifyRegistration(request.clientDataJSON, request.attestationObject, cookie)
-                userService.addCredential(Uuid.parse(principal.userId), parsed.credentialId, parsed.algorithm, parsed.publicKey)
+                val rslt = webAuthnService.verifyRegistration(request.clientDataJSON, request.attestationObject, cookie)
+                userService.createUser(request.email, rslt.credentialId, rslt.algorithm, rslt.publicKey)
 
                 call.clearChallengeSessionCookie()
                 call.respond(HttpStatusCode.Created)
             }
+
+            post("/login/start") { startChallenge(call) }
+            post("/login/finish") {
+                val request = call.receive<LoginFinishRequest>()
+                val cookie = call.request.cookies["challenge_session"]
+
+                val result = webAuthnService.verifyLogin(
+                    request.credentialId, request.clientDataJSON,
+                    request.authenticatorData, request.signature, cookie
+                )
+
+                val sid = Uuid.random().toString()
+                val accessToken = jwtService.issue(result.userId, sid)
+                val refresh = refreshTokenService.issue(result.userId, result.credentialRowId)
+
+                call.clearChallengeSessionCookie()
+                call.setAuthCookies(accessToken, refresh.refreshToken)
+                call.respond(mapOf("csrfToken" to csrfService.tokenFor(sid)))
+            }
+        }
+
+        rateLimit(authRefreshRateLimit) {
+            post("/refresh") {
+                val refreshToken = call.request.cookies["refresh_token"]
+                    ?: throw UnauthorizedException("Missing refresh token")
+
+                val (userId, next) = refreshTokenService.rotate(refreshToken)
+                val sid = Uuid.random().toString()
+                val accessToken = jwtService.issue(userId, sid)
+
+                call.setAuthCookies(accessToken, next.refreshToken)
+                call.respond(mapOf("csrfToken" to csrfService.tokenFor(sid)))
+            }
+
+            post("/logout") {
+                call.request.cookies["refresh_token"]?.let { refreshTokenService.revoke(it) }
+                call.clearAuthCookies()
+                call.respond(HttpStatusCode.NoContent)
+            }
+        }
+
+        rateLimit(authChallengeRateLimit) {
+            authenticatedPost("/credentials/add/start") { startChallenge(call) }
+            authenticatedPost("/credentials/add/finish") {
+                val request = call.receive<AddCredentialFinishRequest>()
+                val cookie = call.request.cookies["challenge_session"]
+
+                val parsed =
+                    webAuthnService.verifyRegistration(request.clientDataJSON, request.attestationObject, cookie)
+                userService.addCredential(parsed.credentialId, parsed.algorithm, parsed.publicKey)
+
+                call.clearChallengeSessionCookie()
+                call.respond(HttpStatusCode.Created)
+            }
+        }
+
+        authenticatedGet("/credentials") {
+            call.respond(userService.listCredentials())
+        }
+
+        authenticatedDelete("/credentials/{id}") {
+            val credentialId = Uuid.parse(call.parameters.getOrFail("id"))
+            userService.deleteCredential(credentialId)
+            call.respond(HttpStatusCode.NoContent)
         }
     }
 }

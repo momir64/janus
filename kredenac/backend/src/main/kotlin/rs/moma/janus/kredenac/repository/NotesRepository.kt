@@ -7,6 +7,7 @@ import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import org.jetbrains.exposed.v1.jdbc.update
 import rs.moma.janus.kredenac.db.NotesTable
+import rs.moma.janus.kredenac.common.Owner
 import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import kotlinx.coroutines.Dispatchers
@@ -26,13 +27,14 @@ class StoredNote(
 )
 
 class NotesRepository {
+    context(owner: Owner)
     suspend fun insert(
-        userId: Uuid, encryptedTitle: ByteArray, encryptedTitleIv: ByteArray,
+        encryptedTitle: ByteArray, encryptedTitleIv: ByteArray,
         encryptedContent: ByteArray, encryptedContentIv: ByteArray
     ): Uuid = withContext(Dispatchers.IO) {
         transaction {
             NotesTable.insert {
-                it[NotesTable.userId] = userId
+                it[userId] = owner.userId
                 it[NotesTable.encryptedTitle] = encryptedTitle
                 it[NotesTable.encryptedTitleIv] = encryptedTitleIv
                 it[NotesTable.encryptedContent] = encryptedContent
@@ -41,29 +43,32 @@ class NotesRepository {
         }
     }
 
-    suspend fun findAllForUser(userId: Uuid): List<StoredNote> = withContext(Dispatchers.IO) {
+    context(owner: Owner)
+    suspend fun findAll(): List<StoredNote> = withContext(Dispatchers.IO) {
         transaction {
             NotesTable.selectAll()
-                .where { NotesTable.userId eq userId }
+                .where { NotesTable.userId eq owner.userId }
                 .map { it.toStoredNote() }
         }
     }
 
-    suspend fun findByIdForUser(id: Uuid, userId: Uuid): StoredNote? = withContext(Dispatchers.IO) {
+    context(owner: Owner)
+    suspend fun findById(id: Uuid): StoredNote? = withContext(Dispatchers.IO) {
         transaction {
             NotesTable.selectAll()
-                .where { (NotesTable.id eq id) and (NotesTable.userId eq userId) }
+                .where { (NotesTable.id eq id) and (NotesTable.userId eq owner.userId) }
                 .map { it.toStoredNote() }
                 .singleOrNull()
         }
     }
 
+    context(owner: Owner)
     suspend fun update(
         id: Uuid, encryptedTitle: ByteArray, encryptedTitleIv: ByteArray,
         encryptedContent: ByteArray, encryptedContentIv: ByteArray
     ) = withContext(Dispatchers.IO) {
         transaction {
-            NotesTable.update({ NotesTable.id eq id }) {
+            NotesTable.update({ (NotesTable.id eq id) and (NotesTable.userId eq owner.userId) }) {
                 it[NotesTable.encryptedTitle] = encryptedTitle
                 it[NotesTable.encryptedTitleIv] = encryptedTitleIv
                 it[NotesTable.encryptedContent] = encryptedContent
@@ -73,19 +78,20 @@ class NotesRepository {
         }
     }
 
-    suspend fun deleteForUser(id: Uuid, userId: Uuid) = withContext(Dispatchers.IO) {
+    context(owner: Owner)
+    suspend fun delete(id: Uuid) = withContext(Dispatchers.IO) {
         transaction {
-            NotesTable.deleteWhere { (NotesTable.id eq id) and (NotesTable.userId eq userId) }
+            NotesTable.deleteWhere { (NotesTable.id eq id) and (NotesTable.userId eq owner.userId) } > 0
         }
     }
 
     private fun ResultRow.toStoredNote() = StoredNote(
-        this[NotesTable.id],
-        this[NotesTable.userId],
-        this[NotesTable.encryptedTitle],
-        this[NotesTable.encryptedTitleIv],
-        this[NotesTable.encryptedContent],
-        this[NotesTable.encryptedContentIv],
-        this[NotesTable.updatedAt]
+        id = this[NotesTable.id],
+        userId = this[NotesTable.userId],
+        encryptedTitle = this[NotesTable.encryptedTitle],
+        encryptedTitleIv = this[NotesTable.encryptedTitleIv],
+        encryptedContent = this[NotesTable.encryptedContent],
+        encryptedContentIv = this[NotesTable.encryptedContentIv],
+        updatedAt = this[NotesTable.updatedAt]
     )
 }

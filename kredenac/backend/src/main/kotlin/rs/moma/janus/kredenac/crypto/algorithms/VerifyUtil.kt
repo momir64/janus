@@ -1,7 +1,7 @@
 package rs.moma.janus.kredenac.crypto.algorithms
 
 import rs.moma.janus.kredenac.crypto.algorithms.EcCurve.*
-import rs.moma.janus.kredenac.utils.BadRequestException
+import rs.moma.janus.kredenac.common.BadRequestException
 import java.security.spec.MGF1ParameterSpec.SHA256
 import java.security.spec.X509EncodedKeySpec
 import java.security.spec.PSSParameterSpec

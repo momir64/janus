@@ -30,3 +30,9 @@ data class AddCredentialFinishRequest(
     val clientDataJSON: Base64Url,
     val attestationObject: Base64Url
 )
+
+@Serializable
+data class CredentialDto(
+    val id: String,
+    val algorithm: String // todo: later add more info about authenticator, like model and when added
+)

@@ -3,9 +3,10 @@ package rs.moma.janus.kredenac.crypto.webauthn
 import rs.moma.janus.kredenac.crypto.webauthn.CborValue.Companion.get
 import rs.moma.janus.kredenac.crypto.algorithms.VerifyUtil
 import rs.moma.janus.kredenac.crypto.algorithms.RsaUtil
-import rs.moma.janus.kredenac.utils.BadRequestException
+import rs.moma.janus.kredenac.common.BadRequestException
 import rs.moma.janus.kredenac.crypto.algorithms.EcUtil
 import rs.moma.janus.kredenac.crypto.algorithms.EdUtil
+import rs.moma.janus.kredenac.common.readBigEndianLong
 import rs.moma.janus.kredenac.model.Base64Url
 
 class ParsedAttestation(val credentialId: ByteArray, val publicKey: ByteArray, val algorithm: String)
@@ -20,7 +21,8 @@ suspend fun WebAuthnService.verifyRegistration(
 
     verifyChallengeSession(clientData.challenge, cookie)
 
-    val attestationMap = CborValue.from(attestationObject.decode()) ?: throw BadRequestException("Invalid attestation object")
+    val attestationObject = attestationObject.decode()
+    val attestationMap = CborValue.from(attestationObject) ?: throw BadRequestException("Invalid attestation object")
     val authData = attestationMap["authData"]?.asByteStr() ?: throw BadRequestException("Missing authData")
 
     verifyRpIdHash(authData)
@@ -50,8 +52,8 @@ private fun parseAuthData(authData: ByteArray): ParsedAttestation {
     val coseKey = CborValue.from(authData, credentialIdEnd)
         ?: throw BadRequestException("Invalid COSE key")
 
-    val kty = coseKey[1]?.asUInt() ?: throw BadRequestException("Missing key type")
-    val alg = coseKey[3]?.asNInt() ?: throw BadRequestException("Missing algorithm")
+    val kty = coseKey[1]?.asInteger() ?: throw BadRequestException("Missing key type")
+    val alg = coseKey[3]?.asInteger() ?: throw BadRequestException("Missing algorithm")
     val algorithm = VerifyUtil(alg)
 
     val publicKey = when (kty) {
@@ -59,20 +61,17 @@ private fun parseAuthData(authData: ByteArray): ParsedAttestation {
             val key = coseKey[-2]?.asByteStr() ?: throw BadRequestException("Missing public key")
             EdUtil.toPublicKey(key)
         }
-
         2L -> {
             val x = coseKey[-2]?.asByteStr() ?: throw BadRequestException("Missing public key x coordinate")
             val y = coseKey[-3]?.asByteStr() ?: throw BadRequestException("Missing public key y coordinate")
-            val curve = algorithm.curve ?: throw BadRequestException("Algorithm ${algorithm.name} is not an EC algorithm")
+            val curve = algorithm.curve ?: throw BadRequestException("Algorithm ${algorithm.name} isn't EC algorithm")
             EcUtil.toPublicKey(curve, x, y)
         }
-
         3L -> {
             val modulus = coseKey[-1]?.asByteStr() ?: throw BadRequestException("Missing RSA modulus")
             val exponent = coseKey[-2]?.asByteStr() ?: throw BadRequestException("Missing RSA exponent")
             RsaUtil.toPublicKey(modulus, exponent)
         }
-
         else -> throw BadRequestException("Unsupported key type: $kty")
     }
 

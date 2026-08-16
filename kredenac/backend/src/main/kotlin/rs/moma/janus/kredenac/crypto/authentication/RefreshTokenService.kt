@@ -1,7 +1,7 @@
 package rs.moma.janus.kredenac.crypto.authentication
 
 import rs.moma.janus.kredenac.repository.RefreshTokenRepository
-import rs.moma.janus.kredenac.utils.UnauthorizedException
+import rs.moma.janus.kredenac.common.UnauthorizedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import kotlin.io.encoding.Base64.PaddingOption.ABSENT
 import kotlin.time.Duration.Companion.seconds
@@ -22,12 +22,18 @@ class RefreshTokenService(
     private val rotationGracePeriod = 5.seconds
     private val log = getLogger(RefreshTokenService::class.java)
 
-    suspend fun issue(userId: Uuid, chainId: Uuid = Uuid.random()): IssuedRefreshToken {
+    suspend fun issue(userId: Uuid, credentialId: Uuid, chainId: Uuid = Uuid.random()): IssuedRefreshToken {
         val bytes = ByteArray(32)
         secureRandom.nextBytes(bytes)
         val rawToken = Base64.UrlSafe.withPadding(ABSENT).encode(bytes)
-        repository.insert(userId, chainId, HmacUtil.hash(hmacSecret, rawToken), Clock.System.now() + 30.days)
+        val token = HmacUtil.hash(hmacSecret, rawToken)
+        repository.insert(userId, credentialId, chainId, token, Clock.System.now() + 30.days)
         return IssuedRefreshToken(rawToken, chainId)
+    }
+
+    suspend fun revoke(refreshToken: String) {
+        val stored = repository.findByHash(HmacUtil.hash(hmacSecret, refreshToken)) ?: return
+        repository.deleteChain(stored.chainId)
     }
 
     suspend fun rotate(refreshToken: String): Pair<Uuid, IssuedRefreshToken> {
@@ -46,6 +52,6 @@ class RefreshTokenService(
         if (stored.rotatedAt == null)
             repository.markRotated(stored)
 
-        return stored.userId to issue(stored.userId, stored.chainId)
+        return stored.userId to issue(stored.userId, stored.credentialId, stored.chainId)
     }
 }

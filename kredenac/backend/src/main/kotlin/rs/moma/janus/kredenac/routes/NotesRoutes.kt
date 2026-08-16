@@ -1,6 +1,9 @@
 package rs.moma.janus.kredenac.routes
 
-import rs.moma.janus.kredenac.plugins.SessionPrincipal
+import rs.moma.janus.kredenac.plugins.authenticatedDelete
+import rs.moma.janus.kredenac.plugins.authenticatedPost
+import rs.moma.janus.kredenac.plugins.authenticatedGet
+import rs.moma.janus.kredenac.plugins.authenticatedPut
 import rs.moma.janus.kredenac.model.CreateNoteRequest
 import rs.moma.janus.kredenac.model.UpdateNoteRequest
 import rs.moma.janus.kredenac.service.NotesService
@@ -9,43 +12,32 @@ import io.ktor.server.response.*
 import org.koin.ktor.ext.inject
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
-import io.ktor.server.auth.*
 import kotlin.uuid.Uuid
 import io.ktor.http.*
-
 
 fun Route.notesRoutes() {
     val notesService: NotesService by inject()
 
     route("/notes") {
-        authenticate("jwt-cookie") {
-            get {
-                val principal = call.principal<SessionPrincipal>()!!
-                val notes = notesService.list(Uuid.parse(principal.userId))
-                call.respond(notes)
-            }
+        authenticatedGet("") {
+            call.respond(notesService.list())
+        }
 
-            post {
-                val principal = call.principal<SessionPrincipal>()!!
-                val request = call.receive<CreateNoteRequest>()
-                val note = notesService.create(Uuid.parse(principal.userId), request.title, request.content)
-                call.respond(HttpStatusCode.Created, note)
-            }
+        authenticatedPost("") {
+            val request = call.receive<CreateNoteRequest>()
+            call.respond(HttpStatusCode.Created, notesService.create(request.title, request.content))
+        }
 
-            put("/{id}") {
-                val principal = call.principal<SessionPrincipal>()!!
-                val noteId = Uuid.parse(call.parameters.getOrFail("id"))
-                val request = call.receive<UpdateNoteRequest>()
-                val note = notesService.update(Uuid.parse(principal.userId), noteId, request.title, request.content)
-                call.respond(note)
-            }
+        authenticatedPut("/{id}") {
+            val noteId = Uuid.parse(call.parameters.getOrFail("id"))
+            val request = call.receive<UpdateNoteRequest>()
+            call.respond(notesService.update(noteId, request.title, request.content))
+        }
 
-            delete("/{id}") {
-                val principal = call.principal<SessionPrincipal>()!!
-                val noteId = Uuid.parse(call.parameters.getOrFail("id"))
-                notesService.delete(Uuid.parse(principal.userId), noteId)
-                call.respond(HttpStatusCode.NoContent)
-            }
+        authenticatedDelete("/{id}") {
+            val noteId = Uuid.parse(call.parameters.getOrFail("id"))
+            notesService.delete(noteId)
+            call.respond(HttpStatusCode.NoContent)
         }
     }
 }

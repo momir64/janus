@@ -1,7 +1,7 @@
 package rs.moma.janus.kredenac.repository
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import rs.moma.janus.kredenac.utils.UnauthorizedException
+import rs.moma.janus.kredenac.common.UnauthorizedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
 import org.jetbrains.exposed.v1.core.ResultRow
@@ -23,19 +23,18 @@ class UserRepository(
 ) {
     suspend fun insert(email: String): Uuid = withContext(Dispatchers.IO) {
         val id = Uuid.random()
-        val aad = id.toString().toByteArray()
+        val aad = id.toByteArray()
         val encryptedEmail = AesUtil.encrypt(emailEncryptionKey, email.toByteArray(), aad)
-        val noteKey = AesUtil.generateKey()
-        val wrappedKey = AesUtil.encrypt(masterKey, noteKey, aad)
+        val userKey = AesUtil.encrypt(masterKey, AesUtil.generateKey(), aad)
 
         transaction {
             UserTable.insert {
                 it[UserTable.id] = id
                 it[emailHash] = HmacUtil.hash(hmacSecret, email)
-                it[emailEncrypted] = encryptedEmail.ciphertext
-                it[emailEncryptedIv] = encryptedEmail.iv
-                it[wrappedNoteKey] = wrappedKey.ciphertext
-                it[wrappedNoteKeyIv] = wrappedKey.iv
+                it[this.encryptedEmail] = encryptedEmail.ciphertext
+                it[encryptedEmailIv] = encryptedEmail.iv
+                it[encryptedUserKey] = userKey.ciphertext
+                it[encryptedUserKeyIv] = userKey.iv
             }
         }
         id
@@ -60,20 +59,26 @@ class UserRepository(
     }
 
     suspend fun noteKeyFor(id: Uuid): ByteArray? = withContext(Dispatchers.IO) {
-        val row = transaction { UserTable.selectAll().where { UserTable.id eq id }.singleOrNull() } ?: return@withContext null
-        val aad = id.toString().toByteArray()
+        val row = transaction {
+            UserTable.selectAll().where { UserTable.id eq id }.singleOrNull()
+        } ?: return@withContext null
+        val ciphertext = row[UserTable.encryptedUserKey]
+        val iv = row[UserTable.encryptedUserKeyIv]
+        val aad = id.toByteArray()
         try {
-            AesUtil.decrypt(masterKey, row[UserTable.wrappedNoteKey], row[UserTable.wrappedNoteKeyIv], aad)
+            AesUtil.decrypt(masterKey, ciphertext, iv, aad)
         } catch (_: AEADBadTagException) {
             throw UnauthorizedException("Note key failed integrity check")
         }
     }
 
     private fun ResultRow.toStoredUser(): StoredUser {
+        val ciphertext = this[UserTable.encryptedEmail]
+        val iv = this[UserTable.encryptedEmailIv]
         val id = this[UserTable.id]
-        val aad = id.toString().toByteArray()
+        val aad = id.toByteArray()
         val email = try {
-            String(AesUtil.decrypt(emailEncryptionKey, this[UserTable.emailEncrypted], this[UserTable.emailEncryptedIv], aad))
+            String(AesUtil.decrypt(emailEncryptionKey, ciphertext, iv, aad))
         } catch (_: AEADBadTagException) {
             throw UnauthorizedException("User email failed integrity check")
         }
