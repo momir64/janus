@@ -1,17 +1,19 @@
 package rs.moma.janus.kredenac.routes
 
 import rs.moma.janus.kredenac.crypto.authentication.RefreshTokenService
+import rs.moma.janus.kredenac.crypto.authentication.MagicLinkService
 import rs.moma.janus.kredenac.crypto.webauthn.verifyRegistration
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
 import rs.moma.janus.kredenac.crypto.authentication.JwtService
 import rs.moma.janus.kredenac.model.AddCredentialFinishRequest
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
 import rs.moma.janus.kredenac.plugins.authChallengeRateLimit
-import rs.moma.janus.kredenac.common.UnauthorizedException
 import rs.moma.janus.kredenac.plugins.authRefreshRateLimit
 import rs.moma.janus.kredenac.crypto.webauthn.verifyLogin
 import rs.moma.janus.kredenac.model.RegisterFinishRequest
+import rs.moma.janus.kredenac.model.RegisterVerifyRequest
 import rs.moma.janus.kredenac.plugins.authenticatedDelete
+import rs.moma.janus.kredenac.plugins.magicLinkRateLimit
 import rs.moma.janus.kredenac.plugins.authenticatedPost
 import rs.moma.janus.kredenac.model.LoginFinishRequest
 import rs.moma.janus.kredenac.plugins.authenticatedGet
@@ -30,8 +32,9 @@ import io.ktor.http.*
 
 fun Route.authRoutes() {
     val refreshTokenService: RefreshTokenService by inject()
-    val rpId: String by inject(named("rpId"))
+    val magicLinkService: MagicLinkService by inject()
     val webAuthnService: WebAuthnService by inject()
+    val rpId: String by inject(named("rpId"))
     val userService: UserService by inject()
     val csrfService: CsrfService by inject()
     val jwtService: JwtService by inject()
@@ -43,13 +46,25 @@ fun Route.authRoutes() {
     }
 
     route("/auth") {
+        rateLimit(magicLinkRateLimit) {
+            post("/register/verify") {
+                val request = call.receive<RegisterVerifyRequest>()
+                magicLinkService.request(request.email)
+                call.respond(HttpStatusCode.NoContent)
+            }
+        }
+
         rateLimit(authChallengeRateLimit) {
             post("/register/start") { startChallenge(call) }
             post("/register/finish") {
-                val request = call.receive<RegisterFinishRequest>()
                 val cookie = call.request.cookies["challenge_session"]
-                val rslt = webAuthnService.verifyRegistration(request.clientDataJSON, request.attestationObject, cookie)
-                userService.createUser(request.email, rslt.credentialId, rslt.algorithm, rslt.publicKey)
+                val request = call.receive<RegisterFinishRequest>()
+                val attestationObject = request.attestationObject
+                val clientDataJSON = request.clientDataJSON
+
+                val parsed = webAuthnService.verifyRegistration(clientDataJSON, attestationObject, cookie)
+                val email = magicLinkService.getEmail(request.token)
+                userService.register(email, parsed.credentialId, parsed.algorithm, parsed.publicKey)
 
                 call.clearChallengeSessionCookie()
                 call.respond(HttpStatusCode.Created)
@@ -78,8 +93,6 @@ fun Route.authRoutes() {
         rateLimit(authRefreshRateLimit) {
             post("/refresh") {
                 val refreshToken = call.request.cookies["refresh_token"]
-                    ?: throw UnauthorizedException("Missing refresh token")
-
                 val (userId, next) = refreshTokenService.rotate(refreshToken)
                 val sid = Uuid.random().toString()
                 val accessToken = jwtService.issue(userId, sid)
@@ -100,9 +113,10 @@ fun Route.authRoutes() {
             authenticatedPost("/credentials/add/finish") {
                 val request = call.receive<AddCredentialFinishRequest>()
                 val cookie = call.request.cookies["challenge_session"]
+                val attestationObject = request.attestationObject
+                val clientDataJSON = request.clientDataJSON
 
-                val parsed =
-                    webAuthnService.verifyRegistration(request.clientDataJSON, request.attestationObject, cookie)
+                val parsed = webAuthnService.verifyRegistration(clientDataJSON, attestationObject, cookie)
                 userService.addCredential(parsed.credentialId, parsed.algorithm, parsed.publicKey)
 
                 call.clearChallengeSessionCookie()

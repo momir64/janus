@@ -17,7 +17,9 @@ private fun loadDotenv(): Map<String, String> {
             val separatorIndex = line.indexOf('=')
             if (separatorIndex == -1) return@mapNotNull null
             val key = line.substring(0, separatorIndex).trim()
-            val value = line.substring(separatorIndex + 1).trim()
+            var value = line.substring(separatorIndex + 1).trim()
+            if (value.length >= 2 && value.first() in "\"'" && value.first() == value.last())
+                value = value.substring(1, value.length - 1)
             key to value
         }.toMap()
 }

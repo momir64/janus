@@ -11,8 +11,11 @@ value class Base64Url(val value: String) {
 }
 
 @Serializable
+data class RegisterVerifyRequest(val email: String)
+
+@Serializable
 data class RegisterFinishRequest(
-    val email: String,
+    val token: String,
     val clientDataJSON: Base64Url,
     val attestationObject: Base64Url
 )

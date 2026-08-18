@@ -35,7 +35,7 @@ sealed class CborValue {
                 0 -> Integer(readLength(additionalInfo))
                 1 -> Integer(-1L - readLength(additionalInfo))
                 2 -> ByteStr(readBytes(readLength(additionalInfo).toInt()))
-                3 -> TextStr(String(readBytes(readLength(additionalInfo).toInt()), Charsets.UTF_8))
+                3 -> TextStr(String(readBytes(readLength(additionalInfo).toInt())))
                 4 -> Arr((0 until readLength(additionalInfo)).map { readValue() })
                 5 -> {
                     val map = LinkedHashMap<CborValue, CborValue>()

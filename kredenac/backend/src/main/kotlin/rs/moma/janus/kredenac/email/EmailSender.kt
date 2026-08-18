@@ -1,0 +1,35 @@
+package rs.moma.janus.kredenac.email
+
+import io.ktor.client.statement.bodyAsText
+import kotlinx.serialization.Serializable
+import org.slf4j.LoggerFactory.getLogger
+import kotlinx.serialization.json.Json
+import io.ktor.client.request.setBody
+import io.ktor.client.engine.cio.CIO
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.HttpClient
+import io.ktor.http.isSuccess
+
+@Serializable
+private data class EmailRequest(val from: String, val to: List<String>, val subject: String, val html: String)
+
+class EmailSender(private val apiKey: String, private val fromAddress: String) {
+    private val log = getLogger(EmailSender::class.java)
+    private val json = Json { ignoreUnknownKeys = true }
+    private val client = HttpClient(CIO)
+
+    suspend fun send(to: String, subject: String, html: String) {
+        val body = json.encodeToString(EmailRequest(fromAddress, listOf(to), subject, html))
+        val response = client.post("https://api.resend.com/emails") {
+            header("Authorization", "Bearer $apiKey")
+            header("Content-Type", "application/json")
+            setBody(body)
+        }
+
+        if (!response.status.isSuccess()) {
+            log.error("Resend API returned ${response.status.value}: ${response.bodyAsText()}")
+            throw IllegalStateException("Failed to send the email")
+        }
+    }
+}

@@ -1,6 +1,7 @@
 package rs.moma.janus.kredenac.plugins
 
 import rs.moma.janus.kredenac.crypto.authentication.RefreshTokenService
+import rs.moma.janus.kredenac.crypto.authentication.MagicLinkService
 import kotlin.io.encoding.Base64.PaddingOption.PRESENT_OPTIONAL
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
 import rs.moma.janus.kredenac.repository.RefreshTokenRepository
@@ -8,12 +9,13 @@ import rs.moma.janus.kredenac.crypto.authentication.JwtService
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
 import rs.moma.janus.kredenac.repository.CredentialRepository
-import rs.moma.janus.kredenac.repository.ChallengeRepository
 import rs.moma.janus.kredenac.repository.NotesRepository
+import rs.moma.janus.kredenac.repository.TokenRepository
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import rs.moma.janus.kredenac.repository.UserRepository
 import rs.moma.janus.kredenac.service.NotesService
 import rs.moma.janus.kredenac.service.UserService
+import rs.moma.janus.kredenac.email.EmailSender
 import org.koin.core.module.dsl.singleOf
 import rs.moma.janus.kredenac.common.Env
 import io.lettuce.core.api.coroutines
@@ -44,7 +46,7 @@ fun Application.configureDependencies() {
                 .withPassword(Env.get("REDIS_PASSWORD").toCharArray()).build()
             val redisClient = RedisClient.create(redisUri)
             single<RedisCoroutinesCommands<String, String>> { redisClient.connect().coroutines() }
-            single { ChallengeRepository(get()) }
+            single { TokenRepository(get(), emailEncryptionKey, hmacSecret) }
 
             single { JwtService(Env.getBytes("JWT_SECRET")) }
             single { CsrfService(Env.getBytes("CSRF_SECRET")) }
@@ -54,6 +56,9 @@ fun Application.configureDependencies() {
             single { CredentialRepository(hmacSecret) }
 
             single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get()) }
+
+            single { EmailSender(Env.get("RESEND_API_KEY"), Env.get("RESEND_FROM_EMAIL")) }
+            single { MagicLinkService(get(), get(), get(named("rpOrigin"))) }
 
             single { UserService(get(), get(), get()) }
             singleOf(::NotesService)

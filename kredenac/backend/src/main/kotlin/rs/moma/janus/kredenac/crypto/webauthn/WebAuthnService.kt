@@ -1,10 +1,11 @@
 package rs.moma.janus.kredenac.crypto.webauthn
 
 import rs.moma.janus.kredenac.repository.CredentialRepository
-import rs.moma.janus.kredenac.repository.ChallengeRepository
-import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import rs.moma.janus.kredenac.common.BadRequestException
+import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
+import rs.moma.janus.kredenac.repository.TokenRepository
 import kotlin.io.encoding.Base64.PaddingOption.ABSENT
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.security.MessageDigest
@@ -20,33 +21,31 @@ class WebAuthnService(
     private val rpId: String,
     private val rpOrigin: String,
     private val hmacSecret: ByteArray,
-    private val challengeRepository: ChallengeRepository,
-    internal val credentialRepository: CredentialRepository,
+    private val tokenRepository: TokenRepository,
+    internal val credentialRepository: CredentialRepository, // todo refactor later
 ) {
-    private val secureRandom = SecureRandom()
     private val json = Json { ignoreUnknownKeys = true }
+    private val secureRandom = SecureRandom()
 
     suspend fun start(): ChallengeSession {
         val bytes = ByteArray(32)
         secureRandom.nextBytes(bytes)
         val challenge = Base64.UrlSafe.withPadding(ABSENT).encode(bytes)
-        val challengeHash = HmacUtil.hash(hmacSecret, challenge)
         val sessionCookie = HmacUtil.hash(hmacSecret, "$challenge:cookie")
-        challengeRepository.insert(challengeHash)
+        tokenRepository.insert(challenge, 3.minutes)
         return ChallengeSession(challenge, sessionCookie)
     }
 
     suspend fun verifyChallengeSession(challenge: String, cookie: String?) {
-        val challengeHash = HmacUtil.hash(hmacSecret, challenge)
         val sessionCookie = HmacUtil.hash(hmacSecret, "$challenge:cookie")
         if (cookie == null || sessionCookie != cookie)
             throw BadRequestException("Challenge session cookie is missing or isn't valid")
-        if (!challengeRepository.consume(challengeHash))
+        if (!tokenRepository.consumePresence(challenge))
             throw BadRequestException("Challenge isn't pending, it might have expired")
     }
 
     fun decodeClientData(bytes: ByteArray, expectedType: String): ClientDataJson {
-        val clientData = json.decodeFromString<ClientDataJson>(String(bytes, Charsets.UTF_8))
+        val clientData = json.decodeFromString<ClientDataJson>(String(bytes))
         if (clientData.type != expectedType) throw BadRequestException("Unexpected clientData type")
         if (clientData.origin != rpOrigin) throw BadRequestException("Origin mismatch")
         return clientData

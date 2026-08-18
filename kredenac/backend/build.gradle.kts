@@ -24,6 +24,8 @@ dependencies {
     implementation(ktorLibs.server.defaultHeaders)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.server.rateLimit)
+    implementation(ktorLibs.client.core)
+    implementation(ktorLibs.client.cio)
     implementation(libs.logback.classic)
 
     implementation(libs.exposed.core)

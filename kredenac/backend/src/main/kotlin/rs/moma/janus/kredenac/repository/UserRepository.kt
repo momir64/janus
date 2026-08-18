@@ -1,10 +1,9 @@
 package rs.moma.janus.kredenac.repository
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
-import org.jetbrains.exposed.v1.core.ResultRow
 import org.jetbrains.exposed.v1.jdbc.selectAll
 import org.jetbrains.exposed.v1.jdbc.insert
 import rs.moma.janus.kredenac.db.UserTable
@@ -13,8 +12,6 @@ import org.jetbrains.exposed.v1.core.eq
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlin.uuid.Uuid
-
-class StoredUser(val id: Uuid, val email: String)
 
 class UserRepository(
     private val hmacSecret: ByteArray,
@@ -25,7 +22,7 @@ class UserRepository(
         val id = Uuid.random()
         val aad = id.toByteArray()
         val encryptedEmail = AesUtil.encrypt(emailEncryptionKey, email.toByteArray(), aad)
-        val userKey = AesUtil.encrypt(masterKey, AesUtil.generateKey(), aad)
+        val encryptedUserKey = AesUtil.encrypt(masterKey, AesUtil.generateKey(), aad)
 
         transaction {
             UserTable.insert {
@@ -33,55 +30,47 @@ class UserRepository(
                 it[emailHash] = HmacUtil.hash(hmacSecret, email)
                 it[this.encryptedEmail] = encryptedEmail.ciphertext
                 it[encryptedEmailIv] = encryptedEmail.iv
-                it[encryptedUserKey] = userKey.ciphertext
-                it[encryptedUserKeyIv] = userKey.iv
+                it[this.encryptedUserKey] = encryptedUserKey.ciphertext
+                it[encryptedUserKeyIv] = encryptedUserKey.iv
             }
         }
         id
     }
 
-    suspend fun findById(id: Uuid): StoredUser? = withContext(Dispatchers.IO) {
-        transaction {
-            UserTable.selectAll()
-                .where { UserTable.id eq id }
-                .map { it.toStoredUser() }
-                .singleOrNull()
-        }
-    }
-
-    suspend fun findByEmail(email: String): StoredUser? = withContext(Dispatchers.IO) {
+    suspend fun findIdByEmail(email: String): Uuid? = withContext(Dispatchers.IO) {
         transaction {
             UserTable.selectAll()
                 .where { UserTable.emailHash eq HmacUtil.hash(hmacSecret, email) }
-                .map { it.toStoredUser() }
+                .map { it[UserTable.id] }
                 .singleOrNull()
         }
     }
 
-    suspend fun noteKeyFor(id: Uuid): ByteArray? = withContext(Dispatchers.IO) {
+    suspend fun encryptionKeyFor(id: Uuid): ByteArray? = withContext(Dispatchers.IO) {
         val row = transaction {
             UserTable.selectAll().where { UserTable.id eq id }.singleOrNull()
         } ?: return@withContext null
+
         val ciphertext = row[UserTable.encryptedUserKey]
         val iv = row[UserTable.encryptedUserKeyIv]
-        val aad = id.toByteArray()
         try {
-            AesUtil.decrypt(masterKey, ciphertext, iv, aad)
+            AesUtil.decrypt(masterKey, ciphertext, iv, id.toByteArray())
         } catch (_: AEADBadTagException) {
-            throw UnauthorizedException("Note key failed integrity check")
+            throw CompromisedException("Encryption key for user=$id failed integrity check")
         }
     }
 
-    private fun ResultRow.toStoredUser(): StoredUser {
-        val ciphertext = this[UserTable.encryptedEmail]
-        val iv = this[UserTable.encryptedEmailIv]
-        val id = this[UserTable.id]
-        val aad = id.toByteArray()
-        val email = try {
-            String(AesUtil.decrypt(emailEncryptionKey, ciphertext, iv, aad))
+    suspend fun findEmailById(id: Uuid): String? = withContext(Dispatchers.IO) {
+        val row = transaction {
+            UserTable.selectAll().where { UserTable.id eq id }.singleOrNull()
+        } ?: return@withContext null
+
+        val ciphertext = row[UserTable.encryptedEmail]
+        val iv = row[UserTable.encryptedEmailIv]
+        try {
+            String(AesUtil.decrypt(emailEncryptionKey, ciphertext, iv, id.toByteArray()))
         } catch (_: AEADBadTagException) {
-            throw UnauthorizedException("User email failed integrity check")
+            throw CompromisedException("Email for user=$id failed integrity check")
         }
-        return StoredUser(id, email)
     }
 }

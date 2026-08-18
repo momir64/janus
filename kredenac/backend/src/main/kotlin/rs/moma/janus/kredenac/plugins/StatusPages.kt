@@ -2,6 +2,7 @@ package rs.moma.janus.kredenac.plugins
 
 import io.ktor.server.plugins.MissingRequestParameterException
 import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.common.BadRequestException
 import rs.moma.janus.kredenac.common.ForbiddenException
 import rs.moma.janus.kredenac.common.ConflictException
@@ -21,6 +22,10 @@ fun Application.configureStatusPages() {
         }
         exception<UnauthorizedException> { call, cause ->
             call.respondText(text = cause.message ?: "Unauthorized", status = HttpStatusCode.Unauthorized)
+        }
+        exception<CompromisedException> { call, cause ->
+            call.respondText(text = "Internal server error", status = HttpStatusCode.InternalServerError)
+            call.application.log.error("Compromised data", cause)
         }
         exception<ForbiddenException> { call, cause ->
             call.respondText(text = cause.message ?: "Forbidden", status = HttpStatusCode.Forbidden)

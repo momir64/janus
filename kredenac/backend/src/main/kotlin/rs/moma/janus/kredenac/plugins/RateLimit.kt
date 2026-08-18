@@ -7,6 +7,7 @@ import io.ktor.server.application.*
 
 val authChallengeRateLimit = RateLimitName("auth-ceremony")
 val authRefreshRateLimit = RateLimitName("auth-refresh")
+val magicLinkRateLimit = RateLimitName("magic-link")
 
 private fun clientKey(call: ApplicationCall) =
     call.request.headers["CF-Connecting-IP"] ?: call.request.origin.remoteHost
@@ -19,6 +20,10 @@ fun Application.configureRateLimit() {
         }
         register(authRefreshRateLimit) {
             rateLimiter(limit = 30, refillPeriod = 1.minutes)
+            requestKey(::clientKey)
+        }
+        register(magicLinkRateLimit) {
+            rateLimiter(limit = 3, refillPeriod = 15.minutes)
             requestKey(::clientKey)
         }
     }

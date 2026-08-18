@@ -1,7 +1,7 @@
 package rs.moma.janus.kredenac.repository
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import rs.moma.janus.kredenac.common.toByteArray
@@ -93,7 +93,7 @@ class CredentialRepository(private val hmacSecret: ByteArray) {
         val signCount = this[CredentialTable.signCount]
 
         if (hashFor(id, userId, signCount, publicKey) != this[CredentialTable.integrityHash])
-            throw UnauthorizedException("Credential data failed integrity check")
+            throw CompromisedException("Credential data (id=$id) for user=$userId failed integrity check")
 
         return StoredCredential(
             id, userId, this[CredentialTable.credentialId],

@@ -36,7 +36,9 @@ class RefreshTokenService(
         repository.deleteChain(stored.chainId)
     }
 
-    suspend fun rotate(refreshToken: String): Pair<Uuid, IssuedRefreshToken> {
+    suspend fun rotate(refreshToken: String?): Pair<Uuid, IssuedRefreshToken> {
+        val refreshToken = refreshToken ?: throw UnauthorizedException("Missing refresh token")
+
         val stored = repository.findByHash(HmacUtil.hash(hmacSecret, refreshToken))
             ?: throw UnauthorizedException("Invalid refresh token")
 

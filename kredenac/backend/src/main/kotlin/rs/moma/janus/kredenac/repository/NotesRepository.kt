@@ -53,20 +53,10 @@ class NotesRepository {
     }
 
     context(owner: Owner)
-    suspend fun findById(id: Uuid): StoredNote? = withContext(Dispatchers.IO) {
-        transaction {
-            NotesTable.selectAll()
-                .where { (NotesTable.id eq id) and (NotesTable.userId eq owner.userId) }
-                .map { it.toStoredNote() }
-                .singleOrNull()
-        }
-    }
-
-    context(owner: Owner)
     suspend fun update(
         id: Uuid, encryptedTitle: ByteArray, encryptedTitleIv: ByteArray,
         encryptedContent: ByteArray, encryptedContentIv: ByteArray
-    ) = withContext(Dispatchers.IO) {
+    ): Boolean = withContext(Dispatchers.IO) {
         transaction {
             NotesTable.update({ (NotesTable.id eq id) and (NotesTable.userId eq owner.userId) }) {
                 it[NotesTable.encryptedTitle] = encryptedTitle
@@ -74,12 +64,12 @@ class NotesRepository {
                 it[NotesTable.encryptedContent] = encryptedContent
                 it[NotesTable.encryptedContentIv] = encryptedContentIv
                 it[updatedAt] = Clock.System.now()
-            }
+            } > 0
         }
     }
 
     context(owner: Owner)
-    suspend fun delete(id: Uuid) = withContext(Dispatchers.IO) {
+    suspend fun delete(id: Uuid): Boolean = withContext(Dispatchers.IO) {
         transaction {
             NotesTable.deleteWhere { (NotesTable.id eq id) and (NotesTable.userId eq owner.userId) } > 0
         }

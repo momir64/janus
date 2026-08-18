@@ -1,7 +1,7 @@
 package rs.moma.janus.kredenac.repository
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import rs.moma.janus.kredenac.db.RefreshTokenTable
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
@@ -124,7 +124,7 @@ class RefreshTokenRepository(private val hmacSecret: ByteArray) {
         )
 
         if (hashFor(token) != this[RefreshTokenTable.integrityHash])
-            throw UnauthorizedException("Refresh token data failed integrity check")
+            throw CompromisedException("Refresh token (id=${token.id}) for user=${token.userId} failed integrity check")
 
         return token
     }

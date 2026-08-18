@@ -25,13 +25,15 @@ fun Route.notesRoutes() {
 
         authenticatedPost("") {
             val request = call.receive<CreateNoteRequest>()
-            call.respond(HttpStatusCode.Created, notesService.create(request.title, request.content))
+            notesService.create(request.title, request.content)
+            call.respond(HttpStatusCode.Created)
         }
 
         authenticatedPut("/{id}") {
             val noteId = Uuid.parse(call.parameters.getOrFail("id"))
             val request = call.receive<UpdateNoteRequest>()
-            call.respond(notesService.update(noteId, request.title, request.content))
+            notesService.update(noteId, request.title, request.content)
+            call.respond(HttpStatusCode.NoContent)
         }
 
         authenticatedDelete("/{id}") {
