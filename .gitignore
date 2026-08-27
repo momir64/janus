@@ -1,6 +1,7 @@
 **/.env
 **/.idea/
 **/logs/
+**/certs/
 
 # User-specific stuff
 **/.idea/**/workspace.xml

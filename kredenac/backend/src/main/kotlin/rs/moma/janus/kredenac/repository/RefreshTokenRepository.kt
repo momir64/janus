@@ -88,6 +88,13 @@ class RefreshTokenRepository(private val hmacSecret: ByteArray) {
         }
     }
 
+    context(owner: Owner)
+    suspend fun deleteAllForUser() = withContext(Dispatchers.IO) {
+        transaction {
+            RefreshTokenTable.deleteWhere { RefreshTokenTable.userId eq owner.userId }
+        }
+    }
+
     suspend fun deleteExpired() = withContext(Dispatchers.IO) {
         transaction {
             RefreshTokenTable.deleteWhere { expiresAt less Clock.System.now() }

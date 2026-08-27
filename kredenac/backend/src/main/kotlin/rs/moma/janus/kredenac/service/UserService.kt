@@ -1,17 +1,25 @@
 package rs.moma.janus.kredenac.service
 
 import rs.moma.janus.kredenac.repository.RefreshTokenRepository
+import rs.moma.janus.kredenac.repository.FileContentRepository
 import rs.moma.janus.kredenac.repository.CredentialRepository
+import rs.moma.janus.kredenac.repository.FilesRepository
+import rs.moma.janus.kredenac.repository.NotesRepository
 import rs.moma.janus.kredenac.repository.UserRepository
 import rs.moma.janus.kredenac.common.NotFoundException
 import rs.moma.janus.kredenac.model.CredentialDto
+import rs.moma.janus.kredenac.email.EmailSender
 import rs.moma.janus.kredenac.common.Owner
 import kotlin.uuid.Uuid
 
 class UserService(
     private val userRepository: UserRepository,
     private val credentialRepository: CredentialRepository,
-    private val refreshTokenRepository: RefreshTokenRepository
+    private val refreshTokenRepository: RefreshTokenRepository,
+    private val notesRepository: NotesRepository,
+    private val filesRepository: FilesRepository,
+    private val fileContentRepository: FileContentRepository,
+    private val emailSender: EmailSender
 ) {
     suspend fun register(email: String, credentialId: ByteArray, algorithm: String, publicKey: ByteArray) {
         val userId = userRepository.findIdByEmail(email) ?: userRepository.insert(email)
@@ -31,6 +39,37 @@ class UserService(
     suspend fun deleteCredential(credentialId: Uuid) {
         if (!credentialRepository.delete(credentialId)) throw NotFoundException("Credential not found")
         refreshTokenRepository.deleteChainsForCredential(credentialId)
+    }
+
+    suspend fun revokeCompromisedCredential(userId: Uuid, credentialId: Uuid) {
+        try {
+            context(Owner(userId)) {
+                deleteCredential(credentialId)
+            }
+        } catch (_: NotFoundException) {
+        }
+
+        val email = userRepository.findEmailById(userId) ?: return
+        emailSender.send(
+            to = email,
+            subject = "Security alert: a passkey was disabled",
+            html = """
+                <p>We detected unusual activity from one of your passkeys and disabled it as a precaution.</p>
+                <p>If you don't recognize this activity, we recommend reviewing your remaining passkeys and adding a new one from a trusted device.</p>
+            """.trimIndent()
+        )
+    }
+
+    context(owner: Owner)
+    suspend fun deleteAccount() {
+        refreshTokenRepository.deleteAllForUser()
+        credentialRepository.deleteAll()
+
+        filesRepository.findAll().forEach { fileContentRepository.delete(it.id) }
+        filesRepository.deleteAll()
+
+        notesRepository.deleteAll()
+        userRepository.delete(owner.userId)
     }
 
     context(owner: Owner)

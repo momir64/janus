@@ -5,6 +5,7 @@ import rs.moma.janus.kredenac.db.RefreshTokenTable
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
 import rs.moma.janus.kredenac.db.CredentialTable
 import org.jetbrains.exposed.v1.jdbc.Database
+import rs.moma.janus.kredenac.db.FilesTable
 import rs.moma.janus.kredenac.db.NotesTable
 import rs.moma.janus.kredenac.db.UserTable
 import com.zaxxer.hikari.HikariDataSource
@@ -27,6 +28,6 @@ fun configureDatabase() {
     Database.connect(dataSource)
 
     transaction {
-        SchemaUtils.create(UserTable, CredentialTable, RefreshTokenTable, NotesTable)
+        SchemaUtils.create(UserTable, CredentialTable, RefreshTokenTable, NotesTable, FilesTable)
     }
 }

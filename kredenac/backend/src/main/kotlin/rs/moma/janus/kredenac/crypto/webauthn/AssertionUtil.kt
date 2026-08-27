@@ -1,9 +1,10 @@
 package rs.moma.janus.kredenac.crypto.webauthn
 
-import rs.moma.janus.kredenac.crypto.algorithms.VerifyUtil
 import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.crypto.algorithms.VerifyUtil
 import rs.moma.janus.kredenac.common.BadRequestException
 import rs.moma.janus.kredenac.common.readBigEndianLong
+import rs.moma.janus.kredenac.service.UserService
 import rs.moma.janus.kredenac.model.Base64Url
 import org.slf4j.LoggerFactory.getLogger
 import java.security.MessageDigest
@@ -16,6 +17,7 @@ private val log = getLogger(AssertionLog::class.java)
 data class LoginResult(val userId: Uuid, val credentialRowId: Uuid)
 
 suspend fun WebAuthnService.verifyLogin(
+    userService: UserService,  // todo refactor
     credentialId: Base64Url,
     clientDataJSON: Base64Url,
     authenticatorData: Base64Url,
@@ -40,7 +42,11 @@ suspend fun WebAuthnService.verifyLogin(
 
     if (signCount != 0L && signCount <= credential.signCount) {
         log.warn("Possible cloned authenticator: credentialId=${credential.id} userId=${credential.userId}")
-        // todo: on detection, also send an email notification to the user and invalidate/revoke this credential
+        try {
+            userService.revokeCompromisedCredential(credential.userId, credential.id)
+        } catch (e: Exception) {
+            log.error("Failed to revoke/notify for compromised credentialId=${credential.id}", e)
+        }
         throw UnauthorizedException("Sign count did not increase, possible cloned authenticator")
     }
 

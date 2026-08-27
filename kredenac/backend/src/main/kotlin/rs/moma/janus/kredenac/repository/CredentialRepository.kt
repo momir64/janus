@@ -82,6 +82,13 @@ class CredentialRepository(private val hmacSecret: ByteArray) {
         }
     }
 
+    context(owner: Owner)
+    suspend fun deleteAll() = withContext(Dispatchers.IO) {
+        transaction {
+            CredentialTable.deleteWhere { CredentialTable.userId eq owner.userId }
+        }
+    }
+
     private fun hashFor(id: Uuid, userId: Uuid, signCount: Long, publicKey: ByteArray): String {
         return HmacUtil.hash(hmacSecret, id.toByteArray() + userId.toByteArray() + signCount.toByteArray() + publicKey)
     }

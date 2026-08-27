@@ -16,8 +16,21 @@ services:
     container_name: redis
     image: redis:8-alpine
     restart: unless-stopped
-    network_mode: host
-    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    volumes:
+      - ./certs/redis.crt:/tls/redis.crt:ro
+      - ./certs/redis.key:/tls/redis.key:ro
+      - ./certs/ca.crt:/tls/ca.crt:ro
+    command: >
+      redis-server
+      --port 0
+      --tls-port ${REDIS_PORT}
+      --tls-cert-file /tls/redis.crt
+      --tls-key-file /tls/redis.key
+      --tls-ca-cert-file /tls/ca.crt
+      --tls-auth-clients no
+      --requirepass ${REDIS_PASSWORD}
 
   minio:
     container_name: minio
@@ -38,6 +51,8 @@ services:
     command: tunnel run
     environment:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    volumes:
+      - ./certs/ca.crt:/certs/ca.crt:ro
     restart: unless-stopped
 
 volumes:

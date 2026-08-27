@@ -28,6 +28,7 @@ dependencies {
     implementation(ktorLibs.client.cio)
     implementation(libs.logback.classic)
 
+    implementation(libs.kotlinx.coroutines.reactive)
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
     implementation(libs.exposed.kotlin.datetime)
@@ -35,6 +36,7 @@ dependencies {
     implementation(libs.postgresql)
     implementation(libs.koin.ktor)
     implementation(libs.lettuce.core)
+    implementation(libs.minio)
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)

@@ -76,7 +76,7 @@ fun Route.authRoutes() {
                 val cookie = call.request.cookies["challenge_session"]
 
                 val result = webAuthnService.verifyLogin(
-                    request.credentialId, request.clientDataJSON,
+                    userService, request.credentialId, request.clientDataJSON,
                     request.authenticatorData, request.signature, cookie
                 )
 
@@ -131,6 +131,12 @@ fun Route.authRoutes() {
         authenticatedDelete("/credentials/{id}") {
             val credentialId = Uuid.parse(call.parameters.getOrFail("id"))
             userService.deleteCredential(credentialId)
+            call.respond(HttpStatusCode.NoContent)
+        }
+
+        authenticatedDelete("/account") {
+            userService.deleteAccount()
+            call.clearAuthCookies()
             call.respond(HttpStatusCode.NoContent)
         }
     }

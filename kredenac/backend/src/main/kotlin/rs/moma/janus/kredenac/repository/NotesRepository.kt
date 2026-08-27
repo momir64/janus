@@ -75,6 +75,13 @@ class NotesRepository {
         }
     }
 
+    context(owner: Owner)
+    suspend fun deleteAll() = withContext(Dispatchers.IO) {
+        transaction {
+            NotesTable.deleteWhere { NotesTable.userId eq owner.userId }
+        }
+    }
+
     private fun ResultRow.toStoredNote() = StoredNote(
         id = this[NotesTable.id],
         userId = this[NotesTable.userId],

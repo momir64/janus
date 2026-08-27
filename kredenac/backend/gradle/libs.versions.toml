@@ -5,7 +5,9 @@ exposed = "1.4.0"
 hikaricp = "7.1.0"
 postgresql = "42.7.13"
 koin = "4.2.2"
+minio = "9.0.3"
 lettuce = "7.6.0.RELEASE"
+kotlinx-coroutines="1.11.0"
 
 [libraries]
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
@@ -16,6 +18,8 @@ hikaricp = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
 postgresql = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
 koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
 lettuce-core = { module = "io.lettuce:lettuce-core", version.ref = "lettuce" }
+minio = { module = "io.minio:minio", version.ref = "minio" }
+kotlinx-coroutines-reactive = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-reactive", version.ref = "kotlinx-coroutines" }
 
 [plugins]
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
