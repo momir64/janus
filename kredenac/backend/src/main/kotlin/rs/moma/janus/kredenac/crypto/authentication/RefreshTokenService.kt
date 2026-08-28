@@ -1,6 +1,6 @@
 package rs.moma.janus.kredenac.crypto.authentication
 
-import rs.moma.janus.kredenac.repository.RefreshTokenRepository
+import rs.moma.janus.kredenac.repositories.RefreshTokenRepository
 import rs.moma.janus.kredenac.common.UnauthorizedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import kotlin.io.encoding.Base64.PaddingOption.ABSENT

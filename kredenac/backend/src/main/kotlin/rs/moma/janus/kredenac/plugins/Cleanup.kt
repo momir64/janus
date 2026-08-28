@@ -1,6 +1,6 @@
 package rs.moma.janus.kredenac.plugins
 
-import rs.moma.janus.kredenac.repository.RefreshTokenRepository
+import rs.moma.janus.kredenac.repositories.RefreshTokenRepository
 import kotlin.time.Duration.Companion.hours
 import io.ktor.server.application.*
 import org.koin.ktor.ext.inject

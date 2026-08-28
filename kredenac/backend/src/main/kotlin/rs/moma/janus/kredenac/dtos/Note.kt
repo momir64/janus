@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac.model
+package rs.moma.janus.kredenac.dtos
 
 import kotlinx.serialization.Serializable
 

@@ -1,14 +1,14 @@
-package rs.moma.janus.kredenac.service
+package rs.moma.janus.kredenac.services
 
-import rs.moma.janus.kredenac.repository.FileContentRepository
+import rs.moma.janus.kredenac.repositories.FileContentRepository
+import rs.moma.janus.kredenac.repositories.FilesRepository
 import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.common.BadRequestException
-import rs.moma.janus.kredenac.repository.FilesRepository
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
 import rs.moma.janus.kredenac.common.NotFoundException
-import rs.moma.janus.kredenac.repository.StoredFile
-import rs.moma.janus.kredenac.model.FileDto
+import rs.moma.janus.kredenac.repositories.StoredFile
 import rs.moma.janus.kredenac.common.Owner
+import rs.moma.janus.kredenac.dtos.FileDto
 import javax.crypto.AEADBadTagException
 import kotlinx.io.IOException
 import java.io.InputStream

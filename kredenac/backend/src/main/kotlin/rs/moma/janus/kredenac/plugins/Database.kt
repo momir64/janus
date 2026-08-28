@@ -1,13 +1,13 @@
 package rs.moma.janus.kredenac.plugins
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
-import rs.moma.janus.kredenac.db.RefreshTokenTable
+import rs.moma.janus.kredenac.tables.RefreshTokenTable
+import rs.moma.janus.kredenac.tables.CredentialTable
 import org.jetbrains.exposed.v1.jdbc.SchemaUtils
-import rs.moma.janus.kredenac.db.CredentialTable
+import rs.moma.janus.kredenac.tables.FilesTable
+import rs.moma.janus.kredenac.tables.NotesTable
+import rs.moma.janus.kredenac.tables.UserTable
 import org.jetbrains.exposed.v1.jdbc.Database
-import rs.moma.janus.kredenac.db.FilesTable
-import rs.moma.janus.kredenac.db.NotesTable
-import rs.moma.janus.kredenac.db.UserTable
 import com.zaxxer.hikari.HikariDataSource
 import rs.moma.janus.kredenac.common.Env
 import com.zaxxer.hikari.HikariConfig

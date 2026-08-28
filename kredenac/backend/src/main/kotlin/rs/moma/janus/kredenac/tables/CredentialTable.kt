@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac.db
+package rs.moma.janus.kredenac.tables
 
 import org.jetbrains.exposed.v1.core.Table
 

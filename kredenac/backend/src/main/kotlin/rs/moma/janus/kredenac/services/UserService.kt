@@ -1,14 +1,13 @@
-package rs.moma.janus.kredenac.service
+package rs.moma.janus.kredenac.services
 
-import rs.moma.janus.kredenac.repository.RefreshTokenRepository
-import rs.moma.janus.kredenac.repository.FileContentRepository
-import rs.moma.janus.kredenac.repository.CredentialRepository
-import rs.moma.janus.kredenac.repository.FilesRepository
-import rs.moma.janus.kredenac.repository.NotesRepository
-import rs.moma.janus.kredenac.repository.UserRepository
+import rs.moma.janus.kredenac.repositories.RefreshTokenRepository
+import rs.moma.janus.kredenac.repositories.FileContentRepository
+import rs.moma.janus.kredenac.repositories.CredentialRepository
+import rs.moma.janus.kredenac.repositories.FilesRepository
+import rs.moma.janus.kredenac.repositories.NotesRepository
+import rs.moma.janus.kredenac.repositories.UserRepository
 import rs.moma.janus.kredenac.common.NotFoundException
-import rs.moma.janus.kredenac.model.CredentialDto
-import rs.moma.janus.kredenac.email.EmailSender
+import rs.moma.janus.kredenac.dtos.CredentialDto
 import rs.moma.janus.kredenac.common.Owner
 import kotlin.uuid.Uuid
 
@@ -19,7 +18,7 @@ class UserService(
     private val notesRepository: NotesRepository,
     private val filesRepository: FilesRepository,
     private val fileContentRepository: FileContentRepository,
-    private val emailSender: EmailSender
+    private val emailService: EmailService
 ) {
     suspend fun register(email: String, credentialId: ByteArray, algorithm: String, publicKey: ByteArray) {
         val userId = userRepository.findIdByEmail(email) ?: userRepository.insert(email)
@@ -50,7 +49,7 @@ class UserService(
         }
 
         val email = userRepository.findEmailById(userId) ?: return
-        emailSender.send(
+        emailService.send(
             to = email,
             subject = "Security alert: a passkey was disabled",
             html = """

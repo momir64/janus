@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac.repository
+package rs.moma.janus.kredenac.repositories
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import rs.moma.janus.kredenac.common.CompromisedException
@@ -6,8 +6,8 @@ import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.selectAll
+import rs.moma.janus.kredenac.tables.UserTable
 import org.jetbrains.exposed.v1.jdbc.insert
-import rs.moma.janus.kredenac.db.UserTable
 import javax.crypto.AEADBadTagException
 import org.jetbrains.exposed.v1.core.eq
 import kotlinx.coroutines.Dispatchers

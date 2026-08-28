@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac.repository
+package rs.moma.janus.kredenac.repositories
 
 import rs.moma.janus.kredenac.common.Owner
 import kotlinx.coroutines.Dispatchers

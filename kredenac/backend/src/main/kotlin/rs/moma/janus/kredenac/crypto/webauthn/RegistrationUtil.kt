@@ -7,7 +7,7 @@ import rs.moma.janus.kredenac.common.BadRequestException
 import rs.moma.janus.kredenac.crypto.algorithms.EcUtil
 import rs.moma.janus.kredenac.crypto.algorithms.EdUtil
 import rs.moma.janus.kredenac.common.readBigEndianLong
-import rs.moma.janus.kredenac.model.Base64Url
+import rs.moma.janus.kredenac.dtos.Base64Url
 
 class ParsedAttestation(val credentialId: ByteArray, val publicKey: ByteArray, val algorithm: String)
 

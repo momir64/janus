@@ -1,9 +1,9 @@
 package rs.moma.janus.kredenac.crypto.webauthn
 
-import rs.moma.janus.kredenac.repository.CredentialRepository
+import rs.moma.janus.kredenac.repositories.CredentialRepository
+import rs.moma.janus.kredenac.repositories.TokenRepository
 import rs.moma.janus.kredenac.common.BadRequestException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
-import rs.moma.janus.kredenac.repository.TokenRepository
 import kotlin.io.encoding.Base64.PaddingOption.ABSENT
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.serialization.Serializable
@@ -22,7 +22,7 @@ class WebAuthnService(
     private val rpOrigin: String,
     private val hmacSecret: ByteArray,
     private val tokenRepository: TokenRepository,
-    internal val credentialRepository: CredentialRepository, // todo refactor later
+    internal val credentialRepository: CredentialRepository
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val secureRandom = SecureRandom()

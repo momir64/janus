@@ -1,9 +1,9 @@
-package rs.moma.janus.kredenac.repository
+package rs.moma.janus.kredenac.repositories
 
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
-import rs.moma.janus.kredenac.db.RefreshTokenTable
+import rs.moma.janus.kredenac.tables.RefreshTokenTable
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import rs.moma.janus.kredenac.common.toByteArray
 import org.jetbrains.exposed.v1.core.ResultRow

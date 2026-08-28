@@ -8,7 +8,6 @@ import java.io.InputStream
 import javax.crypto.Cipher
 
 object AesUtil {
-    private const val GCM_TAG_LENGTH_BITS = 128
     private const val GCM_IV_LENGTH_BYTES = 12
     private val secureRandom = SecureRandom()
     const val GCM_TAG_LENGTH_BYTES = 16
@@ -26,14 +25,14 @@ object AesUtil {
         val iv = ByteArray(GCM_IV_LENGTH_BYTES)
         secureRandom.nextBytes(iv)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        cipher.init(Cipher.ENCRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(GCM_TAG_LENGTH_BYTES * 8, iv))
         aad?.let { cipher.updateAAD(it) }
         return cipher to iv
     }
 
     private fun getDecryptCipher(key: ByteArray, iv: ByteArray, aad: ByteArray? = null): Cipher {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+        cipher.init(Cipher.DECRYPT_MODE, SecretKeySpec(key, "AES"), GCMParameterSpec(GCM_TAG_LENGTH_BYTES * 8, iv))
         aad?.let { cipher.updateAAD(it) }
         return cipher
     }

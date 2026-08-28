@@ -5,20 +5,22 @@ import rs.moma.janus.kredenac.crypto.authentication.MagicLinkService
 import rs.moma.janus.kredenac.crypto.webauthn.verifyRegistration
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
 import rs.moma.janus.kredenac.crypto.authentication.JwtService
-import rs.moma.janus.kredenac.model.AddCredentialFinishRequest
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
+import rs.moma.janus.kredenac.dtos.AddCredentialFinishRequest
 import rs.moma.janus.kredenac.plugins.authChallengeRateLimit
+import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.crypto.webauthn.LoginOutcome
 import rs.moma.janus.kredenac.plugins.authRefreshRateLimit
 import rs.moma.janus.kredenac.crypto.webauthn.verifyLogin
-import rs.moma.janus.kredenac.model.RegisterFinishRequest
-import rs.moma.janus.kredenac.model.RegisterVerifyRequest
 import rs.moma.janus.kredenac.plugins.authenticatedDelete
+import rs.moma.janus.kredenac.dtos.RegisterFinishRequest
+import rs.moma.janus.kredenac.dtos.RegisterVerifyRequest
 import rs.moma.janus.kredenac.plugins.magicLinkRateLimit
 import rs.moma.janus.kredenac.plugins.authenticatedPost
-import rs.moma.janus.kredenac.model.LoginFinishRequest
 import rs.moma.janus.kredenac.plugins.authenticatedGet
+import rs.moma.janus.kredenac.dtos.LoginFinishRequest
+import rs.moma.janus.kredenac.services.UserService
 import io.ktor.server.plugins.ratelimit.rateLimit
-import rs.moma.janus.kredenac.service.UserService
 import io.ktor.server.util.getOrFail
 import org.koin.core.qualifier.named
 import io.ktor.server.application.*
@@ -75,18 +77,27 @@ fun Route.authRoutes() {
                 val request = call.receive<LoginFinishRequest>()
                 val cookie = call.request.cookies["challenge_session"]
 
-                val result = webAuthnService.verifyLogin(
-                    userService, request.credentialId, request.clientDataJSON,
-                    request.authenticatorData, request.signature, cookie
-                )
-
-                val sid = Uuid.random().toString()
-                val accessToken = jwtService.issue(result.userId, sid)
-                val refresh = refreshTokenService.issue(result.userId, result.credentialRowId)
-
-                call.clearChallengeSessionCookie()
-                call.setAuthCookies(accessToken, refresh.refreshToken)
-                call.respond(mapOf("csrfToken" to csrfService.tokenFor(sid)))
+                when (val outcome = webAuthnService.verifyLogin(
+                    request.credentialId, request.clientDataJSON, request.authenticatorData, request.signature, cookie
+                )) {
+                    is LoginOutcome.CloneDetected -> {
+                        val credentialId = outcome.credentialId
+                        try {
+                            userService.revokeCompromisedCredential(outcome.userId, credentialId)
+                        } catch (e: Exception) {
+                            call.application.log.error("Failed to notify compromised credentialId=${credentialId}", e)
+                        }
+                        throw UnauthorizedException("Sign count did not increase, possible cloned authenticator")
+                    }
+                    is LoginOutcome.Success -> {
+                        val sid = Uuid.random().toString()
+                        val accessToken = jwtService.issue(outcome.userId, sid)
+                        val refresh = refreshTokenService.issue(outcome.userId, outcome.credentialId)
+                        call.clearChallengeSessionCookie()
+                        call.setAuthCookies(accessToken, refresh.refreshToken)
+                        call.respond(mapOf("csrfToken" to csrfService.tokenFor(sid)))
+                    }
+                }
             }
         }
 

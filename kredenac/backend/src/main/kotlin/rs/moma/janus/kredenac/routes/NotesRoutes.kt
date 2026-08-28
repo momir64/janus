@@ -4,9 +4,9 @@ import rs.moma.janus.kredenac.plugins.authenticatedDelete
 import rs.moma.janus.kredenac.plugins.authenticatedPost
 import rs.moma.janus.kredenac.plugins.authenticatedGet
 import rs.moma.janus.kredenac.plugins.authenticatedPut
-import rs.moma.janus.kredenac.model.CreateNoteRequest
-import rs.moma.janus.kredenac.model.UpdateNoteRequest
-import rs.moma.janus.kredenac.service.NotesService
+import rs.moma.janus.kredenac.dtos.CreateNoteRequest
+import rs.moma.janus.kredenac.dtos.UpdateNoteRequest
+import rs.moma.janus.kredenac.services.NotesService
 import io.ktor.server.util.getOrFail
 import io.ktor.server.response.*
 import org.koin.ktor.ext.inject

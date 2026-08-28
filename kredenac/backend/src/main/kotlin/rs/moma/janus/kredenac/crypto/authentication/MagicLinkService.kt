@@ -1,9 +1,9 @@
 package rs.moma.janus.kredenac.crypto.authentication
 
-import rs.moma.janus.kredenac.repository.TokenRepository
-import rs.moma.janus.kredenac.repository.UserRepository
+import rs.moma.janus.kredenac.repositories.TokenRepository
+import rs.moma.janus.kredenac.repositories.UserRepository
 import kotlin.io.encoding.Base64.PaddingOption.ABSENT
-import rs.moma.janus.kredenac.email.EmailSender
+import rs.moma.janus.kredenac.services.EmailService
 import kotlin.time.Duration.Companion.minutes
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
@@ -11,7 +11,7 @@ import kotlin.io.encoding.Base64
 class MagicLinkService(
     private val tokenRepository: TokenRepository,
     private val userRepository: UserRepository,
-    private val emailSender: EmailSender,
+    private val emailService: EmailService,
     private val frontendOrigin: String
 ) {
     private val secureRandom = SecureRandom()
@@ -31,7 +31,7 @@ class MagicLinkService(
         else
             "Click the link below to finish creating your account."
 
-        emailSender.send(
+        emailService.send(
             to = email,
             subject = subject,
             html = """

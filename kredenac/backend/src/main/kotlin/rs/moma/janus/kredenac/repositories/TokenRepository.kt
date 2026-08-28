@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac.repository
+package rs.moma.janus.kredenac.repositories
 
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
 import rs.moma.janus.kredenac.common.CompromisedException

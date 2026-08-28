@@ -2,23 +2,23 @@ package rs.moma.janus.kredenac.plugins
 
 import rs.moma.janus.kredenac.crypto.authentication.RefreshTokenService
 import rs.moma.janus.kredenac.crypto.authentication.MagicLinkService
+import rs.moma.janus.kredenac.repositories.RefreshTokenRepository
+import rs.moma.janus.kredenac.repositories.FileContentRepository
 import kotlin.io.encoding.Base64.PaddingOption.PRESENT_OPTIONAL
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
-import rs.moma.janus.kredenac.repository.RefreshTokenRepository
+import rs.moma.janus.kredenac.repositories.CredentialRepository
 import rs.moma.janus.kredenac.crypto.authentication.JwtService
-import rs.moma.janus.kredenac.repository.FileContentRepository
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
-import rs.moma.janus.kredenac.repository.CredentialRepository
-import rs.moma.janus.kredenac.repository.FilesRepository
-import rs.moma.janus.kredenac.repository.NotesRepository
-import rs.moma.janus.kredenac.repository.TokenRepository
+import rs.moma.janus.kredenac.repositories.FilesRepository
+import rs.moma.janus.kredenac.repositories.NotesRepository
+import rs.moma.janus.kredenac.repositories.TokenRepository
+import rs.moma.janus.kredenac.repositories.UserRepository
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
-import rs.moma.janus.kredenac.repository.UserRepository
-import rs.moma.janus.kredenac.service.FilesService
-import rs.moma.janus.kredenac.service.NotesService
-import rs.moma.janus.kredenac.service.UserService
-import rs.moma.janus.kredenac.email.EmailSender
+import rs.moma.janus.kredenac.services.EmailService
+import rs.moma.janus.kredenac.services.FilesService
+import rs.moma.janus.kredenac.services.NotesService
+import rs.moma.janus.kredenac.services.UserService
 import org.koin.core.module.dsl.singleOf
 import rs.moma.janus.kredenac.common.Env
 import io.lettuce.core.api.coroutines
@@ -69,7 +69,7 @@ fun Application.configureDependencies() {
 
             single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get()) }
 
-            single { EmailSender(Env.get("RESEND_API_KEY"), Env.get("RESEND_FROM_EMAIL")) }
+            single { EmailService(Env.get("RESEND_API_KEY"), Env.get("RESEND_FROM_EMAIL")) }
             single { MagicLinkService(get(), get(), get(), get(named("rpOrigin"))) }
 
             single {

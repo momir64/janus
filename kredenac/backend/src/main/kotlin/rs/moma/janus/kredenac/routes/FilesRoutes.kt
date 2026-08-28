@@ -5,7 +5,7 @@ import rs.moma.janus.kredenac.common.BadRequestException
 import io.ktor.http.ContentType.Application.OctetStream
 import rs.moma.janus.kredenac.plugins.authenticatedPost
 import rs.moma.janus.kredenac.plugins.authenticatedGet
-import rs.moma.janus.kredenac.service.FilesService
+import rs.moma.janus.kredenac.services.FilesService
 import io.ktor.utils.io.jvm.javaio.toInputStream
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.PartData

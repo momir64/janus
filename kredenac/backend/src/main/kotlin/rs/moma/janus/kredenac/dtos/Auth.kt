@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac.model
+package rs.moma.janus.kredenac.dtos
 
 import kotlin.io.encoding.Base64.PaddingOption.PRESENT_OPTIONAL
 import kotlinx.serialization.Serializable

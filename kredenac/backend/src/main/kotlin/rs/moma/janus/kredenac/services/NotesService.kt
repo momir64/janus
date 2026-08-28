@@ -1,11 +1,11 @@
-package rs.moma.janus.kredenac.service
+package rs.moma.janus.kredenac.services
 
-import rs.moma.janus.kredenac.repository.NotesRepository
+import rs.moma.janus.kredenac.repositories.NotesRepository
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
 import rs.moma.janus.kredenac.common.NotFoundException
-import rs.moma.janus.kredenac.repository.StoredNote
-import rs.moma.janus.kredenac.model.NoteDto
+import rs.moma.janus.kredenac.repositories.StoredNote
 import rs.moma.janus.kredenac.common.Owner
+import rs.moma.janus.kredenac.dtos.NoteDto
 import kotlin.uuid.Uuid
 
 class NotesService(private val notesRepository: NotesRepository, private val userService: UserService) {

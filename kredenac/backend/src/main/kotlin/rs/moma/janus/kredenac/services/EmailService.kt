@@ -1,4 +1,4 @@
-package rs.moma.janus.kredenac.email
+package rs.moma.janus.kredenac.services
 
 import io.ktor.client.statement.bodyAsText
 import kotlinx.serialization.Serializable
@@ -14,8 +14,8 @@ import io.ktor.http.isSuccess
 @Serializable
 private data class EmailRequest(val from: String, val to: List<String>, val subject: String, val html: String)
 
-class EmailSender(private val apiKey: String, private val fromAddress: String) {
-    private val log = getLogger(EmailSender::class.java)
+class EmailService(private val apiKey: String, private val fromAddress: String) {
+    private val log = getLogger(EmailService::class.java)
     private val json = Json { ignoreUnknownKeys = true }
     private val client = HttpClient(CIO)
 
