@@ -37,5 +37,5 @@ data class AddCredentialFinishRequest(
 @Serializable
 data class CredentialDto(
     val id: String,
-    val algorithm: String // todo: later add more info about authenticator, like model and when added
+    val algorithm: String // todo: send authenticator AAGUID name, time created, last used time and location instead...
 )
