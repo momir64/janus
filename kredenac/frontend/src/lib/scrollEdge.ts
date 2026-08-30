@@ -8,12 +8,17 @@
  * only while a card is actually cut: scrolled to the top, or stopped in the
  * gap between two cards, there is nothing to close.
  */
-export function closeCutEdge(list: HTMLElement): () => void {
+/**
+ * `items` is the element whose children are the cards, for a scroller that
+ * holds them at one remove - the settings page scrolls a box containing the
+ * list rather than the list itself.
+ */
+export function closeCutEdge(list: HTMLElement, items: HTMLElement = list): () => void {
   const update = (): void => {
     const top = list.getBoundingClientRect().top;
     let cut: HTMLElement | null = null;
 
-    for (const child of Array.from(list.children)) {
+    for (const child of Array.from(items.children)) {
       const box = child.getBoundingClientRect();
       // Straddling the edge, rather than merely touching it — the half-pixel
       // keeps a card that ends exactly on the edge from counting.
@@ -28,14 +33,14 @@ export function closeCutEdge(list: HTMLElement): () => void {
       list.style.setProperty("--cut-width", style.borderTopWidth);
       list.style.setProperty("--cut-color", style.borderTopColor);
     }
-    list.classList.toggle("app-page__list--cut", cut !== null);
+    list.classList.toggle("is-cut", cut !== null);
   };
 
   list.addEventListener("scroll", update, { passive: true });
   // The list resizing, and the cards being replaced by a re-render, both
   // change which card meets the edge.
   new ResizeObserver(update).observe(list);
-  new MutationObserver(update).observe(list, { childList: true });
+  new MutationObserver(update).observe(items, { childList: true });
 
   update();
   return update;

@@ -110,7 +110,7 @@ $login-column-min: 480px;
   // got tight, so a second term gives it back as the viewport falls short of
   // 720. The two corrections are equal and opposite, so the padding still
   // totals the same and the block goes on fitting.
-  --shortfall: calc((720px - 100dvh) * 0.03);
+  --shortfall: calc((720px - 100dvh) * 0.02);
   --pad-t: calc(100dvh * 0.108333 + var(--shortfall));
   --pad-b: max(0px, 100dvh * 0.233333 - var(--shortfall));
   padding: var(--pad-t) 32px var(--pad-b);
@@ -148,27 +148,38 @@ $login-column-min: 480px;
 }
 
 .login-page__tagline {
-  margin: 16px 0 0 20px;
+  // Both gaps below shrink with the viewport rather than holding a fixed
+  // height the way the type does, so the block folds up on a short window
+  // instead of running past the fold. Each is written as its share of the
+  // frame it was measured in — 16 of 720 is 2.2222dvh — so it is exactly the
+  // drawn value at that height and proportionally less below it, with a
+  // floor that keeps the copy from closing up on the heading.
+  margin: clamp(6px, 2.2222dvh, 16px) 0 0 20px;
   color: $color-text-muted;
   font-size: 11px; // 2048:26
   line-height: 20px;
 
   @include desktop {
-    margin: 24px 0 0 32px;
+    // 24 of 930.
+    margin: clamp(6px, 2.5806dvh, 24px) 0 0 32px;
     font-size: 18px;
     line-height: 32px;
   }
 }
 
 .login-page__actions {
-  // tagline bottom 286 -> login top 322 (mobile); 391 -> 443 (desktop)
-  margin-top: 36px;
+  // tagline bottom 286 -> login top 322 (mobile); 391 -> 443 (desktop).
+  // Proportional below the frame's own height, as on the tagline: 36 of 720
+  // is 5dvh, and the floor is reached at 440.
+  margin-top: clamp(22px, 5dvh, 36px);
+  position: relative; // the message line is placed from this box
   display: flex;
   flex-direction: column;
   gap: 16px;
 
   @include desktop {
-    margin-top: 52px;
+    // 52 of 930, floored at 500.
+    margin-top: clamp(28px, 5.5914dvh, 52px);
     gap: 28px;
   }
 }

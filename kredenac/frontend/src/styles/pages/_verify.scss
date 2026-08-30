@@ -95,11 +95,12 @@
 }
 
 .verify-page__action {
+  position: relative; // the message line is placed from this box
   margin-top: 48px; // text bottom 372 -> button 425 (2052:63)
   width: 270px; // 2052:63
 
   @include desktop {
-    margin-top: 88px; // text bottom 530 -> button 631, less 13px
+    margin-top: 76px; // text bottom 530 -> button 631, less 13px
     width: 440px;
   }
 }

@@ -29,3 +29,16 @@ export function formatTimestamp(value: string): string {
     `${pad(date.getDate())}.${pad(date.getMonth() + 1)}.${date.getFullYear()}.`
   );
 }
+
+/**
+ * Shortens a filename to `max` characters for use inside a sentence. The
+ * extension is not preserved: it is part of the name and cut with the rest.
+ *
+ * `ellipsis` marks the cut, and is dropped where the name is already
+ * followed by dots of its own - the upload label's, which would otherwise
+ * read as one run of six.
+ */
+export function truncateFilename(name: string, max: number, ellipsis = true): string {
+  if (name.length <= max) return name;
+  return ellipsis ? `${name.slice(0, Math.max(1, max - 1))}\u2026` : name.slice(0, max);
+}

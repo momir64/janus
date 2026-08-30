@@ -12,7 +12,7 @@ interface AppNavOptions {
   onTabChange: (tab: AppTab) => void;
 }
 
-async function logout(): Promise<void> {
+export async function logout(): Promise<void> {
   // The note editor sits above the page on mobile with the tab bar still
   // reachable, so it has to be dismissed here too — the tab buttons do the
   // same via handleTabChange, but Log out is not one of them.

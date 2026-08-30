@@ -22,6 +22,13 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
 
   if (response.status === 401) {
     clearSession();
+    // Case 39. The ceremony and refresh endpoints are how a session is
+    // obtained in the first place, so a 401 from one of them is a failed
+    // sign-in rather than a session that ended - and is reported by the page
+    // that asked for it.
+    if (!path.startsWith("/auth/login") && !path.startsWith("/auth/register") && path !== "/auth/refresh") {
+      window.dispatchEvent(new CustomEvent("kredenac:session-expired"));
+    }
     throw new ApiError(401, "Not authenticated");
   }
 

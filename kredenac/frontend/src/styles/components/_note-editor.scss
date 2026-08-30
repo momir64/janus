@@ -5,6 +5,7 @@
 // Mobile:  title y=94, body y=154, actions y=526 — 12px between each.
 // Desktop: title y=80, body y=160, actions y=562 — 24px between each.
 .note-editor {
+  position: relative; // the message line is placed from this box
   display: flex;
   flex-direction: column;
   width: 100%;
@@ -46,4 +47,13 @@
     margin-top: 24px;
     gap: 24px; // desktop cancel 80..308, create 332..560
   }
+}
+
+// Above the title field rather than in the column, so a message never moves
+// the form under the reader's hands, and aligned with the field's left edge
+// rather than centred like the other lines.
+.note-editor__message {
+  top: -12px;
+  transform: translateY(-100%);
+  text-align: left;
 }

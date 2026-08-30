@@ -21,6 +21,9 @@
 
 .dialog {
   position: relative;
+  // Focused on open, to take it off the control that opened it; that is not
+  // something to draw a ring around.
+  outline: none;
   @include noise-surface;
   border: 1px solid $color-border;
   width: 100%;
@@ -41,6 +44,46 @@
 
 // Account deletion carries more copy and is a wider frame in Figma
 // (146:127 is 720x380, against 600x330 for the plain deletion dialog).
+// The acknowledgement dialogs carry two sentences rather than a question,
+// so they are given a little more room to hold them on desktop.
+.dialog--alert {
+  @include desktop {
+    max-width: 640px;
+  }
+}
+
+// The last-passkey confirmation puts a warning above its question, so it is
+// given more width, and side padding to match, to hold the pair.
+.dialog--roomy {
+  @include desktop {
+    max-width: 640px;
+    padding: 68px 64px 56px;
+  }
+}
+
+.dialog--alert-narrow {
+  @include desktop {
+    max-width: 560px;
+  }
+}
+
+.dialog--alert-session {
+  @include desktop {
+    max-width: 680px;
+    padding: 68px 64px 56px;
+  }
+}
+
+// The current-session warning: a paragraph rather than a question, with
+// narrower side padding than the standard frame so it has the width to hold
+// it in three lines.
+.dialog--session {
+  @include desktop {
+    max-width: 720px;
+    padding: 68px 72px 56px;
+  }
+}
+
 .dialog--wide {
   max-width: 342px;
   padding: 46px 16px 26px;

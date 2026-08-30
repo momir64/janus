@@ -110,9 +110,14 @@
 .dropzone {
   flex-direction: column;
   align-items: center;
+  // Centred rather than dropped from the top, so the block stays in the
+  // middle when the response line joins it. With no message this is exactly
+  // Figma's 68 from the frame edge (133:1322): the icon, its 12px gap and
+  // the 32px label come to 144, which leaves 65.5 above and below inside
+  // the 2.5px border.
+  justify-content: center;
   height: 280px;
-  // 68 from the frame edge (133:1322), and padding starts inside the border.
-  padding-top: 65.5px;
+  padding: 28px 12px;
   border: 2.5px dashed $color-border;
   color: $color-text-muted;
   font-family: $font-display;
@@ -120,15 +125,18 @@
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease;
 
-  // --active is the drag-over state, which touch reaches too.
-  &--active {
+  // --active is the drag-over state, which touch reaches too. Neither it nor
+  // the hover applies mid-upload, when the zone takes no file.
+  &--active:not(.dropzone--uploading) {
     border-color: $color-border-strong;
     color: $color-text;
   }
 
-  @include hover-or-active {
-    border-color: $color-border-strong;
-    color: $color-text;
+  &:not(.dropzone--uploading) {
+    @include hover-or-active {
+      border-color: $color-border-strong;
+      color: $color-text;
+    }
   }
 
   .icon {
@@ -136,7 +144,9 @@
     height: 100px;
   }
 
-  span {
+  // Direct child only: the response line below carries a caret span of its
+  // own, which must not pick this up.
+  > span {
     margin-top: 12px; // icon bottom 168 -> text 180
     font-size: 24px; // 133:1328, Chakra Petch Regular
     font-weight: 400;

@@ -1,0 +1,69 @@
+@use "sass:color";
+@use "../tokens" as *;
+@use "../mixins" as *;
+
+// A page's response line: one or two rows of copy placed below the control
+// that produced it. Out of flow, so a message appearing or leaving never
+// shifts that control, and spanning its full width, being placed from the
+// box the control fills.
+//
+// Figma has no message anywhere, so the type is our own: the display face at
+// the size the surrounding secondary copy uses, in the shade DELETE
+// ACCOUNT's label brightens to on hover.
+.message-line {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: color.adjust($color-danger, $lightness: 12%);
+  font-family: $font-display;
+  font-size: 14px;
+  line-height: 1.4;
+
+  @include desktop {
+    top: calc(100% + 12px);
+    font-size: 18px;
+  }
+}
+
+// Measures a message's natural width to decide whether it needs its break.
+// Out of flow and unwrappable, so the reading is the text's own width and
+// the probe never disturbs the line it is measured in.
+.message-line__probe {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
+
+// Files place the line in flow rather than hung below a control: inside the
+// dropzone on desktop, between the upload button and the list on mobile. It
+// shares that slot with the cancel link an upload in progress shows, which
+// is why the two can never be needed at once.
+.message-line--inline {
+  position: static;
+  // The dropzone centres its children, which would leave this shrink-to-fit
+  // and so measuring near zero when it decides whether it needs its break.
+  // Stretched, it spans the box it sits in, as it does when hung below a
+  // control.
+  align-self: stretch;
+
+  // With nothing to say it takes no space at all - display:none rather than
+  // an empty box, so it cannot claim one of the column's gaps either.
+  &:empty {
+    display: none;
+  }
+
+  // Between the button and the list, the column's own 32px gap lands on both
+  // sides. Pulled in, so a message nudges the list down rather than shoving
+  // it a full line and two gaps.
+  @include mobile-only {
+    margin: -24px 0 -12px;
+  }
+}
+
+// Below the dropzone's own label, in the space its cancel link uses.
+.dropzone .message-line {
+  margin-top: 12px;
+}

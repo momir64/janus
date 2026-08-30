@@ -5,20 +5,48 @@ import { setCsrfToken } from "../lib/session";
 import { enableDevMode } from "../lib/devMode";
 import { login } from "../lib/webauthn";
 import { loginSlot } from "../components/loginSlot";
+import { messageLine } from "../components/messageLine";
+import { LOGIN_MESSAGES } from "../lib/messages";
 import { button } from "../components/button";
 import { hatchMarks } from "../components/decorations";
 import cabinet from "../assets/cabinet.webp";
 
 export async function loginPage(): Promise<Node> {
   const mark = h("h1", { class: "login-page__mark" });
+  const footer = h("div", { class: "login-page__footer" });
+
+  // The message hangs below the buttons and the link is placed from the page
+  // bottom, so on a short window the two can meet. The link gives way: it
+  // drops by however much they overlap, down to a floor that keeps it on the
+  // page, and returns to its measured position once the message clears.
+  const FOOTER_GAP = 12;
+  const FOOTER_FLOOR = 8;
+
+  function placeFooter(): void {
+    if (!footer.isConnected) return; // a stale page's listener still firing
+    footer.style.bottom = ""; // measure from the position the design gives it
+    const line = message.el.getBoundingClientRect();
+    if (line.height === 0) return;
+
+    const overlap = line.bottom + FOOTER_GAP - footer.getBoundingClientRect().top;
+    if (overlap <= 0) return;
+
+    const resting = Number.parseFloat(getComputedStyle(footer).bottom);
+    footer.style.bottom = `${Math.max(FOOTER_FLOOR, resting - overlap)}px`;
+  }
+
+  const message = messageLine({ onLayout: placeFooter });
 
   async function handleLogin(): Promise<void> {
     try {
       await login();
       navigate("/");
     } catch {
-      // TODO: report the failure to the user. Note that a NotAllowedError is
-      //  the user dismissing the passkey prompt, which wants no message.
+      // TODO: wire the sign-in messages through message.show(), keyed by
+      //  LOGIN_MESSAGES: a NotAllowedError stays silent (case 1), any other
+      //  DOMException is 2, ApiError 401 is 3a and 400 is 3b, 429 is 5, 5xx
+      //  is 6, and a fetch rejection is 4. Case 37 needs api.ts to keep the
+      //  401 body and the backend to send a "passkey_cloned" code.
     }
   }
 
@@ -31,11 +59,17 @@ export async function loginPage(): Promise<Node> {
   //  (and `onBeforeSubmit` in loginSlot) once the backend flow is wired up
   //  end to end.
   //    a -> logged-in view    b -> valid email page    c -> invalid email page
+  //    s -> settings page
+  //  "a" with a case number appended previews that message where it lives
+  //  (a18, a26); dev mode is held in memory, so it has to be reached by
+  //  navigating rather than by typing the URL.
   const devShortcut = (email: string): boolean => {
-    if (email === "a") {
+    const app = /^([as])([0-9]+[a-z]?)?$/.exec(email);
+    if (app) {
       enableDevMode(); // otherwise the first 401 clears the session again
       setCsrfToken("dev");
-      navigate("/");
+      const path = app[1] === "s" ? "/settings" : "/";
+      navigate(app[2] ? `${path}?m=${app[2]}` : path);
       return true;
     }
     if (email === "b") {
@@ -72,6 +106,9 @@ export async function loginPage(): Promise<Node> {
     onSendingChange: (sending) => {
       registerButton.disabled = sending;
     },
+    onMessage: (caseNumber) => message.show(LOGIN_MESSAGES[caseNumber]),
+    // Closing the field takes any message it produced with it.
+    onDismiss: () => message.dismiss(),
     onBeforeSubmit: devShortcut,
   });
 
@@ -82,6 +119,8 @@ export async function loginPage(): Promise<Node> {
   });
   const registerLabel = registerButton.querySelector<HTMLElement>(".btn__label")!;
   const lostLink = h("button", { type: "button", onclick: () => slot.startCompose() }, "Lost your passkey?");
+  footer.append(lostLink);
+  window.addEventListener("resize", placeFooter);
 
   const view = h(
     "div",
@@ -107,14 +146,16 @@ export async function loginPage(): Promise<Node> {
         h("br"),
         "Access your account with a passkey."
       ),
-      h("div", { class: "login-page__actions" }, slot.el, registerButton)
+      // The message line is a child of the actions box so it can be placed
+      // from the buttons' own edges, and absolute so it cannot move them.
+      h("div", { class: "login-page__actions" }, slot.el, registerButton, message.el)
     ),
     // A sibling of the content, not a child: it is placed from the page's
     // edges, and the page is the box the content's own percentage padding is
     // measured against. Positioned inside the content instead, its insets
     // would resolve against the content's narrower box and the link would
     // sit off the buttons' centre.
-    h("div", { class: "login-page__footer" }, lostLink)
+    footer
   );
 
   const heading = typeInto(mark, "KREDENAC", 120, 300);

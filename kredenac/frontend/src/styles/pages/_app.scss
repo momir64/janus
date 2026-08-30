@@ -1,3 +1,4 @@
+@use "sass:color";
 @use "../tokens" as *;
 @use "../mixins" as *;
 
@@ -11,6 +12,7 @@
 // The lists scroll inside themselves, so the shell takes the viewport's
 // height and nothing below it can grow the page.
 .app-shell {
+  position: relative; // settings places its message line from this box
   display: flex;
   flex-direction: column;
   height: 100dvh;
@@ -126,12 +128,6 @@
     --list-gap: 20px; // desktop file pitch 122 = 102 + 20
   }
 
-  // Stands in for the top border of a card the scroll has cut through — see
-  // closeCutEdge(). An inset shadow rather than a border, so it is painted on
-  // the container's own edge and adds nothing to the layout.
-  &--cut {
-    box-shadow: inset 0 var(--cut-width, 1px) 0 0 var(--cut-color, #{$color-border});
-  }
 }
 
 .app-page__list--notes {
@@ -144,6 +140,15 @@
 
 .app-page__empty {
   color: $color-text-muted;
+  // Explicit, so optionalBreaks can measure in line boxes: computed
+  // "normal" gives it no number to divide the height by.
+  line-height: 1.4;
+
+  // A load that failed, rather than a list that is genuinely empty.
+  &--error {
+    color: color.adjust($color-danger, $lightness: 12%);
+  }
+
   font-family: $font-display;
   font-size: 14px;
   text-align: center;
@@ -152,5 +157,66 @@
   @include desktop {
     font-size: 20px;
     padding: 40px 0;
+  }
+}
+
+// The slot below the upload control, shared by the response line and the
+// cancel link an upload in progress shows - never both at once.
+.app-page__notice {
+  // The dropzone centres its children, which would otherwise leave these
+  // shrink-to-fit - and so the response line measuring near zero when it
+  // decides whether it needs its break.
+  align-self: stretch;
+}
+
+// The notes column has no dropzone to sit inside, so on desktop the line is
+// a child of the column and takes its 48px gap on both sides - far more air
+// than a line of text wants. Pulled in to 12 above and 24 below.
+.app-page__column > .app-page__notice {
+  @include desktop {
+    margin: -36px 0 -24px;
+  }
+}
+
+.app-page__cancel {
+  @include reset-button;
+  // Centred rather than stretched, so only the words take the press: a
+  // full-width button would answer clicks well away from the text. The
+  // response line stretches instead, since it has a width to measure.
+  align-self: center;
+  // Placed exactly where the response line sits, since the two share the
+  // slot: below the dropzone's label on desktop, and pulled into the
+  // column's own gap between the button and the list on mobile.
+  margin-top: 12px;
+
+  @include mobile-only {
+    margin: -24px 0 -12px;
+  }
+
+  @include focus-ring;
+  color: $color-text-muted;
+  font-family: $font-display;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 14.5%;
+  cursor: pointer;
+  transition: color 0.15s ease;
+
+  @include hover-or-active {
+    color: $color-text;
+  }
+
+  @include desktop {
+    font-size: 18px;
+  }
+}
+
+// The label carries the whole message while a file is going up, so the glyph
+// above it is dropped and the dropzone re-centres on the text alone.
+.dropzone--uploading {
+  cursor: default;
+
+  .icon {
+    display: none;
   }
 }

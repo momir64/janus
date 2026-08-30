@@ -26,8 +26,12 @@
   --caret-cap: 0.75em;
   transition: border-color 0.15s ease, color 0.15s ease;
 
-  @include hover-or-active {
-    @include control-lift;
+  // A disabled control does not answer to the pointer: lifting its edges
+  // would offer something the press cannot deliver.
+  &:not(:disabled) {
+    @include hover-or-active {
+      @include control-lift;
+    }
   }
 
   &:disabled {
@@ -130,12 +134,17 @@
   font-family: $font-display;
   font-weight: 500;
   font-size: 16px;
-  margin-bottom: 36px;
+  margin-bottom: 56px;
 
-  @include hover-or-active {
-    --edge: #{$color-danger};
-    --edge-accent: #{$color-danger};
-    --label: #{color.adjust($color-danger, $lightness: 12%)};
+  // Guarded the same way as .btn's own lift above, so the two rules match on
+  // specificity and this one wins on order. Without it the neutral lift is
+  // the more specific of the two and the label goes white.
+  &:not(:disabled) {
+    @include hover-or-active {
+      --edge: #{$color-danger};
+      --edge-accent: #{$color-danger};
+      --label: #{color.adjust($color-danger, $lightness: 12%)};
+    }
   }
 
   @include desktop {
@@ -238,6 +247,12 @@
     bottom: 8px;
     right: 8px;
   }
+}
+
+// Mobile only, since the dropzone replaces this button on desktop: the
+// upload-in-progress label is longer than the one it replaces.
+.btn--corners.btn--uploading {
+  font-size: 16px;
 }
 
 // Add a new note — desktop only.

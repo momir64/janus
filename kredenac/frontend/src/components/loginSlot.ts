@@ -3,10 +3,24 @@ import { retypePlaceholder } from "../lib/typewriter";
 import { chevronTrail, closeGlyph } from "./decorations";
 import { api } from "../lib/api";
 import { interceptBack } from "../lib/router";
+import { isDesktop } from "../lib/breakpoint";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const EMAIL_PLACEHOLDER = "john.smith@example.com";
 const LOGIN_LABEL = "LOGIN";
+
+/**
+ * Deliberately stricter than the HTML spec's own definition, which the input
+ * would otherwise be checked against: that one accepts "a@b", since a bare
+ * hostname is a legal address on a local network. Requiring a dotted domain
+ * and an alphabetic top level catches the typo people actually make. The
+ * local part stays permissive — anything but whitespace and a second @ — so
+ * plus-tags and dots are left alone.
+ *
+ * Nothing on the backend checks the address at all: MagicLinkService hands
+ * whatever it is given straight to the mail server.
+ */
+const EMAIL_PATTERN = /^[^\s@]+@[a-zA-Z0-9][a-zA-Z0-9-]*(\.[a-zA-Z0-9][a-zA-Z0-9-]*)*\.[a-zA-Z]{2,}$/;
 
 const CHEVRON_STAGGER_MS = 70;
 // Must outlast the 0.3s transform transition on .chevron-trail polyline: the
@@ -108,10 +122,18 @@ interface LoginSlotOptions {
   /** Called when the email field opens or closes, so sibling controls can react. */
   onComposeChange: (composing: boolean) => void;
   /**
+   * Called when the user themselves closes the field — the X or Back, not
+   * the close that follows a sent email. Dismissing the field is also a
+   * dismissal of whatever it had to say.
+   */
+  onDismiss?: () => void;
+  /**
    * Called while a magic-link request is in flight, so the sibling button
    * that submits the field can lock for the duration.
    */
   onSendingChange: (sending: boolean) => void;
+  /** Raises a response message by its case number from the audit. */
+  onMessage: (caseNumber: string) => void;
   /**
    * Given the submitted address, returns true to skip the normal
    * magic-link request. TODO: only used by the development shortcuts in
@@ -128,12 +150,14 @@ export interface LoginSlotHandle {
   submit: () => void;
 }
 
-// Matches $breakpoint-desktop in styles/_tokens.scss.
-const DESKTOP_MIN_WIDTH = 900;
-
-const isDesktop = (): boolean => window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH}px)`).matches;
-
-export function loginSlot({ onLogin, onComposeChange, onSendingChange, onBeforeSubmit }: LoginSlotOptions): LoginSlotHandle {
+export function loginSlot({
+  onLogin,
+  onComposeChange,
+  onSendingChange,
+  onMessage,
+  onDismiss,
+  onBeforeSubmit,
+}: LoginSlotOptions): LoginSlotHandle {
   let root: HTMLElement = idleButton();
 
   // The open field is a step of its own as far as the user is concerned, so
@@ -163,6 +187,7 @@ export function loginSlot({ onLogin, onComposeChange, onSendingChange, onBeforeS
     if (!root.isConnected) return false;
 
     revert();
+    onDismiss?.();
     return true;
   }
 
@@ -241,7 +266,15 @@ export function loginSlot({ onLogin, onComposeChange, onSendingChange, onBeforeS
 
     const closeBtn = h(
       "button",
-      { type: "button", class: "login-slot__close", "aria-label": "Cancel", onclick: () => revert() },
+      {
+        type: "button",
+        class: "login-slot__close",
+        "aria-label": "Cancel",
+        onclick: () => {
+          revert();
+          onDismiss?.();
+        },
+      },
       closeGlyph()
     );
 
@@ -277,10 +310,21 @@ export function loginSlot({ onLogin, onComposeChange, onSendingChange, onBeforeS
     const input = field.querySelector<HTMLInputElement>("input");
     if (!input || sending) return;
 
-    if (onBeforeSubmit?.(email)) return;
+    // Trailing space survives a paste more often than not, and is never
+    // meant, so it is dropped rather than rejected.
+    const address = email.trim();
 
-    if (!input.checkValidity()) {
-      input.reportValidity();
+    if (onBeforeSubmit?.(address)) return;
+
+    // An empty field is a different mistake from a malformed address, and
+    // saying so is more use than calling nothing invalid.
+    if (!address) {
+      onMessage("7b");
+      return;
+    }
+
+    if (!EMAIL_PATTERN.test(address)) {
+      onMessage("7a");
       return;
     }
 
@@ -290,12 +334,15 @@ export function loginSlot({ onLogin, onComposeChange, onSendingChange, onBeforeS
     input.disabled = true;
     onSendingChange(true);
     try {
-      await api.auth.requestMagicLink(email);
+      await api.auth.requestMagicLink(address);
       // The sent state is the field simply closing again, as if the X had
       // been pressed — there is no confirmation badge.
       if (field.isConnected) revert();
     } catch {
-      // TODO: report the failure to the user; today the field just unlocks.
+      // TODO: wire the magic-link messages — 5xx is case 8, 429 is 9, a
+      //  fetch rejection is 10 — and on success 11a or 11b depending on
+      //  whether the field was opened by REGISTER or "Lost your passkey?",
+      //  which the slot does not track yet.
       if (field.isConnected) input.disabled = false;
     } finally {
       sending = false;

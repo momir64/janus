@@ -3,6 +3,7 @@ import { navigate } from "../lib/router";
 import { registerWithToken } from "../lib/webauthn";
 import { optionalBreaks } from "../lib/optionalBreaks";
 import { button } from "../components/button";
+import { messageLine } from "../components/messageLine";
 import emailSuccess from "../assets/icons/email-success.svg";
 import errorIcon from "../assets/icons/error.svg";
 
@@ -46,6 +47,11 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
     return view;
   }
 
+  // Every registration failure belongs to this view — the invalid one has no
+  // control to press — so the line sits below the button, as on the login
+  // page.
+  const message = messageLine();
+
   const registerButton = button({
     label: "REGISTER NEW PASSKEY",
     variant: "framed",
@@ -55,8 +61,13 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
         await registerWithToken(token, "Kredenac account");
         navigate("/");
       } catch {
-        // TODO: report the failure to the user. A rejected token is only one
-        //  of the causes, so this must not assume the link is invalid.
+        // TODO: wire the registration messages through message.show(), keyed
+        //  by VERIFY_MESSAGES: NotAllowedError is 14, InvalidStateError 15,
+        //  ConstraintError 16b, NotSupportedError 16c, SecurityError 16d,
+        //  UnknownError and AbortError 16e, a 429 is 16a, and a 5xx or fetch
+        //  rejection 16f. A resolved non-PublicKeyCredential is 16g. Case 13
+        //  keeps the invalid page, and waits on the token-trade flow so that
+        //  an expired link is caught before a passkey is created.
       } finally {
         registerButton.disabled = false;
       }
@@ -85,7 +96,7 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
       h("br", {}),
       "been successfully verified."
     )),
-    h("div", { class: "verify-page__action" }, registerButton)
+    h("div", { class: "verify-page__action" }, registerButton, message.el)
   );
 
   optionalBreaks(successMessage);

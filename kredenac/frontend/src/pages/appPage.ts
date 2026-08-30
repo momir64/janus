@@ -2,6 +2,11 @@ import { h, mount } from "../lib/dom";
 import { navigate } from "../lib/router";
 import { api } from "../lib/api";
 import { icon } from "../components/icon";
+import { messageLine } from "../components/messageLine";
+import { FILE_MESSAGES, NOTE_MESSAGES } from "../lib/messages";
+import { optionalBreaks } from "../lib/optionalBreaks";
+import { truncateFilename } from "../lib/format";
+import { isDesktop } from "../lib/breakpoint";
 import { button } from "../components/button";
 import { appNav, type AppTab } from "../components/nav";
 import { fileRow } from "../components/fileRow";
@@ -14,7 +19,7 @@ import { noteEditor } from "../components/noteEditor";
 import { contentTab, setContentTab, type ContentTab } from "../lib/appTab";
 import type { FileEntry, NoteEntry } from "../types";
 
-export async function appPage(): Promise<Node> {
+export async function appPage(params: URLSearchParams): Promise<Node> {
   let activeTab: AppTab = contentTab();
 
   const filesList = h("div", { class: "app-page__list" });
@@ -25,31 +30,167 @@ export async function appPage(): Promise<Node> {
   // Desktop shows a large drag 'n' drop dropzone; mobile shows a compact
   // upload button instead — that's what the Figma file itself does, not
   // just a smaller dropzone. Both trigger the same hidden file input.
+  const DROPZONE_LABEL = "Drag 'n' drop or click to select a file.";
+  const dropzoneLabel = h("span", {}, DROPZONE_LABEL);
   const dropzone = h(
     "div",
-    { class: "dropzone", onclick: () => fileInput.click() },
+    { class: "dropzone", onclick: () => uploadingName === null && fileInput.click() },
     icon("upload"),
-    h("span", {}, "Drag 'n' drop or click to select a file."),
+    dropzoneLabel,
     fileInput
   );
 
-  const uploadButton = button({ label: "Upload new file", variant: "corners", onClick: () => fileInput.click() });
+  const UPLOAD_LABEL = "Upload new file";
+  const uploadButton = button({ label: UPLOAD_LABEL, variant: "corners", onClick: () => fileInput.click() });
+  const uploadLabel = uploadButton.querySelector<HTMLElement>(".btn__label")!;
+
+  // Case 17. While a file is going up, both controls say so instead of
+  // inviting another one, and the cancel link takes the slot the messages
+  // use - the two can never be needed at once.
+  let uploadingName: string | null = null;
+  let dotTicker = 0;
+
+  // Three dots, of which the trailing ones are merely invisible: the run
+  // always occupies its full width, so a centred label does not slide left
+  // and right as the count changes. Padding with spaces would not do - a
+  // space and a dot are different widths in a proportional face.
+  function dotRun(): { el: HTMLElement; show: (count: number) => void } {
+    const dots = [0, 1, 2].map(() => h("span", {}, "."));
+    return {
+      el: h("span", {}, ...dots),
+      show: (count) =>
+        dots.forEach((dot, i) => {
+          dot.style.visibility = i < count ? "visible" : "hidden";
+        }),
+    };
+  }
+
+  const dropzoneDots = dotRun();
+  const buttonDots = dotRun();
+
+  const cancelLink = h(
+    "button",
+    {
+      type: "button",
+      class: "app-page__cancel app-page__notice",
+      hidden: true,
+      // The dropzone is the ancestor here, and its own click opens the file
+      // picker: without this, cancelling would immediately ask for another
+      // file, since `uploading` is already false by the time it bubbles.
+      onclick: (e: MouseEvent) => {
+        e.stopPropagation();
+        cancelUpload();
+      },
+    },
+    "Cancel file upload"
+  );
+
+  /**
+   * Writes the two labels for whatever is being uploaded. Kept apart from
+   * setUploading so a window crossing the breakpoint can re-cut the name:
+   * the button has room for less of it than the dropzone does.
+   */
+  function renderUploadLabels(): void {
+    if (uploadingName === null) {
+      dropzoneLabel.replaceChildren(DROPZONE_LABEL);
+      uploadLabel.replaceChildren(UPLOAD_LABEL);
+      return;
+    }
+
+    // No ellipsis, since the dots follow the name directly.
+    const shown = truncateFilename(uploadingName, isDesktop() ? 24 : 16, false);
+    dropzoneLabel.replaceChildren(`Uploading ${shown}`, dropzoneDots.el);
+    uploadLabel.replaceChildren(`Uploading ${shown}`, buttonDots.el);
+  }
+
+  function setUploading(filename: string | null): void {
+    uploadingName = filename;
+    const uploading = filename !== null;
+    dropzone.classList.toggle("dropzone--uploading", uploading);
+    // The uploading label is longer than "Upload new file", so it is set a
+    // size smaller to stay on one line.
+    uploadButton.classList.toggle("btn--uploading", uploading);
+    uploadButton.disabled = uploading;
+    cancelLink.hidden = !uploading;
+    clearInterval(dotTicker);
+    renderUploadLabels();
+    if (filename === null) return;
+
+    let step = 0;
+    const tick = (): void => {
+      const count = (step % 3) + 1;
+      dropzoneDots.show(count);
+      buttonDots.show(count);
+      step += 1;
+    };
+    tick();
+    dotTicker = window.setInterval(tick, 600);
+  }
+
+  function cancelUpload(): void {
+    // TODO: abort the request itself once an AbortSignal is threaded through
+    //  request() and api.files.upload; today this only restores the controls.
+    setUploading(null);
+  }
+
+  // One line, shown wherever the upload control's cancel link would go: in
+  // the dropzone on desktop, in the column between the button and the list
+  // on mobile. Only one of those two controls is ever on screen, so the line
+  // moves to whichever it is rather than being duplicated.
+  // Broken a little before the copy would actually reach the dropzone's
+  // dashed edge, which reads as cramped long before it truly overflows.
+  const message = messageLine({
+    className: "message-line--inline app-page__notice",
+    fitPadding: 32,
+  });
+
+  function placeMessage(): void {
+    if (!filesColumn.isConnected) return; // a stale page's listener still firing
+    const host = isDesktop() ? dropzone : filesColumn;
+    if (message.el.parentElement === host) return;
+
+    if (host === dropzone) {
+      dropzone.append(message.el, cancelLink);
+    } else {
+      // attachScrollbar wraps the list, so it is that wrapper which is the
+      // column's child and the anchor to insert before. Inserting before the
+      // list itself throws, since it is no longer a child of this box.
+      const anchor = filesList.closest(".scroll-area") ?? filesList;
+      filesColumn.insertBefore(message.el, anchor);
+      filesColumn.insertBefore(cancelLink, anchor);
+    }
+  }
+
+  window.addEventListener("resize", () => {
+    placeMessage();
+    renderUploadLabels(); // the name is cut shorter on the narrower control
+  });
 
   const filesColumn = h(
     "div",
     { class: "app-page__column", "data-tab": "files" },
     dropzone,
     uploadButton,
+    message.el,
+    cancelLink,
     filesList
   );
 
   // Same split as the upload control: desktop gets the icon-trailing "Add a
   // new note" button, mobile gets the compact corner-bracketed one.
+  // Below whichever button opened the editor - only one of the two is ever
+  // on screen - in the same slot the files column gives its own line.
+  const noteMessage = messageLine({
+    className: "message-line--inline app-page__notice",
+    fitPadding: 32,
+  });
+
   const notesColumn = h(
     "div",
     { class: "app-page__column", "data-tab": "notes" },
-    button({ label: "Add a new note", variant: "icon", icon: "add-note", onClick: openCreateNote }),
-    button({ label: "Create new note", variant: "corners", onClick: openCreateNote }),
+    button({ label: "Add a new note", variant: "icon", icon: "add-note", onClick: () => openCreateNote() }),
+    button({ label: "Create new note", variant: "corners", onClick: () => openCreateNote() }),
+    noteMessage.el,
     notesList
   );
 
@@ -58,6 +199,7 @@ export async function appPage(): Promise<Node> {
       e.preventDefault();
       dropzone.classList.toggle("dropzone--active", evt === "dragover");
       if (evt === "drop") {
+        if (uploadingName !== null) return;
         const file = (e as DragEvent).dataTransfer?.files[0];
         if (file) void uploadFile(file);
       }
@@ -76,10 +218,35 @@ export async function appPage(): Promise<Node> {
   }
 
   async function loadFiles(): Promise<void> {
-    // A failed list still renders the empty state rather than leaving the
-    // column blank on an unhandled rejection.
-    const files = await api.files.list().catch(() => [] as FileEntry[]);
-    renderFiles(files);
+    try {
+      renderFiles(await api.files.list());
+    } catch {
+      // Case 24. It takes the empty state's place rather than the line the
+      // other file messages use: with nothing listed, "No files yet." would
+      // otherwise claim the request had succeeded and found nothing.
+      showListError(filesList, FILE_MESSAGES["24"]);
+    }
+  }
+
+  /**
+   * A failed list, written where its contents would have gone. Static rather
+   * than typed: this is the state the column is in, not a passing remark, so
+   * it stays until a load succeeds.
+   */
+  function showListError(list: HTMLElement, text: string): void {
+    const lines = text.split("\n");
+    const el = h(
+      "p",
+      { class: "app-page__empty app-page__empty--error" },
+      // The trailing space belongs to the line, not the break: with the
+      // break dropped the two run together otherwise, and at the end of a
+      // line it collapses to nothing.
+      ...lines.flatMap((line, i) => (i === lines.length - 1 ? [line] : [`${line} `, h("br")]))
+    );
+    mount(list, el);
+    // Same optional breaks as the dialogs, and only once the paragraph is in
+    // the document: measured before that, it has no width to measure against.
+    optionalBreaks(el);
   }
 
   function renderFiles(files: FileEntry[]): void {
@@ -107,8 +274,13 @@ export async function appPage(): Promise<Node> {
   }
 
   async function loadNotes(): Promise<void> {
-    const notes = await api.notes.list().catch(() => [] as NoteEntry[]);
-    renderNotes(notes);
+    try {
+      renderNotes(await api.notes.list());
+    } catch {
+      // Case 31, as for the files: "No notes yet." would otherwise report a
+      // request that succeeded and found nothing.
+      showListError(notesList, NOTE_MESSAGES["31"]);
+    }
   }
 
   function renderNotes(notes: NoteEntry[]): void {
@@ -125,6 +297,8 @@ export async function appPage(): Promise<Node> {
           onEdit: () => openEditNote(note),
           onDelete: () =>
             confirmDialog(["Are you sure you want to delete", `"${note.title}"?`], async () => {
+              // TODO: cases 30 and 28 - report a failed delete through
+              //  noteMessage.show(), a 404 being 28 and anything else 30.
               await api.notes.delete(note.id);
               await loadNotes();
             }),
@@ -133,10 +307,11 @@ export async function appPage(): Promise<Node> {
     );
   }
 
-  function openCreateNote(): void {
+  function openCreateNote(preview?: string): void {
     openDialog(
       (handle) =>
         noteEditor({
+          preview,
           onSave: async (title, content) => {
             await api.notes.create(title, content);
             handle.close();
@@ -202,6 +377,28 @@ export async function appPage(): Promise<Node> {
   setActiveTab(activeTab); // the tab last looked at, e.g. on returning from Settings
   void loadFiles();
   void loadNotes();
+
+  // Needs the page in the document: the line reads which layout is in force
+  // from its own box.
+  requestAnimationFrame(() => {
+    placeMessage();
+
+    // TODO: development only - ?m=<case> shows that message where it will
+    //  live, e.g. /?m=18. Remove once the file and note messages are wired
+    //  to their triggers.
+    const preview = params.get("m");
+    if (!preview) return;
+    // On mobile only one column is on screen, so the notes cases bring
+    // theirs to the front first.
+    if (NOTE_MESSAGES[preview]) setActiveTab("notes");
+
+    if (preview === "17") setUploading("some-long-example-filename.pdf");
+    else if (preview === "24") showListError(filesList, FILE_MESSAGES["24"]);
+    else if (preview === "31") showListError(notesList, NOTE_MESSAGES["31"]);
+    else if (FILE_MESSAGES[preview]) message.show(FILE_MESSAGES[preview]);
+    else if (preview === "28" || preview === "30") noteMessage.show(NOTE_MESSAGES[preview]);
+    else if (NOTE_MESSAGES[preview]) openCreateNote(preview);
+  });
 
   return page;
 }

@@ -1,6 +1,9 @@
 import "./style.scss";
 import { registerRoute, navigate, startRouter } from "./lib/router";
-import { isAuthenticated } from "./lib/session";
+import { alertDialog } from "./components/alertDialog";
+import { GLOBAL_MESSAGES } from "./lib/messages";
+import { isAuthenticated, setCsrfToken } from "./lib/session";
+import { enableDevMode } from "./lib/devMode";
 import { api } from "./lib/api";
 import { loginPage } from "./pages/loginPage";
 import { verifyPage } from "./pages/verifyPage";
@@ -9,7 +12,15 @@ import { settingsPage } from "./pages/settingsPage";
 
 // "/" is the whole app: the login page before signing in, the files and
 // notes it guards afterwards.
-registerRoute("/", async () => (isAuthenticated() ? appPage() : loginPage()));
+registerRoute("/", async (params) => {
+  // TODO: development only - "?m=<case>" opens the app straight onto a
+  //  message preview, e.g. /?m=18. Remove with devMode.ts.
+  if (params.has("m") && !isAuthenticated()) {
+    enableDevMode();
+    setCsrfToken("dev");
+  }
+  return isAuthenticated() ? appPage(params) : loginPage();
+});
 
 // The token is a path segment, not a query parameter.
 // TODO: the backend still builds the query form — MagicLinkService.kt has
@@ -19,17 +30,39 @@ registerRoute("/", async () => (isAuthenticated() ? appPage() : loginPage()));
 registerRoute("/verify", verifyPage);
 registerRoute("/verify/:token", verifyPage);
 
-registerRoute("/settings", async () => {
+registerRoute("/settings", async (params) => {
+  // TODO: development only, as on "/" above.
+  if (params.has("m") && !isAuthenticated()) {
+    enableDevMode();
+    setCsrfToken("dev");
+  }
   if (!isAuthenticated()) {
     navigate("/");
     return document.createComment("redirecting");
   }
-  return settingsPage();
+  return settingsPage(params);
 });
 
 registerRoute("*", async () => {
   navigate("/");
   return document.createComment("redirecting");
+});
+
+// Case 39: the session ended under whatever page is open. One dialog only,
+// however many requests fail together, and its OK is what returns to the
+// login page.
+let signedOutShown = false;
+window.addEventListener("kredenac:session-expired", () => {
+  if (signedOutShown) return;
+  signedOutShown = true;
+  alertDialog(
+    GLOBAL_MESSAGES["39"].split("\n"),
+    () => {
+      signedOutShown = false;
+      navigate("/");
+    },
+    { frame: "narrow" }
+  );
 });
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
