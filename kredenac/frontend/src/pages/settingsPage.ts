@@ -6,6 +6,7 @@ import { appNav } from "../components/nav";
 import { passkeyCard } from "../components/passkeyCard";
 import { confirmDialog } from "../components/confirmDialog";
 import { attachScrollbar } from "../lib/scrollbar";
+import { setContentTab, type ContentTab } from "../lib/appTab";
 import type { Passkey } from "../types";
 
 export async function settingsPage(): Promise<Node> {
@@ -48,13 +49,14 @@ export async function settingsPage(): Promise<Node> {
     );
   }
 
-  // Every tab used to route to a bare "/app", which always opened Files —
-  // so Notes landed on Files, and Settings navigated away from itself.
   const [top, bottom] = appNav({
     active: "settings",
     onTabChange: (tab) => {
       if (tab === "settings") return; // already here
-      navigate(`/app?tab=${tab}`);
+      // The chosen list travels in memory, so "/" opens on it rather than
+      // always falling back to Files.
+      setContentTab(tab as ContentTab);
+      navigate("/");
     },
   });
 

@@ -17,7 +17,7 @@ export async function loginPage(): Promise<Node> {
     error.textContent = "";
     try {
       await login();
-      navigate("/app");
+      navigate("/");
     } catch (e) {
       if (e instanceof DOMException && e.name === "NotAllowedError") return; // user cancelled the passkey prompt
       error.textContent = "Couldn't sign you in with that passkey. Please try again.";
@@ -37,7 +37,7 @@ export async function loginPage(): Promise<Node> {
     if (email === "a") {
       enableDevMode(); // otherwise the first 401 clears the session again
       setCsrfToken("dev");
-      navigate("/app");
+      navigate("/");
       return true;
     }
     if (email === "b") {

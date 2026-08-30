@@ -14,7 +14,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 0 24px 78px;
+  padding: 0 24px 75px;
   text-align: center;
 
   @include desktop {
@@ -95,8 +95,8 @@
 }
 
 .verify-page__action {
-  margin-top: 51px; // text bottom 372 -> button 428, less 5px of leading
-  width: 240px;
+  margin-top: 48px; // text bottom 372 -> button 425 (2052:63)
+  width: 270px; // 2052:63
 
   @include desktop {
     margin-top: 88px; // text bottom 530 -> button 631, less 13px

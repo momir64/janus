@@ -3,6 +3,7 @@ import { icon, type IconName } from "./icon";
 import { navigate } from "../lib/router";
 import { api } from "../lib/api";
 import { closeAllDialogs } from "./dialog";
+import { contentTab } from "../lib/appTab";
 
 export type AppTab = "files" | "notes" | "settings";
 
@@ -54,7 +55,8 @@ export function appNav({ active, onTabChange }: AppNavOptions): [HTMLElement, HT
     "nav",
     { class: "top-nav" },
     active === "settings"
-      ? navButton("back", "Go back", false, () => onTabChange("files"))
+      // Back to whichever list was last open, not always the first one.
+      ? navButton("back", "Go back", false, () => onTabChange(contentTab()))
       : navButton("settings", "Settings", false, () => onTabChange("settings")),
     navButton("logout", "Log out", false, logout, true, true)
   );

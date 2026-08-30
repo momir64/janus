@@ -7,25 +7,13 @@ import { verifyPage } from "./pages/verifyPage";
 import { appPage } from "./pages/appPage";
 import { settingsPage } from "./pages/settingsPage";
 
-registerRoute("/", async () => {
-  if (isAuthenticated()) {
-    navigate("/app");
-    return document.createComment("redirecting");
-  }
-  return loginPage();
-});
+// "/" is the whole app: the login page before signing in, the files and
+// notes it guards afterwards.
+registerRoute("/", async () => (isAuthenticated() ? appPage() : loginPage()));
 
 registerRoute("/verify", verifyPage);
 
-registerRoute("/app", async (params) => {
-  if (!isAuthenticated()) {
-    navigate("/");
-    return document.createComment("redirecting");
-  }
-  return appPage(params);
-});
-
-registerRoute("/app/settings", async () => {
+registerRoute("/settings", async () => {
   if (!isAuthenticated()) {
     navigate("/");
     return document.createComment("redirecting");

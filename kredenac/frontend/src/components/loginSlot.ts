@@ -212,6 +212,11 @@ export function loginSlot({ onLogin, onComposeChange, onBeforeSubmit }: LoginSlo
     field.classList.add("login-slot__field--settled");
     await placeholder;
 
+    // The caret waits for the placeholder to finish writing itself, so it
+    // never appears to be sitting inside text the reader did not type. A
+    // click brings it earlier — see composeField.
+    if (field.isConnected) field.classList.add("login-slot__field--caret");
+
     if (!isDesktop() && field.isConnected) input.focus();
   }
 
@@ -242,6 +247,9 @@ export function loginSlot({ onLogin, onComposeChange, onBeforeSubmit }: LoginSlo
         // padding is still dead space — clicking there should focus it too.
         onclick: (e: MouseEvent) => {
           if ((e.target as Element).closest(".login-slot__close")) return;
+          // Reaching for the field is a request to type in it, so the caret
+          // appears now rather than waiting for the placeholder to land.
+          input.closest(".login-slot__field")?.classList.add("login-slot__field--caret");
           input.focus();
         },
       },

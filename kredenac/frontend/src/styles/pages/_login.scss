@@ -385,6 +385,13 @@ $login-column-min: 480px;
 .login-slot__field {
   justify-content: flex-start;
   align-items: center;
+
+  // A focused field is being attended to just as a hovered one is, so it
+  // takes the same colours — edge, corner mark and label alike.
+  &:focus-within {
+    @include control-lift;
+  }
+
   // Reads as a text field, and clicking anywhere in it focuses the input.
   cursor: text;
   // Leaves room for the close button, which sits in the top-right corner.
@@ -437,6 +444,15 @@ $login-column-min: 480px;
   font-size: 14px;
   font-weight: 400;
   color: $color-text;
+  // Hidden until the field is genuinely waiting for input: through the
+  // label draining and the address typing itself, a caret would read as a
+  // cursor sitting in text the reader did not write. loginSlot reveals it
+  // once the placeholder lands, or as soon as the field is clicked.
+  caret-color: transparent;
+
+  .login-slot__field--caret & {
+    caret-color: auto;
+  }
 
   @include desktop {
     font-size: 22px;
@@ -454,7 +470,10 @@ $login-column-min: 480px;
   // empties it — the switch then lands while it is empty and is never seen
   // mid-word.
   &::placeholder {
-    color: $color-text-muted;
+    // Still carrying the button's label at this point, so it keeps the
+    // label's colour — the change lands with the size change below, in the
+    // gap where the field is empty.
+    color: var(--label, #{$color-text});
     font-size: 16px;
     font-weight: 300;
 
@@ -464,6 +483,9 @@ $login-column-min: 480px;
   }
 
   .login-slot__field--typing &::placeholder {
+    // A step back from the muted text the rest of the page uses, so the
+    // suggestion never reads as something already typed.
+    color: $color-border-strong;
     font-size: 14px;
     font-weight: 400;
 

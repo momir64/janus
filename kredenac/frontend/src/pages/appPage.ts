@@ -11,11 +11,11 @@ import { closeAllDialogs, openDialog } from "../components/dialog";
 import { closeCutEdge } from "../lib/scrollEdge";
 import { attachScrollbar } from "../lib/scrollbar";
 import { noteEditor } from "../components/noteEditor";
+import { contentTab, setContentTab, type ContentTab } from "../lib/appTab";
 import type { FileEntry, NoteEntry } from "../types";
 
-export async function appPage(params?: URLSearchParams): Promise<Node> {
-  const requested = params?.get("tab");
-  let activeTab: AppTab = requested === "notes" ? "notes" : "files";
+export async function appPage(): Promise<Node> {
+  let activeTab: AppTab = contentTab();
 
   const filesList = h("div", { class: "app-page__list" });
   const notesList = h("div", { class: "app-page__list app-page__list--notes" });
@@ -166,6 +166,7 @@ export async function appPage(params?: URLSearchParams): Promise<Node> {
 
   function setActiveTab(tab: AppTab): void {
     activeTab = tab;
+    if (tab !== "settings") setContentTab(tab as ContentTab);
     filesColumn.hidden = tab !== "files";
     notesColumn.hidden = tab !== "notes";
     mount(navSlot, ...appNav({ active: activeTab, onTabChange: handleTabChange }));
@@ -175,7 +176,7 @@ export async function appPage(params?: URLSearchParams): Promise<Node> {
     // On mobile the note editor sits above the page with the tab bar still
     // reachable, so a tab press has to dismiss it first.
     closeAllDialogs();
-    if (tab === "settings") navigate("/app/settings");
+    if (tab === "settings") navigate("/settings");
     else setActiveTab(tab);
   }
 
@@ -198,7 +199,7 @@ export async function appPage(params?: URLSearchParams): Promise<Node> {
   attachScrollbar(filesList);
   attachScrollbar(notesList);
 
-  setActiveTab(activeTab); // honours ?tab=, e.g. arriving from Settings
+  setActiveTab(activeTab); // the tab last looked at, e.g. on returning from Settings
   void loadFiles();
   void loadNotes();
 

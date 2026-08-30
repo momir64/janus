@@ -23,9 +23,10 @@ export function registerRoute(path: string, render: Route["render"]): void {
 }
 
 export function navigate(path: string): void {
-  if (location.pathname + location.search === path) return;
-  history.pushState(null, "", path);
-  render();
+  // Renders either way; the entry is only pushed when the address actually
+  // changes, so signing in or out at the same path still redraws.
+  if (location.pathname + location.search !== path) history.pushState(null, "", path);
+  void render();
 }
 
 async function render(): Promise<void> {

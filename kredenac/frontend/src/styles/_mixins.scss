@@ -66,6 +66,15 @@
   }
 }
 
+// The colours a control lifts to when it is being attended to. Kept apart
+// from the states that trigger it, since the email field takes them on focus
+// as well as on hover.
+@mixin control-lift {
+  --edge: #{$color-border-strong};
+  --edge-accent: #{$color-text};
+  --label: #ffffff;
+}
+
 // The one-step-brighter treatment a control takes while the pointer is over
 // it or while it is being pressed.
 //
