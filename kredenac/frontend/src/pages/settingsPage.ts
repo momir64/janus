@@ -5,6 +5,7 @@ import { button } from "../components/button";
 import { appNav } from "../components/nav";
 import { passkeyCard } from "../components/passkeyCard";
 import { confirmDialog } from "../components/confirmDialog";
+import { attachScrollbar } from "../lib/scrollbar";
 import type { Passkey } from "../types";
 
 export async function settingsPage(): Promise<Node> {
@@ -57,34 +58,40 @@ export async function settingsPage(): Promise<Node> {
     },
   });
 
-  const page = h(
+  const content = h(
     "div",
-    {},
-    top,
+    { class: "settings-page" },
+    // Desktop 145:14 vs mobile 157:20 word this differently.
+    h(
+      "h2",
+      { class: "settings-page__heading" },
+      h("span", { class: "u-desktop-only" }, "Passkeys associated with this account"),
+      h("span", { class: "u-mobile-only" }, "Associated passkeys")
+    ),
+    h("div", { class: "settings-page__rule" }),
     h(
       "div",
-      { class: "settings-page" },
-      // Desktop 145:14 vs mobile 157:20 word this differently.
-      h(
-        "h2",
-        { class: "settings-page__heading" },
-        h("span", { class: "u-desktop-only" }, "Passkeys associated with this account"),
-        h("span", { class: "u-mobile-only" }, "Associated passkeys")
-      ),
-      h("div", { class: "settings-page__rule" }),
+      { class: "settings-page__layout" },
+      list,
       h(
         "div",
-        { class: "settings-page__layout" },
-        list,
-        h(
-          "div",
-          { class: "settings-page__danger" },
-          button({ label: "DELETE ACCOUNT", variant: "framed", danger: true, onClick: deleteAccount })
-        )
+        { class: "settings-page__danger" },
+        button({ label: "DELETE ACCOUNT", variant: "framed", danger: true, onClick: deleteAccount })
       )
-    ),
-    bottom
+    )
   );
+
+  // The nav rides inside the scroller rather than above it, so Go back and
+  // Log out travel with the content instead of staying put. It sits outside
+  // the centred column so its buttons keep the page's own 36px corners.
+  const scroller = h("div", { class: "settings-scroll" }, top, content);
+
+  // Same shell as the app page, so the page itself never scrolls.
+  const page = h("div", { class: "app-shell" }, scroller, bottom);
+
+  // The scroller stops at the tab bar, so the bar runs the whole way down to
+  // it rather than stopping short as the lists' do.
+  attachScrollbar(scroller, { inset: 0, placement: "inside" }).classList.add("settings-page__scroll");
 
   void loadPasskeys();
   return page;

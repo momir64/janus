@@ -8,27 +8,46 @@
 // Desktop is two 600px columns at x=310 and x=1010 (100px gap), so the
 // content box is 1300 wide with symmetric 310px margins.
 
+// The lists scroll inside themselves, so the shell takes the viewport's
+// height and nothing below it can grow the page.
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}
+
 .app-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   // mobile: first control at y=48, 20px side padding, 52px tab bar to clear
-  padding: 48px 20px 72px;
+  padding: 48px 20px 52px;
 
   @include desktop {
     // Same 32px gutter as the settings page, so the columns keep a margin
     // once the window is narrower than the 1300 content box.
+    // width:100% because an auto cross-axis margin on a flex item cancels
+    // the stretch, which would leave the page shrink-to-fit.
+    width: 100%;
     max-width: 1364px;
     margin: 0 auto;
-    padding: 44px 32px 60px; // nav occupies 36..88; content starts at 132
+    padding: 44px 32px 0; // nav occupies 36..88; content starts at 132
   }
 }
 
 .app-page__columns {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 32px;
 
   @include desktop {
     flex-direction: row;
-    align-items: flex-start;
+    // Stretched rather than top-aligned, so each column runs the full height
+    // and its list has something definite to fill.
+    align-items: stretch;
     // Design gap is 100px (x=910 to x=1010); shrinks with the window but
     // never past 48px.
     gap: clamp(48px, 5.208vw, 100px);
@@ -36,6 +55,8 @@
 }
 
 .app-page__column {
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -83,20 +104,41 @@
 }
 
 .app-page__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+
   display: flex;
   flex-direction: column;
-  gap: 14px; // mobile file pitch 81 = 67 + 14
+  --list-gap: 14px; // mobile file pitch 81 = 67 + 14
+  gap: var(--list-gap);
+  // Carries the same measure past the last card, so scrolling to the end
+  // leaves it clear of the container's edge rather than flush against it.
+  padding-bottom: 64px;
+
+  // The rows keep their own heights and the list scrolls; without this they
+  // would shrink to fit the container, which is what flex items do.
+  > * {
+    flex: none;
+  }
 
   @include desktop {
-    gap: 20px; // desktop file pitch 122 = 102 + 20
+    --list-gap: 20px; // desktop file pitch 122 = 102 + 20
+  }
+
+  // Stands in for the top border of a card the scroll has cut through — see
+  // closeCutEdge(). An inset shadow rather than a border, so it is painted on
+  // the container's own edge and adds nothing to the layout.
+  &--cut {
+    box-shadow: inset 0 var(--cut-width, 1px) 0 0 var(--cut-color, #{$color-border});
   }
 }
 
 .app-page__list--notes {
-  gap: 16px; // mobile note gap 457 - 441
+  --list-gap: 16px; // mobile note gap 457 - 441
 
   @include desktop {
-    gap: 24px; // desktop note gap 431 - 407
+    --list-gap: 24px; // desktop note gap 431 - 407
   }
 }
 

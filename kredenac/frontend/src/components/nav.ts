@@ -29,11 +29,17 @@ function navButton(
   iconLast = false
 ): HTMLElement {
   // Figma puts the glyph before the label on Settings / Go back (149:201,
-  // 152:223) but after it on Log out (149:188).
+  // 152:223) but after it on Log out (149:188), and inset each differently —
+  // hence the modifiers, which the desktop nav uses to place them.
   const parts = [icon(iconName), showLabel ? h("span", { class: "btn__label" }, label) : null];
+  const classes = ["btn", "btn--nav"];
+  if (active) classes.push("is-active");
+  if (iconLast) classes.push("btn--nav--trailing");
+  if (iconName === "settings") classes.push("btn--nav--gear");
+
   return h(
     "button",
-    { class: `btn btn--nav${active ? " is-active" : ""}`, "aria-label": label, onclick: onClick },
+    { class: classes.join(" "), "aria-label": label, onclick: onClick },
     ...(iconLast ? parts.reverse() : parts)
   );
 }

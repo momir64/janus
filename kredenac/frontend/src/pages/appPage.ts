@@ -8,6 +8,8 @@ import { fileRow } from "../components/fileRow";
 import { noteCard } from "../components/noteCard";
 import { confirmDialog } from "../components/confirmDialog";
 import { closeAllDialogs, openDialog } from "../components/dialog";
+import { closeCutEdge } from "../lib/scrollEdge";
+import { attachScrollbar } from "../lib/scrollbar";
 import { noteEditor } from "../components/noteEditor";
 import type { FileEntry, NoteEntry } from "../types";
 
@@ -180,7 +182,9 @@ export async function appPage(params?: URLSearchParams): Promise<Node> {
   const navSlot = h("div", {});
   const page = h(
     "div",
-    {},
+    // Owns the viewport height so the lists can scroll inside themselves
+    // rather than the whole page moving under the nav.
+    { class: "app-shell" },
     navSlot,
     h(
       "div",
@@ -188,6 +192,11 @@ export async function appPage(params?: URLSearchParams): Promise<Node> {
       h("div", { class: "app-page__columns" }, filesColumn, notesColumn)
     )
   );
+
+  closeCutEdge(filesList);
+  closeCutEdge(notesList);
+  attachScrollbar(filesList);
+  attachScrollbar(notesList);
 
   setActiveTab(activeTab); // honours ?tab=, e.g. arriving from Settings
   void loadFiles();

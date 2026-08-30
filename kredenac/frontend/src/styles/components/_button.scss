@@ -274,10 +274,40 @@
 
   @include desktop {
     width: 153px;
+    // Figma lays these out from the left edge rather than centring them:
+    // the glyph 14px in and the label at 52 (152:223 / 139:102).
+    justify-content: flex-start;
+    padding-left: 14px;
+    gap: 14px;
 
     .icon {
       width: 24px;
       height: 24px;
+    }
+  }
+}
+
+// Log out reverses the pair (149:188): the label 32px in, the glyph ending
+// 14px from the far edge — so the two are pushed apart rather than spaced.
+.btn--nav--trailing {
+  @include desktop {
+    justify-content: space-between;
+    padding: 0 14px 0 32px;
+    gap: 0;
+  }
+}
+
+// The gear is an 18.949x20 glyph turned 30 degrees (149:210), which makes its
+// painted box 26.41 wide — wider than the 24px glyphs beside it, and sat
+// further in so that the label still lands at 52.
+.btn--nav--gear {
+  @include desktop {
+    padding-left: 16.5px;
+    gap: 16px;
+
+    .icon {
+      width: 18.949px;
+      height: 20px;
     }
   }
 }

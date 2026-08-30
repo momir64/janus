@@ -1,4 +1,5 @@
 @use "tokens" as *;
+@use "mixins" as *;
 
 *,
 *::before,
@@ -9,6 +10,12 @@
 html,
 body {
   height: 100%;
+}
+
+// The settings page and anything else that scrolls the document take the
+// same scrollbar the lists use.
+html {
+  @include thin-scrollbar;
 }
 
 body {

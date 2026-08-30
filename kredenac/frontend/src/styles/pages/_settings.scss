@@ -8,8 +8,25 @@
 // Desktop: passkey column 720 wide at x=310, delete button 360 wide ending
 // at x=1610, so the same 1300-wide content box as the Home page.
 
+// Stops at the tab bar instead of running under it, so the scrollbar's lower
+// end meets the top edge of the menu buttons.
+.settings-page__scroll {
+  @include mobile-only {
+    margin-bottom: 52px;
+  }
+
+}
+
+// Scrolls inside itself rather than moving the document: on a phone a
+// document scroll collapses the browser's own chrome, which shifts the page
+// under the reader. The nav is inside it, above the centred column, so it
+// scrolls away with everything else.
+.settings-scroll {
+  overflow-y: auto;
+}
+
 .settings-page {
-  padding: 48px 16px 72px;
+  padding: 48px 16px 20px;
 
   @include desktop {
     // 1300 of content plus a 32px gutter each side, so the centred content
