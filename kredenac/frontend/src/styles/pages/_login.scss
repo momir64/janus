@@ -19,7 +19,7 @@
 // it under 480px, after which it holds. Solving panel = column + padding for
 // the split gives 82.5% - 480px as the floor, so the cabinet absorbs the
 // difference.
-$login-pad-left: 6.4583%;
+$login-pad-left: clamp(2%, calc(19.8332% - 160.5px), 6.4583%);
 $login-pad-right: 11.0417%;
 $login-column-min: 480px;
 
@@ -98,18 +98,22 @@ $login-column-min: 480px;
   flex-direction: column;
   justify-content: center;
   // Design block sits above centre: mobile 190..440 of 720 (2048:27 down to
-  // the register button), desktop 231..635 of 930. The extra bottom padding
-  // reproduces that bias — with a 250px block, centring inside
-  // [78, 720 - 168] puts its top at 190.
+  // the register button), desktop 231..635 of 930.
   //
-  // The bottom padding also has to clear the footer, which is positioned from
-  // this box's bottom edge and, being absolute, adds nothing to its height —
-  // so without the reservation a short window lets the centred block grow
-  // straight over "Lost your passkey?". Mobile's 106px already covers the
-  // 36 + 17 the footer occupies; desktop needs 76 + 28 plus a gap, and the
-  // top padding carries the same increase so the block's centre — the thing
-  // the design fixes — does not move: (56 + H - 120) / 2 is (H - 64) / 2.
-  padding: 78px 32px 168px;
+  // Proportional rather than fixed, so the bias holds at the 720 the frame is
+  // drawn at and folds up as the space shrinks. Fixed padding reserved 246px
+  // around the block whatever the height, more than a phone with its keyboard
+  // open (453 left) could hold — so the block was pushed below the fold
+  // rather than merely sitting lower.
+  //
+  // The proportional bias alone left the block sitting high once the space
+  // got tight, so a second term gives it back as the viewport falls short of
+  // 720. The two corrections are equal and opposite, so the padding still
+  // totals the same and the block goes on fitting.
+  --shortfall: calc(720px - 100dvh);
+  --pad-t: calc(100dvh * 0.108333 + var(--shortfall) * 0.06);
+  --pad-b: max(0px, calc(100dvh * 0.233333 - var(--shortfall) * 0.06));
+  padding: var(--pad-t) 32px var(--pad-b);
 
   @include desktop {
     margin-left: var(--split);
@@ -358,9 +362,9 @@ $login-column-min: 480px;
       bottom: 120px;
       width: 1px;
       background-image: repeating-linear-gradient(
-        to bottom,
-        $color-border 0 10px,
-        transparent 10px 20px
+              to bottom,
+              $color-border 0 10px,
+              transparent 10px 20px
       );
     }
   }
@@ -374,9 +378,9 @@ $login-column-min: 480px;
       bottom: 64px;
       height: 1px;
       background-image: repeating-linear-gradient(
-        to right,
-        $color-border 0 10px,
-        transparent 10px 20px
+              to right,
+              $color-border 0 10px,
+              transparent 10px 20px
       );
     }
   }
