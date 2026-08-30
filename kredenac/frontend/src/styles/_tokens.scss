@@ -1,0 +1,18 @@
+// Design tokens lifted from the Figma file's variable definitions.
+$color-bg: #121211;
+$color-border: #6e6e6e; // gray2
+$color-border-strong: #909090; // gray
+$color-text: #cecece; // white3
+$color-text-muted: #afafaf; // white4
+$color-danger: #a10e0e; // red2
+$color-danger-border: #800000; // red3
+
+$font-mono: "Spline Sans Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+$font-display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+
+// The Figma file has one dense desktop layout (1920 wide) and one mobile
+// layout (360 wide) with no defined tablet stop, so a single breakpoint
+// is what the design actually specifies.
+$breakpoint-desktop: 900px;
+
+$radius-none: 0;

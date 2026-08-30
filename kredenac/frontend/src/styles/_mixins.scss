@@ -1,0 +1,80 @@
+@use "tokens" as *;
+
+// The design is authored as two fixed layouts (mobile / desktop) rather than
+// a fluid range, so we build mobile-first and swap wholesale at one stop.
+@mixin desktop {
+  @media (min-width: $breakpoint-desktop) {
+    @content;
+  }
+}
+
+@mixin mobile-only {
+  @media (max-width: $breakpoint-desktop - 1) {
+    @content;
+  }
+}
+
+// Small L-shaped accent mark at a box corner, e.g. the top-left of every
+// bordered panel and button in the design.
+// Defaults to --edge-accent so the mark tracks its host's hover state; pass
+// an explicit colour for marks that sit on something non-interactive.
+@mixin corner-bracket(
+  $size: 16px,
+  $thickness: 2px,
+  $color: var(--edge-accent, #{$color-border-strong}),
+  $corner: top-left
+) {
+  content: "";
+  position: absolute;
+  width: $size;
+  height: $size;
+
+  @if $corner == top-left {
+    top: 0;
+    left: 0;
+    border-top: $thickness solid $color;
+    border-left: $thickness solid $color;
+  } @else if $corner == bottom-right {
+    bottom: 0;
+    right: 0;
+    border-bottom: $thickness solid $color;
+    border-right: $thickness solid $color;
+  }
+}
+
+// The one-step-brighter treatment a control takes while the pointer is over
+// it or while it is being pressed.
+//
+// Hover is gated on the pointer actually being able to hover: a touchscreen
+// leaves :hover on whatever was last tapped until something else is tapped,
+// so an unguarded rule makes a tapped button look stuck. :active is not
+// gated — it lasts only as long as the press, which is what gives a touch
+// device its feedback, and it answers a held mouse button too.
+@mixin hover-or-active {
+  @media (hover: hover) {
+    &:hover {
+      @content;
+    }
+  }
+
+  &:active {
+    @content;
+  }
+}
+
+@mixin focus-ring {
+  &:focus-visible {
+    outline: 1px solid $color-text;
+    outline-offset: 2px;
+  }
+}
+
+@mixin reset-button {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}

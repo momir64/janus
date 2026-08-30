@@ -1,38 +1,49 @@
-import './style.css'
+import "./style.scss";
+import { registerRoute, navigate, startRouter } from "./lib/router";
+import { isAuthenticated } from "./lib/session";
+import { api } from "./lib/api";
+import { loginPage } from "./pages/loginPage";
+import { verifyPage } from "./pages/verifyPage";
+import { appPage } from "./pages/appPage";
+import { settingsPage } from "./pages/settingsPage";
 
-const app = document.querySelector<HTMLDivElement>('#app')!
-
-app.innerHTML = `
-  <h1>Kredenac backend test</h1>
-  <form id="register-start-form">
-    <input id="username" type="text" placeholder="username" required />
-    <input id="email" type="email" placeholder="email" required />
-    <button type="submit">POST /api/webauthn/register/start</button>
-  </form>
-  <pre id="result"></pre>
-`
-
-const form = document.querySelector<HTMLFormElement>('#register-start-form')!
-const result = document.querySelector<HTMLPreElement>('#result')!
-
-form.addEventListener('submit', async (event) => {
-  event.preventDefault()
-
-  const username = document.querySelector<HTMLInputElement>('#username')!.value
-  const email = document.querySelector<HTMLInputElement>('#email')!.value
-
-  result.textContent = 'Loading...'
-
-  try {
-    const response = await fetch('/api/webauthn/register/start', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, email })
-    })
-
-    const data = await response.json()
-    result.textContent = `${response.status}\n${JSON.stringify(data, null, 2)}`
-  } catch (error) {
-    result.textContent = `Request failed: ${error}`
+registerRoute("/", async () => {
+  if (isAuthenticated()) {
+    navigate("/app");
+    return document.createComment("redirecting");
   }
-})
+  return loginPage();
+});
+
+registerRoute("/verify", verifyPage);
+
+registerRoute("/app", async (params) => {
+  if (!isAuthenticated()) {
+    navigate("/");
+    return document.createComment("redirecting");
+  }
+  return appPage(params);
+});
+
+registerRoute("/app/settings", async () => {
+  if (!isAuthenticated()) {
+    navigate("/");
+    return document.createComment("redirecting");
+  }
+  return settingsPage();
+});
+
+registerRoute("*", async () => {
+  navigate("/");
+  return document.createComment("redirecting");
+});
+
+const root = document.querySelector<HTMLDivElement>("#app")!;
+
+// Auth cookies are httpOnly; silently try to trade the refresh cookie (if
+// any) for a fresh CSRF token before the router's first render decides
+// which page to show.
+api.auth
+  .refresh()
+  .catch(() => undefined)
+  .finally(() => startRouter(root));

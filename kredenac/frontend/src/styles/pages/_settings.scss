@@ -1,0 +1,101 @@
+@use "../tokens" as *;
+@use "../mixins" as *;
+
+// Measured from Figma:
+//   mobile  "Settings Page" 167:588 — 360 x 720 (16px gutter)
+//   desktop "Settings Page" 139:4   — 1920 x 930
+//
+// Desktop: passkey column 720 wide at x=310, delete button 360 wide ending
+// at x=1610, so the same 1300-wide content box as the Home page.
+
+.settings-page {
+  padding: 48px 16px 72px;
+
+  @include desktop {
+    // 1300 of content plus a 32px gutter each side, so the centred content
+    // is the design's 310..1610 at 1920 and still keeps a margin once the
+    // window is narrower than the content box.
+    max-width: 1364px;
+    margin: 0 auto;
+    padding: 44px 32px 60px;
+  }
+}
+
+.settings-page__heading {
+  // Figma puts the heading text 2px in from the 16px gutter the rule and the
+  // cards share (157:20 at x=18 against 157:19 at x=16).
+  margin-left: 2px;
+  font-family: $font-display;
+  font-weight: 400;
+  color: $color-text-muted;
+  font-size: 18px;
+  line-height: 32px;
+
+  @include desktop {
+    margin-left: 0;
+    font-size: 40px; // 145:14, Chakra Petch Regular
+  }
+}
+
+// Figma mobile 157:19 — 260 wide under the heading; desktop 145:13 — 1340
+// wide, overhanging the 1300 content box by 20px on each side.
+// A zero-height line in Figma is centred on its y, so the stroke straddles
+// that coordinate rather than starting at it — hence the half-pixel here and
+// the odd offset on desktop, where the stroke is 2px.
+.settings-page__rule {
+  margin-top: 2.5px; // paints 82.5..83.5, centred on 83 (157:19)
+  width: 260px;
+  height: 0;
+  border-top: 1px solid $color-border;
+
+  @include desktop {
+    margin: 27px -20px 0; // paints 191..193, centred on 192 (145:13)
+    width: calc(100% + 40px);
+    border-top-width: 2px; // 145:13
+  }
+}
+
+.settings-page__layout {
+  margin-top: 35.5px; // rule bottom 83.5 -> first card 119
+  display: flex;
+  flex-direction: column;
+  gap: 42px;
+
+  @include desktop {
+    margin-top: 47px; // rule bottom 193 -> first card 240
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    // A floor, not the actual spacing: at full width space-between opens the
+    // design's 220px gap (1300 - 720 - 360), and this stops the two columns
+    // closing up once there is less room.
+    gap: 48px;
+    // 580 + 300 + 48 + 64 of margin needs 992px; below that the delete
+    // button drops to its own row rather than overflowing the page.
+    flex-wrap: wrap;
+  }
+}
+
+.settings-page__passkeys {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; // mobile pitch 128 = 112 + 16
+
+  @include desktop {
+    // Grows to the design's 720 and shrinks below it once the delete button
+    // and the minimum gap no longer leave room, but never past 580.
+    flex: 1 1 auto;
+    max-width: 720px;
+    min-width: 580px;
+    gap: 24px; // desktop pitch 204 = 180 + 24
+  }
+}
+
+.settings-page__danger {
+  @include desktop {
+    // Also resizable, between the design's 360 and a 300 floor.
+    flex: 1 1 auto;
+    max-width: 360px;
+    min-width: 300px;
+  }
+}

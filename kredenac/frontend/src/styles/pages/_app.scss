@@ -1,0 +1,114 @@
+@use "../tokens" as *;
+@use "../mixins" as *;
+
+// Measured from Figma:
+//   mobile  "Files Page" 153:837 / "Notes Page" 162:397 — 360 x 720
+//   desktop "Home Page"  88:554                          — 1920 x 930
+//
+// Desktop is two 600px columns at x=310 and x=1010 (100px gap), so the
+// content box is 1300 wide with symmetric 310px margins.
+
+.app-page {
+  // mobile: first control at y=48, 20px side padding, 52px tab bar to clear
+  padding: 48px 20px 72px;
+
+  @include desktop {
+    // Same 32px gutter as the settings page, so the columns keep a margin
+    // once the window is narrower than the 1300 content box.
+    max-width: 1364px;
+    margin: 0 auto;
+    padding: 44px 32px 60px; // nav occupies 36..88; content starts at 132
+  }
+}
+
+.app-page__columns {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+
+  @include desktop {
+    flex-direction: row;
+    align-items: flex-start;
+    // Design gap is 100px (x=910 to x=1010); shrinks with the window but
+    // never past 48px.
+    gap: clamp(48px, 5.208vw, 100px);
+  }
+}
+
+.app-page__column {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 32px; // mobile: control bottom 104 -> list 136
+
+  @include desktop {
+    flex: 1;
+    max-width: 600px;
+    gap: 48px; // dropzone bottom 412 -> files 460; button bottom 204 -> notes 252
+
+    // Both columns are always visible on desktop; the tab state is mobile-only.
+    &[hidden] {
+      display: flex;
+    }
+  }
+
+  @include mobile-only {
+    &[hidden] {
+      display: none;
+    }
+  }
+}
+
+// Desktop shows the 600x280 drop target; mobile shows a 320x56 button.
+.dropzone {
+  display: none;
+
+  @include desktop {
+    display: flex;
+  }
+}
+
+.app-page__column > .btn--corners {
+  @include desktop {
+    display: none;
+  }
+}
+
+.app-page__column > .btn--icon {
+  display: none;
+
+  @include desktop {
+    display: inline-flex;
+  }
+}
+
+.app-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px; // mobile file pitch 81 = 67 + 14
+
+  @include desktop {
+    gap: 20px; // desktop file pitch 122 = 102 + 20
+  }
+}
+
+.app-page__list--notes {
+  gap: 16px; // mobile note gap 457 - 441
+
+  @include desktop {
+    gap: 24px; // desktop note gap 431 - 407
+  }
+}
+
+.app-page__empty {
+  color: $color-text-muted;
+  font-family: $font-display;
+  font-size: 14px;
+  text-align: center;
+  padding: 24px 0;
+
+  @include desktop {
+    font-size: 20px;
+    padding: 40px 0;
+  }
+}

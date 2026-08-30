@@ -1,0 +1,80 @@
+@use "tokens" as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: $font-mono;
+  font-weight: 300;
+  color: $color-text;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+a {
+  color: inherit;
+}
+
+img,
+svg {
+  display: block;
+}
+
+// The two frames word several labels differently (e.g. the settings heading
+// is "Passkeys associated with this account" on desktop but "Associated
+// passkeys" on mobile), so both strings are rendered and CSS picks one.
+.u-desktop-only {
+  display: none;
+
+  @media (min-width: 900px) {
+    display: inline;
+  }
+}
+
+.u-mobile-only {
+  display: inline;
+
+  @media (min-width: 900px) {
+    display: none;
+  }
+}
+
+// Set by optionalBreaks() when the design's line breaks no longer fit, at
+// which point the copy wraps as plain text instead.
+.u-no-breaks br {
+  display: none;
+}

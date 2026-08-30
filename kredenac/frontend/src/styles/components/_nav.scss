@@ -1,0 +1,58 @@
+@use "../tokens" as *;
+@use "../mixins" as *;
+@use "../noise" as *;
+
+// Desktop: two 153x52 buttons at 36px from the page corners
+// (Figma 149:201 at x=36, 149:188 at x=1731 of 1920).
+.top-nav {
+  display: none;
+
+  @include desktop {
+    display: flex;
+    justify-content: space-between;
+    padding: 36px 36px 0;
+  }
+}
+
+// Mobile: four 90x52 tab cells pinned to the bottom (Figma 162:229..162:238).
+.bottom-nav {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  @include noise-surface;
+
+  @include desktop {
+    display: none;
+  }
+
+  .btn--nav {
+    border: none;
+    border-top: 1px solid $color-border;
+
+    &:not(:first-child) {
+      border-left: 1px solid $color-border;
+    }
+
+    // Resting tabs sit dim; the selected one is full strength, and any tab
+    // lifts on hover.
+    .icon {
+      opacity: 0.55;
+    }
+
+    @include hover-or-active {
+      .icon {
+        opacity: 0.85;
+        filter: brightness(1.45);
+      }
+    }
+
+    &.is-active .icon {
+      opacity: 1;
+      filter: brightness(1.45);
+    }
+  }
+}
