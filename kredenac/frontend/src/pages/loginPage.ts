@@ -11,16 +11,14 @@ import cabinet from "../assets/cabinet.webp";
 
 export async function loginPage(): Promise<Node> {
   const mark = h("h1", { class: "login-page__mark" });
-  const error = h("p", { class: "login-page__error" }, "");
 
   async function handleLogin(): Promise<void> {
-    error.textContent = "";
     try {
       await login();
       navigate("/");
-    } catch (e) {
-      if (e instanceof DOMException && e.name === "NotAllowedError") return; // user cancelled the passkey prompt
-      error.textContent = "Couldn't sign you in with that passkey. Please try again.";
+    } catch {
+      // TODO: report the failure to the user. Note that a NotAllowedError is
+      //  the user dismissing the passkey prompt, which wants no message.
     }
   }
 
@@ -41,7 +39,7 @@ export async function loginPage(): Promise<Node> {
       return true;
     }
     if (email === "b") {
-      navigate("/verify?token=dev");
+      navigate("/verify/dev");
       return true;
     }
     if (email === "c") {
@@ -68,6 +66,11 @@ export async function loginPage(): Promise<Node> {
       // Opening pairs with the LOGIN -> placeholder animation, so it runs at
       // that pace; dismissing via the X snaps back quicker.
       void setRegisterLabel(isComposing ? "VERIFY EMAIL" : "REGISTER", isComposing ? 55 : 26);
+    },
+    // While the magic link is being requested the button is the only way to
+    // fire a second one, so it locks until the server answers.
+    onSendingChange: (sending) => {
+      registerButton.disabled = sending;
     },
     onBeforeSubmit: devShortcut,
   });
@@ -104,8 +107,7 @@ export async function loginPage(): Promise<Node> {
         h("br"),
         "Access your account with a passkey."
       ),
-      h("div", { class: "login-page__actions" }, slot.el, registerButton),
-      error
+      h("div", { class: "login-page__actions" }, slot.el, registerButton)
     ),
     // A sibling of the content, not a child: it is placed from the page's
     // edges, and the page is the box the content's own percentage padding is

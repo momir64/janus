@@ -1,6 +1,6 @@
 import { h } from "../lib/dom";
 import { retypePlaceholder } from "../lib/typewriter";
-import { chevronTrail, closeGlyph, cornerHatch } from "./decorations";
+import { chevronTrail, closeGlyph } from "./decorations";
 import { api } from "../lib/api";
 import { interceptBack } from "../lib/router";
 
@@ -108,6 +108,11 @@ interface LoginSlotOptions {
   /** Called when the email field opens or closes, so sibling controls can react. */
   onComposeChange: (composing: boolean) => void;
   /**
+   * Called while a magic-link request is in flight, so the sibling button
+   * that submits the field can lock for the duration.
+   */
+  onSendingChange: (sending: boolean) => void;
+  /**
    * Given the submitted address, returns true to skip the normal
    * magic-link request. TODO: only used by the development shortcuts in
    * loginPage — remove both together.
@@ -128,7 +133,7 @@ const DESKTOP_MIN_WIDTH = 900;
 
 const isDesktop = (): boolean => window.matchMedia(`(min-width: ${DESKTOP_MIN_WIDTH}px)`).matches;
 
-export function loginSlot({ onLogin, onComposeChange, onBeforeSubmit }: LoginSlotOptions): LoginSlotHandle {
+export function loginSlot({ onLogin, onComposeChange, onSendingChange, onBeforeSubmit }: LoginSlotOptions): LoginSlotHandle {
   let root: HTMLElement = idleButton();
 
   // The open field is a step of its own as far as the user is concerned, so
@@ -136,6 +141,7 @@ export function loginSlot({ onLogin, onComposeChange, onBeforeSubmit }: LoginSlo
   // entry duplicates the current URL, so nothing in the address bar moves.
   let hasEntry = false;
   let dropping = false;
+  let sending = false;
 
   function claimBack(): void {
     hasEntry = true;
@@ -269,7 +275,7 @@ export function loginSlot({ onLogin, onComposeChange, onBeforeSubmit }: LoginSlo
   async function submit(email: string): Promise<void> {
     const field = root;
     const input = field.querySelector<HTMLInputElement>("input");
-    if (!input) return;
+    if (!input || sending) return;
 
     if (onBeforeSubmit?.(email)) return;
 
@@ -278,22 +284,23 @@ export function loginSlot({ onLogin, onComposeChange, onBeforeSubmit }: LoginSlo
       return;
     }
 
+    // Both halves of the control lock the moment it is pressed, so a second
+    // press while the request is in flight cannot send a second email.
+    sending = true;
     input.disabled = true;
+    onSendingChange(true);
     try {
       await api.auth.requestMagicLink(email);
-      if (!field.isConnected) return; // the user cancelled while this was in flight
-      const badge = sentBadge();
-      field.replaceWith(badge);
-      root = badge;
-      await sleep(4000);
-      if (root === badge) revert();
+      // The sent state is the field simply closing again, as if the X had
+      // been pressed — there is no confirmation badge.
+      if (field.isConnected) revert();
     } catch {
+      // TODO: report the failure to the user; today the field just unlocks.
       if (field.isConnected) input.disabled = false;
+    } finally {
+      sending = false;
+      onSendingChange(false);
     }
-  }
-
-  function sentBadge(): HTMLElement {
-    return h("div", { class: "sent-badge" }, cornerHatch("tl"), h("span", {}, "Email sent!"));
   }
 
   return {

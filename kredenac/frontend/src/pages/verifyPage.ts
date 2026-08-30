@@ -55,7 +55,8 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
         await registerWithToken(token, "Kredenac account");
         navigate("/");
       } catch {
-        showInvalid(view);
+        // TODO: report the failure to the user. A rejected token is only one
+        //  of the causes, so this must not assume the link is invalid.
       } finally {
         registerButton.disabled = false;
       }

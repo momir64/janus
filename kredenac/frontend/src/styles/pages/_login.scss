@@ -110,14 +110,14 @@ $login-column-min: 480px;
   // got tight, so a second term gives it back as the viewport falls short of
   // 720. The two corrections are equal and opposite, so the padding still
   // totals the same and the block goes on fitting.
-  --shortfall: calc(720px - 100dvh);
-  --pad-t: calc(100dvh * 0.108333 + var(--shortfall) * 0.06);
-  --pad-b: max(0px, calc(100dvh * 0.233333 - var(--shortfall) * 0.06));
+  --shortfall: calc((720px - 100dvh) * 0.03);
+  --pad-t: calc(100dvh * 0.108333 + var(--shortfall));
+  --pad-b: max(0px, 100dvh * 0.233333 - var(--shortfall));
   padding: var(--pad-t) 32px var(--pad-b);
 
   @include desktop {
     margin-left: var(--split);
-    padding: 56px var(--pad-r) 120px var(--pad-l);
+    padding: 48px var(--pad-r) 120px var(--pad-l);
   }
 }
 
@@ -170,21 +170,6 @@ $login-column-min: 480px;
   @include desktop {
     margin-top: 52px;
     gap: 28px;
-  }
-}
-
-.login-page__error {
-  margin-top: 12px;
-  color: $color-danger;
-  font-family: $font-display;
-  font-size: 12px;
-
-  &:empty {
-    display: none;
-  }
-
-  @include desktop {
-    font-size: 16px;
   }
 }
 
