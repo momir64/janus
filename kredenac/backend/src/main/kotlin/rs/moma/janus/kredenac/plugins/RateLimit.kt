@@ -23,7 +23,7 @@ fun Application.configureRateLimit() {
             requestKey(::clientKey)
         }
         register(magicLinkRateLimit) {
-            rateLimiter(limit = 3, refillPeriod = 15.minutes)
+            rateLimiter(limit = 3, refillPeriod = 1.minutes)
             requestKey(::clientKey)
         }
     }
