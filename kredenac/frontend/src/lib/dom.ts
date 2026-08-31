@@ -1,3 +1,36 @@
+/**
+ * Text from the server never becomes markup here. Every child given to h(),
+ * append() or mount() is added as a text node, and every other value in the
+ * codebase is written with textContent - neither of which parses HTML, so a
+ * filename or note containing "<script>" renders as those characters and
+ * nothing else. Escaping such text would be a no-op that also mangles the
+ * legitimate case, "a < b".
+ *
+ * The two ways that could be undone are guarded below: an attribute that
+ * takes markup, and an attribute that takes a URL.
+ */
+
+/** Attributes whose value the browser parses as HTML. Never set from data. */
+const MARKUP_ATTRS = new Set(["innerHTML", "outerHTML", "srcdoc", "insertAdjacentHTML"]);
+
+/** Attributes whose value the browser may follow as a URL. */
+const URL_ATTRS = new Set(["href", "src", "action", "formaction", "xlink:href", "ping"]);
+
+/**
+ * Schemes that execute rather than fetch. Everything else is allowed through:
+ * the app's own URLs are relative, its icons are build-inlined data: URIs,
+ * and a download is a blob:.
+ */
+const EXECUTABLE_SCHEME = /^\s*(javascript|vbscript|data:text\/html)/i;
+
+/**
+ * A URL safe to hand to the browser, or "" if it would execute. Use wherever
+ * a URL comes from data rather than from an import.
+ */
+export function safeUrl(value: string): string {
+  return EXECUTABLE_SCHEME.test(value) ? "" : value;
+}
+
 type Attrs = Record<string, string | number | boolean | ((event: any) => void) | undefined>;
 type Child = Node | string | null | undefined | false;
 
@@ -11,8 +44,12 @@ export function h<K extends keyof HTMLElementTagNameMap>(
 ): HTMLElementTagNameMap[K] {
   const el = document.createElement(tag);
 
-  for (const [key, value] of Object.entries(attrs)) {
+  for (let [key, value] of Object.entries(attrs)) {
     if (value === undefined || value === false) continue;
+    if (MARKUP_ATTRS.has(key)) {
+      throw new Error(`${key} is not settable here: it would parse its value as HTML`);
+    }
+    if (URL_ATTRS.has(key)) value = safeUrl(String(value));
     if (isEventAttr(key)) {
       el.addEventListener(key.slice(2).toLowerCase(), value as EventListener);
     } else if (key === "class") {

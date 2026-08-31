@@ -109,15 +109,28 @@ export const api = {
       return request("/files", { method: "POST", body: form }).then(() => undefined);
     },
 
+    // TODO: the backend hands the file back with the content type its
+    //  uploader declared (FilesRoutes.kt:57, respondBytes(..., parse(
+    //  file.contentType))), so opening /api/files/{id} directly renders a
+    //  stored .html or .svg as a document on this origin - with the session
+    //  cookie. It wants "Content-Disposition: attachment" and
+    //  application/octet-stream there; the re-typed blob below only covers
+    //  downloads that go through this client.
     download: async (id: string, filename: string) => {
       const response = await request(`/files/${id}`);
-      const blob = await response.blob();
+      // Re-typed rather than served as stored: a blob: URL carries this
+      // origin, so opening a stored .html or .svg through one would run its
+      // script as us. As application/octet-stream the browser can only save
+      // it, whatever the file turns out to be.
+      const blob = new Blob([await response.arrayBuffer()], { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = filename;
       link.click();
-      URL.revokeObjectURL(url);
+      // Revoked on the next turn: released in the same tick, Firefox can
+      // cancel the download it was handed.
+      setTimeout(() => URL.revokeObjectURL(url), 0);
     },
 
     delete: (id: string) => request(`/files/${id}`, { method: "DELETE" }).then(() => undefined),
