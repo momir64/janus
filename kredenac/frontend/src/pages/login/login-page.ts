@@ -45,9 +45,10 @@ export async function loginPage(): Promise<Node> {
     } catch {
       // TODO: wire the sign-in messages through message.show(), keyed by
       //  LOGIN_MESSAGES: a NotAllowedError stays silent (case 1), any other
-      //  DOMException is 2, ApiError 401 is 3a and 400 is 3b, 429 is 5, 5xx
-      //  is 6, and a fetch rejection is 4. Case 37 needs api.ts to keep the
-      //  401 body and the backend to send a "passkey_cloned" code.
+      //  DOMException is browserBlocked, an ApiError 401 passkeyRejected and
+      //  400 passkeyRetry, 429 tooManyLogins, 5xx serverError, and a fetch
+      //  rejection noConnection. passkeyCloned needs api.ts to keep the 401
+      //  body and the backend to send a "passkey_cloned" code.
     }
   }
 
@@ -101,7 +102,7 @@ export async function loginPage(): Promise<Node> {
     onSendingChange: (sending) => {
       registerButton.disabled = sending;
     },
-    onMessage: (caseNumber) => message.show(LOGIN_MESSAGES[caseNumber]),
+    onMessage: (key) => message.show(LOGIN_MESSAGES[key]),
     // Closing the field takes any message it produced with it.
     onDismiss: () => message.dismiss(),
     onBeforeSubmit: devShortcut,

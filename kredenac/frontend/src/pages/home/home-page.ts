@@ -191,7 +191,7 @@ export async function homePage(): Promise<Node> {
       // Case 24. It takes the empty state's place rather than the line the
       // other file messages use: with nothing listed, "No files yet." would
       // otherwise claim the request had succeeded and found nothing.
-      showListError(filesList, FILE_MESSAGES["24"]);
+      showListError(filesList, FILE_MESSAGES.listFailed);
     }
   }
 
@@ -246,7 +246,7 @@ export async function homePage(): Promise<Node> {
     } catch {
       // Case 31, as for the files: "No notes yet." would otherwise report a
       // request that succeeded and found nothing.
-      showListError(notesList, NOTE_MESSAGES["31"]);
+      showListError(notesList, NOTE_MESSAGES.listFailed);
     }
   }
 
@@ -265,7 +265,8 @@ export async function homePage(): Promise<Node> {
           onDelete: () =>
             confirmDialog(["Are you sure you want to delete", `"${note.title}"?`], async () => {
               // TODO: cases 30 and 28 - report a failed delete through
-              //  noteMessage.show(), a 404 being 28 and anything else 30.
+              //  noteMessage.show(): a 404 is NOTE_MESSAGES.noteMissing,
+      //  anything else NOTE_MESSAGES.deleteFailed.
               await api.notes.delete(note.id);
               await loadNotes();
             }),

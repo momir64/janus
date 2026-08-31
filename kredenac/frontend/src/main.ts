@@ -42,7 +42,7 @@ window.addEventListener("kredenac:session-expired", () => {
   if (signedOutShown) return;
   signedOutShown = true;
   alertDialog(
-    GLOBAL_MESSAGES["39"].split("\n"),
+    GLOBAL_MESSAGES.signedOut.split("\n"),
     () => {
       signedOutShown = false;
       navigate("/");

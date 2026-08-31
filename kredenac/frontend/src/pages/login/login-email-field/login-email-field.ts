@@ -3,6 +3,7 @@ import { retypePlaceholder } from "../../../lib/typewriter";
 import { chevronTrail, closeGlyph } from "../../../components/decorations/decorations";
 import { api } from "../../../lib/api";
 import { interceptBack } from "../../../lib/router";
+import type { LoginMessage } from "../../../lib/messages";
 import { isDesktop } from "../../../lib/breakpoint";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -132,8 +133,8 @@ interface LoginEmailFieldOptions {
    * that submits the field can lock for the duration.
    */
   onSendingChange: (sending: boolean) => void;
-  /** Raises a response message by its case number from the audit. */
-  onMessage: (caseNumber: string) => void;
+  /** Raises one of the login page response messages. */
+  onMessage: (key: LoginMessage) => void;
   /**
    * Given the submitted address, returns true to skip the normal
    * magic-link request. TODO: only used by the development shortcuts in
@@ -322,12 +323,12 @@ export function loginEmailField({
     // An empty field is a different mistake from a malformed address, and
     // saying so is more use than calling nothing invalid.
     if (!address) {
-      onMessage("7b");
+      onMessage("emailMissing");
       return;
     }
 
     if (!EMAIL_PATTERN.test(address)) {
-      onMessage("7a");
+      onMessage("emailInvalid");
       return;
     }
 

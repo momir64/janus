@@ -31,7 +31,7 @@ export async function settingsPage(): Promise<Node> {
       passkeyCount = passkeys.length;
       renderPasskeys(passkeys);
     } catch {
-      message.show(SETTINGS_MESSAGES["36"]); // case 36
+      message.show(SETTINGS_MESSAGES.listFailed); // case 36
     }
   }
 
@@ -72,7 +72,8 @@ export async function settingsPage(): Promise<Node> {
             confirmDialog(
               last ? lastQuestion : current ? currentQuestion : question,
               async () => {
-                // TODO: case 34 - report a failed delete through message.show().
+                // TODO: case 34 - report a failed delete through
+              //  SETTINGS_MESSAGES.passkeyDeleteFailed.
                 await api.auth.deleteCredential(passkey.id);
                 // The last passkey leaves email recovery as the only way
                 // back in; any other current-session one leaves the
@@ -81,8 +82,10 @@ export async function settingsPage(): Promise<Node> {
                   // Breaks differ with the frame, and the frame is settled
                   // by the time this opens - a resize while it is up leaves
                   // the copy broken for the width it was opened at.
-                  const session = isDesktop() ? "41" : "41-mobile";
-                  const told = last ? SETTINGS_MESSAGES["33"] : SETTINGS_MESSAGES[session];
+                  const session = isDesktop()
+                    ? SETTINGS_MESSAGES.sessionPasskeyRemoved
+                    : SETTINGS_MESSAGES.sessionPasskeyRemovedNarrow;
+                  const told = last ? SETTINGS_MESSAGES.lastPasskeyRemoved : session;
                   alertDialog(told.split("\n"), () => void logout(), {
                     frame: last ? undefined : "session",
                   });
@@ -108,7 +111,8 @@ export async function settingsPage(): Promise<Node> {
         "Are you sure you want to proceed?",
       ],
       async () => {
-        // TODO: case 35 - report a failed deletion through message.show().
+        // TODO: case 35 - report a failed deletion through
+        //  SETTINGS_MESSAGES.accountDeleteFailed.
         await api.auth.deleteAccount();
         navigate("/");
       },

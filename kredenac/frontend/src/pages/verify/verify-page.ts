@@ -59,13 +59,16 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
         await registerWithToken(token, "Kredenac account");
         navigate("/");
       } catch {
-        // TODO: wire the registration messages through message.show(), keyed
-        //  by VERIFY_MESSAGES: NotAllowedError is 14, InvalidStateError 15,
-        //  ConstraintError 16b, NotSupportedError 16c, SecurityError 16d,
-        //  UnknownError and AbortError 16e, a 429 is 16a, and a 5xx or fetch
-        //  rejection 16f. A resolved non-PublicKeyCredential is 16g. Case 13
-        //  keeps the invalid page, and waits on the token-trade flow so that
-        //  an expired link is caught before a passkey is created.
+        // TODO: wire the registration messages through message.show() and
+        //  VERIFY_MESSAGES: NotAllowedError and a resolved
+        //  non-PublicKeyCredential are registrationCancelled (cases 14, 16g),
+        //  InvalidStateError passkeyExists (15), ConstraintError
+        //  deviceCannotStore (16b), NotSupportedError deviceUnsupported
+        //  (16c), SecurityError invalidDomain (16d), UnknownError and
+        //  AbortError browserBlocked (16e), a 429 tooManyAttempts (16a), and
+        //  a 5xx or fetch rejection registrationFailed (16f). Case 13 keeps
+        //  the invalid page, and waits on the token-trade flow so an expired
+        //  link is caught before a passkey is created.
       } finally {
         registerButton.disabled = false;
       }

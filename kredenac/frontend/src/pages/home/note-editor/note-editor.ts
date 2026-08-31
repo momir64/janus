@@ -1,7 +1,7 @@
 import { ref, template } from "../../../lib/dom";
 import { button } from "../../../components/button/button";
 import { messageHint } from "../../../components/message-hint/message-hint";
-import { NOTE_MESSAGES } from "../../../lib/messages";
+import { NOTE_MESSAGES, type NoteMessage } from "../../../lib/messages";
 import markup from "./note-editor.html?raw";
 import type { NoteEntry } from "../../../types";
 
@@ -32,16 +32,16 @@ export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLE
   // Which case the line is currently making, so that fixing what it
   // complains about takes it away rather than leaving it to time out over a
   // field that now reads correctly.
-  let shownCase: string | null = null;
+  let shown: NoteMessage | null = null;
 
-  const showMessage = (caseNumber: string): void => {
-    shownCase = caseNumber;
-    message.show(NOTE_MESSAGES[caseNumber]);
+  const showMessage = (key: NoteMessage): void => {
+    shown = key;
+    message.show(NOTE_MESSAGES[key]);
   };
 
-  const resolveMessage = (caseNumber: string): void => {
-    if (shownCase !== caseNumber) return;
-    shownCase = null;
+  const resolveMessage = (key: NoteMessage): void => {
+    if (shown !== key) return;
+    shown = null;
     message.dismiss();
   };
 
@@ -50,18 +50,18 @@ export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLE
   // Case 26. The attribute stops the typing at the limit rather than past
   // it, so reaching it is the moment worth saying something.
   titleInput.addEventListener("input", () => {
-    if (titleInput.value.length >= TITLE_LIMIT) showMessage("26");
-    else resolveMessage("26");
-    if (titleInput.value.trim()) resolveMessage("25");
+    if (titleInput.value.length >= TITLE_LIMIT) showMessage("titleTooLong");
+    else resolveMessage("titleTooLong");
+    if (titleInput.value.trim()) resolveMessage("noteEmpty");
   });
 
   bodyInput.value = note?.content ?? "";
   bodyInput.maxLength = BODY_LIMIT;
   // Case 27.
   bodyInput.addEventListener("input", () => {
-    if (bodyInput.value.length >= BODY_LIMIT) showMessage("27");
-    else resolveMessage("27");
-    if (bodyInput.value.trim()) resolveMessage("25");
+    if (bodyInput.value.length >= BODY_LIMIT) showMessage("bodyTooLong");
+    else resolveMessage("bodyTooLong");
+    if (bodyInput.value.trim()) resolveMessage("noteEmpty");
   });
 
   const submit = async () => {
@@ -70,7 +70,7 @@ export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLE
     // Either half is enough to make a note; only an entirely empty one is
     // refused, and the empty field is saved as such rather than filled in.
     if (!title && !content) {
-      showMessage("25"); // case 25
+      showMessage("noteEmpty"); // case 25
       return;
     }
     // TODO: case 29 - report a failed save here, once the note messages are
