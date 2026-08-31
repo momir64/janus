@@ -4,9 +4,9 @@
 //  Settings straight back to the login page. Remove this file together with
 //  the shortcuts in login-page.ts and `onBeforeSubmit` in
 //  login-email-field.ts.
-import { api } from "./api";
+import type { FileDto, NoteDto, PasskeyDto } from "../types";
 import { clearSession } from "./session";
-import type { FileEntry, NoteEntry, Passkey } from "../types";
+import { api } from "./api";
 
 const LOREM =
   "Lorem ipsum dolor sit amet consectetur adipiscing elit. Quisque faucibus " +
@@ -19,7 +19,7 @@ export function enableDevMode(): void {
   if (enabled) return;
   enabled = true;
 
-  let files: FileEntry[] = Array.from({ length: 12 }, (_, i) => ({
+  let files: FileDto[] = Array.from({ length: 12 }, (_, i) => ({
     id: `f${i}`,
     filename: "Some filename...",
     contentType: "application/octet-stream",
@@ -27,7 +27,7 @@ export function enableDevMode(): void {
     createdAt: new Date(2022, 11, 31, 12, 34 - i).toISOString(),
   }));
 
-  let notes: NoteEntry[] = [
+  let notes: NoteDto[] = [
     ...Array.from({ length: 6 }, (_, i) => ({
       id: `n${i}`,
       title: "Some title...",
@@ -48,7 +48,7 @@ export function enableDevMode(): void {
     },
   ];
 
-  let passkeys: Passkey[] = Array.from({ length: 6 }, (_, i) => ({
+  let passkeys: PasskeyDto[] = Array.from({ length: 6 }, (_, i) => ({
     id: `p${i}`,
     algorithm: "ES256",
     deviceName: "Passkey device name",

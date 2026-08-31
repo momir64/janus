@@ -1,26 +1,26 @@
-import { h, mount, onResize, ref, template } from "../../lib/dom";
-import { navigate } from "../../lib/router";
-import { api } from "../../lib/api";
+import { contentTab, setContentTab, type ContentTab } from "../../lib/tab-state";
+import { closeAllDialogs, openDialog } from "../../components/dialog/dialog";
+import { attachScrollbar } from "../../components/scroll-list/scrollbar";
+import { closeCutEdge } from "../../components/scroll-list/closing-edge";
 import { messageHint } from "../../components/message-hint/message-hint";
+import { confirmDialog } from "../../components/dialog/confirm-dialog";
 import { FILE_MESSAGES, NOTE_MESSAGES } from "../../lib/messages";
+import { h, mount, onResize, ref, template } from "../../lib/dom";
+import { appNav, type AppTab } from "../../components/nav/nav";
 import { optionalBreaks } from "../../lib/optional-breaks";
-import { isDesktop } from "../../lib/breakpoint";
-import { truncateFilename } from "../../lib/format";
-import { failure } from "../../lib/failure";
 import { button } from "../../components/button/button";
+import { noteEditor } from "./note-editor/note-editor";
+import type { FileDto, NoteDto } from "../../types";
+import { truncateFilename } from "../../lib/format";
+import { fileCard } from "./file-card/file-card";
+import { isDesktop } from "../../lib/breakpoint";
+import { noteCard } from "./note-card/note-card";
 import { dropzone } from "./dropzone/dropzone";
 import { uploadStatus } from "./upload-status";
+import { failure } from "../../lib/failure";
+import { navigate } from "../../lib/router";
 import markup from "./home-page.html?raw";
-import { appNav, type AppTab } from "../../components/nav/nav";
-import { fileCard } from "./file-card/file-card";
-import { noteCard } from "./note-card/note-card";
-import { confirmDialog } from "../../components/dialog/confirm-dialog";
-import { closeAllDialogs, openDialog } from "../../components/dialog/dialog";
-import { closeCutEdge } from "../../components/scroll-list/closing-edge";
-import { attachScrollbar } from "../../components/scroll-list/scrollbar";
-import { noteEditor } from "./note-editor/note-editor";
-import { contentTab, setContentTab, type ContentTab } from "../../lib/tab-state";
-import type { FileEntry, NoteEntry } from "../../types";
+import { api } from "../../lib/api";
 
 const build = template(markup);
 
@@ -148,7 +148,7 @@ export async function homePage(): Promise<Node> {
     else mount(list, ...items.map(card));
   }
 
-  function renderFiles(files: FileEntry[]): void {
+  function renderFiles(files: FileDto[]): void {
     renderList(filesList, files, "No files yet.", (file) =>
       fileCard({
         file,
@@ -177,7 +177,7 @@ export async function homePage(): Promise<Node> {
     }
   }
 
-  function renderNotes(notes: NoteEntry[]): void {
+  function renderNotes(notes: NoteDto[]): void {
     renderList(notesList, notes, "No notes yet.", (note) =>
       noteCard({
         note,
@@ -198,7 +198,7 @@ export async function homePage(): Promise<Node> {
     );
   }
 
-  function openNote(note?: NoteEntry): void {
+  function openNote(note?: NoteDto): void {
     openDialog(
       (handle) =>
         noteEditor({

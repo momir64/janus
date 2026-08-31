@@ -1,5 +1,5 @@
-import { h, onResize } from "../../lib/dom";
 import { WORD_JOINER } from "../../lib/typewriter";
+import { h, onResize } from "../../lib/dom";
 import { sleep } from "../../lib/timing";
 
 const TYPE_MS = 22;
@@ -40,11 +40,7 @@ function layOut(el: HTMLElement, text: string, padding: number): string[] {
   return fitsOneLine(el, oneLine, padding) ? [oneLine] : text.split("\n");
 }
 
-export function messageHint({
-  className,
-  fitPadding = 0,
-  onLayout,
-}: MessageHintOptions = {}): MessageHintHandle {
+export function messageHint({ className, fitPadding = 0, onLayout, }: MessageHintOptions = {}): MessageHintHandle {
   const el = h("p", { class: className ? `message-hint ${className}` : "message-hint" });
 
   let run = 0;

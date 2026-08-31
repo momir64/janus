@@ -1,12 +1,12 @@
-import { ref, template } from "../../../lib/dom";
-import { iconButton } from "../../../components/icon/icon";
 import { cornerHatch } from "../../../components/decorations/decorations";
+import { iconButton } from "../../../components/icon/icon";
 import { formatTimestamp } from "../../../lib/format";
+import { ref, template } from "../../../lib/dom";
+import type { NoteDto } from "../../../types";
 import markup from "./note-card.html?raw";
-import type { NoteEntry } from "../../../types";
 
 interface NoteCardOptions {
-  note: NoteEntry;
+  note: NoteDto;
   onEdit: () => void;
   onDelete: () => void;
 }

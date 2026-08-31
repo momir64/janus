@@ -1,5 +1,5 @@
 import { clearSession, getCsrfToken, setCsrfToken } from "./session";
-import type { FileEntry, NoteEntry, Passkey } from "../types";
+import type { FileDto, NoteDto, PasskeyDto } from "../types";
 
 export class ApiError extends Error {
   constructor(
@@ -136,7 +136,7 @@ export const api = {
       clearSession();
     },
 
-    listCredentials: () => json<Passkey[]>("/auth/credentials"),
+    listCredentials: () => json<PasskeyDto[]>("/auth/credentials"),
 
     deleteCredential: (id: string) => request(`/auth/credentials/${id}`, { method: "DELETE" }).then(() => undefined),
 
@@ -147,7 +147,7 @@ export const api = {
   },
 
   files: {
-    list: () => json<FileEntry[]>("/files"),
+    list: () => json<FileDto[]>("/files"),
 
     upload: (file: File, signal?: AbortSignal) => {
       const form = new FormData();
@@ -183,7 +183,7 @@ export const api = {
     //  NoteDto treats an empty title/content as valid rather than rejecting
     //  it; if it does reject, the empty half needs omitting from the body
     //  instead.
-    list: () => json<NoteEntry[]>("/notes"),
+    list: () => json<NoteDto[]>("/notes"),
 
     create: (title: string, content: string) =>
       request("/notes", withJsonBody({ title, content })).then(() => undefined),

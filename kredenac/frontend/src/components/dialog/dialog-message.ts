@@ -1,5 +1,5 @@
-import { h } from "../../lib/dom";
 import { openDialog, type DialogHandle, type DialogOptions } from "./dialog";
+import { h } from "../../lib/dom";
 
 export function dialogMessage(message: string | string[]): {
   el: HTMLElement;

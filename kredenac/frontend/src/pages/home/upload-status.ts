@@ -1,7 +1,7 @@
-import { h } from "../../lib/dom";
-import { isDesktop } from "../../lib/breakpoint";
-import { truncateFilename } from "../../lib/format";
 import type { DropzoneHandle } from "./dropzone/dropzone";
+import { truncateFilename } from "../../lib/format";
+import { isDesktop } from "../../lib/breakpoint";
+import { h } from "../../lib/dom";
 
 const DOT_INTERVAL_MS = 600;
 

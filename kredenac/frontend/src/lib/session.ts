@@ -1,4 +1,3 @@
-
 let csrfToken: string | null = null;
 
 export function setCsrfToken(token: string): void {

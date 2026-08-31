@@ -1,5 +1,5 @@
-import { button } from "../button/button";
 import { openMessageDialog } from "./dialog-message";
+import { button } from "../button/button";
 
 interface AlertOptions {
   frame?: "narrow" | "session";

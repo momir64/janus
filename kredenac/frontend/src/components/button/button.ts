@@ -1,6 +1,6 @@
-import { h } from "../../lib/dom";
 import { chevronTrail, cornerHatch } from "../decorations/decorations";
 import { icon, type IconName } from "../icon/icon";
+import { h } from "../../lib/dom";
 
 interface ButtonOptions {
   label: string;

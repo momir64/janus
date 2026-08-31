@@ -1,9 +1,9 @@
-import { ref, template } from "../../../lib/dom";
-import { button } from "../../../components/button/button";
 import { messageHint } from "../../../components/message-hint/message-hint";
 import { NOTE_MESSAGES, type NoteMessage } from "../../../lib/messages";
+import { button } from "../../../components/button/button";
+import { ref, template } from "../../../lib/dom";
+import type { NoteDto } from "../../../types";
 import markup from "./note-editor.html?raw";
-import type { NoteEntry } from "../../../types";
 
 // TODO: the backend validates neither length - NotesRoutes accepts whatever
 //  it is given and the columns have no limit of their own - so these are
@@ -12,7 +12,7 @@ const TITLE_LIMIT = 200;
 const BODY_LIMIT = 2000;
 
 interface NoteEditorOptions {
-  note?: NoteEntry;
+  note?: NoteDto;
   onSave: (title: string, content: string) => void | Promise<void>;
   onCancel: () => void;
 }

@@ -1,19 +1,19 @@
-import { mount, onResize, ref, template } from "../../lib/dom";
-import { navigate } from "../../lib/router";
-import { api } from "../../lib/api";
-import { button } from "../../components/button/button";
-import { appNav, logout } from "../../components/nav/nav";
-import markup from "./settings-page.html?raw";
-import { passkeyCard } from "./passkey-card/passkey-card";
-import { confirmDialog } from "../../components/dialog/confirm-dialog";
-import { alertDialog } from "../../components/dialog/alert-dialog";
-import { messageHint } from "../../components/message-hint/message-hint";
-import { isDesktop } from "../../lib/breakpoint";
-import { SETTINGS_MESSAGES } from "../../lib/messages";
 import { attachScrollbar } from "../../components/scroll-list/scrollbar";
 import { closeCutEdge } from "../../components/scroll-list/closing-edge";
+import { messageHint } from "../../components/message-hint/message-hint";
+import { confirmDialog } from "../../components/dialog/confirm-dialog";
 import { setContentTab, type ContentTab } from "../../lib/tab-state";
-import type { Passkey } from "../../types";
+import { alertDialog } from "../../components/dialog/alert-dialog";
+import { mount, onResize, ref, template } from "../../lib/dom";
+import { appNav, logout } from "../../components/nav/nav";
+import { passkeyCard } from "./passkey-card/passkey-card";
+import { button } from "../../components/button/button";
+import { SETTINGS_MESSAGES } from "../../lib/messages";
+import { isDesktop } from "../../lib/breakpoint";
+import markup from "./settings-page.html?raw";
+import type { PasskeyDto } from "../../types";
+import { navigate } from "../../lib/router";
+import { api } from "../../lib/api";
 
 const build = template(markup);
 
@@ -32,7 +32,7 @@ export async function settingsPage(): Promise<Node> {
     }
   }
 
-  function renderPasskeys(passkeys: Passkey[]): void {
+  function renderPasskeys(passkeys: PasskeyDto[]): void {
     mount(
       list,
       ...passkeys.map((passkey) =>

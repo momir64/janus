@@ -1,11 +1,11 @@
-import { ref, template } from "../../../lib/dom";
-import { iconButton } from "../../../components/icon/icon";
 import { formatSize, formatTimestamp } from "../../../lib/format";
+import { iconButton } from "../../../components/icon/icon";
+import { ref, template } from "../../../lib/dom";
+import type { FileDto } from "../../../types";
 import markup from "./file-card.html?raw";
-import type { FileEntry } from "../../../types";
 
 interface FileCardOptions {
-  file: FileEntry;
+  file: FileDto;
   onDownload: () => void;
   onDelete: () => void;
 }

@@ -22,9 +22,9 @@ function matchRoute(route: Route, pathname: string): URLSearchParams | null {
   return captured;
 }
 
+let backInterceptor: (() => boolean) | null = null;
 const routes: Route[] = [];
 let root: Element;
-let backInterceptor: (() => boolean) | null = null;
 
 export function interceptBack(handler: (() => boolean) | null): void {
   backInterceptor = handler;

@@ -1,5 +1,5 @@
-import { h } from "./dom";
 import { sleep } from "./timing";
+import { h } from "./dom";
 
 export const WORD_JOINER = String.fromCharCode(0x2060);
 

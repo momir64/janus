@@ -1,12 +1,12 @@
-import { h } from "../../../lib/dom";
-import { retypePlaceholder } from "../../../lib/typewriter";
 import { chevronTrail, closeGlyph } from "../../../components/decorations/decorations";
-import { api } from "../../../lib/api";
-import { interceptBack } from "../../../lib/router";
+import { retypePlaceholder } from "../../../lib/typewriter";
 import type { LoginMessage } from "../../../lib/messages";
-import { failure } from "../../../lib/failure";
-import { isDesktop } from "../../../lib/breakpoint";
 import { collapseChevrons } from "./chevron-handover";
+import { interceptBack } from "../../../lib/router";
+import { isDesktop } from "../../../lib/breakpoint";
+import { failure } from "../../../lib/failure";
+import { api } from "../../../lib/api";
+import { h } from "../../../lib/dom";
 
 const EMAIL_PLACEHOLDER = "john.smith@example.com";
 const PLACEHOLDER_SPEED_MS = 55;
@@ -34,13 +34,13 @@ export interface LoginEmailFieldHandle {
 }
 
 export function loginEmailField({
-  onLogin,
-  onComposeChange,
-  onSendingChange,
-  onMessage,
-  onDismiss,
-  onBeforeSubmit,
-}: LoginEmailFieldOptions): LoginEmailFieldHandle {
+                                  onLogin,
+                                  onComposeChange,
+                                  onSendingChange,
+                                  onMessage,
+                                  onDismiss,
+                                  onBeforeSubmit,
+                                }: LoginEmailFieldOptions): LoginEmailFieldHandle {
   let root: HTMLElement = idleButton();
 
   let hasEntry = false;

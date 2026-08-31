@@ -1,13 +1,13 @@
-import "./style.scss";
 import { registerRoute, navigate, startRouter } from "./lib/router";
 import { alertDialog } from "./components/dialog/alert-dialog";
+import { settingsPage } from "./pages/settings/settings-page";
+import { verifyPage } from "./pages/verify/verify-page";
+import { loginPage } from "./pages/login/login-page";
+import { homePage } from "./pages/home/home-page";
 import { GLOBAL_MESSAGES } from "./lib/messages";
 import { isAuthenticated } from "./lib/session";
 import { api } from "./lib/api";
-import { loginPage } from "./pages/login/login-page";
-import { verifyPage } from "./pages/verify/verify-page";
-import { homePage } from "./pages/home/home-page";
-import { settingsPage } from "./pages/settings/settings-page";
+import "./style.scss";
 
 registerRoute("/", async () => (isAuthenticated() ? homePage() : loginPage()));
 

@@ -1,4 +1,4 @@
-export interface FileEntry {
+export interface FileDto {
   id: string;
   filename: string;
   contentType: string;
@@ -6,14 +6,14 @@ export interface FileEntry {
   createdAt: string;
 }
 
-export interface NoteEntry {
+export interface NoteDto {
   id: string;
   title: string;
   content: string;
   updatedAt: string;
 }
 
-export interface Passkey {
+export interface PasskeyDto {
   id: string;
   algorithm: string;
   deviceName?: string;

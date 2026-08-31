@@ -1,15 +1,15 @@
-import { mount, ref, template } from "../../lib/dom";
-import { navigate } from "../../lib/router";
-import { registerWithToken } from "../../lib/webauthn";
+import { messageHint } from "../../components/message-hint/message-hint";
+import emailSuccess from "../../assets/icons/email-success.svg";
 import { optionalBreaks } from "../../lib/optional-breaks";
 import { button } from "../../components/button/button";
-import { failure } from "../../lib/failure";
-import { VERIFY_MESSAGES } from "../../lib/messages";
-import { messageHint } from "../../components/message-hint/message-hint";
-import markup from "./verify-page.html?raw";
+import { registerWithToken } from "../../lib/webauthn";
 import invalidMarkup from "./verify-invalid.html?raw";
-import emailSuccess from "../../assets/icons/email-success.svg";
 import errorIcon from "../../assets/icons/error.svg";
+import { VERIFY_MESSAGES } from "../../lib/messages";
+import { mount, ref, template } from "../../lib/dom";
+import markup from "./verify-page.html?raw";
+import { failure } from "../../lib/failure";
+import { navigate } from "../../lib/router";
 
 const BY_DOM: Record<string, keyof typeof VERIFY_MESSAGES> = {
   NotAllowedError: "registrationCancelled",

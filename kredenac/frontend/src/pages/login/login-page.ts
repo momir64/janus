@@ -1,17 +1,17 @@
-import { h, onResize, ref, template } from "../../lib/dom";
-import { retype, typeInto } from "../../lib/typewriter";
-import { navigate } from "../../lib/router";
-import { setCsrfToken } from "../../lib/session";
-import { enableDevMode } from "../../lib/dev-mode";
-import { login } from "../../lib/webauthn";
-import { loginEmailField } from "./login-email-field/login-email-field";
 import { messageHint } from "../../components/message-hint/message-hint";
-import { LOGIN_MESSAGES } from "../../lib/messages";
-import { failure } from "../../lib/failure";
-import { button } from "../../components/button/button";
+import { loginEmailField } from "./login-email-field/login-email-field";
 import { hatchMarks } from "../../components/decorations/decorations";
+import { h, onResize, ref, template } from "../../lib/dom";
+import { button } from "../../components/button/button";
+import { retype, typeInto } from "../../lib/typewriter";
+import { LOGIN_MESSAGES } from "../../lib/messages";
+import { enableDevMode } from "../../lib/dev-mode";
+import { setCsrfToken } from "../../lib/session";
 import cabinet from "../../assets/cabinet.webp";
+import { failure } from "../../lib/failure";
+import { navigate } from "../../lib/router";
 import markup from "./login-page.html?raw";
+import { login } from "../../lib/webauthn";
 
 const build = template(markup);
 

@@ -1,10 +1,10 @@
-import { h, ref, template } from "../../../lib/dom";
 import { iconButton } from "../../../components/icon/icon";
+import { h, ref, template } from "../../../lib/dom";
+import type { PasskeyDto } from "../../../types";
 import markup from "./passkey-card.html?raw";
-import type { Passkey } from "../../../types";
 
 interface PasskeyCardOptions {
-  passkey: Passkey;
+  passkey: PasskeyDto;
   onDelete: () => void;
 }
 

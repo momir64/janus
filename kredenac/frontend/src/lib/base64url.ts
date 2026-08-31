@@ -1,4 +1,3 @@
-
 export function toBase64Url(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
   let binary = "";
