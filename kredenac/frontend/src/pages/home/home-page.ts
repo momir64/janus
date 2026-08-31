@@ -22,6 +22,9 @@ import type { FileEntry, NoteEntry } from "../../types";
 
 const build = template(markup);
 
+const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const MAX_FILENAME_LENGTH = 255;
+
 export async function homePage(): Promise<Node> {
   let activeTab: AppTab = contentTab();
 
@@ -70,7 +73,20 @@ export async function homePage(): Promise<Node> {
     noteMessage.el
   );
 
+  // TODO: neither limit exists on the backend - FilesService only checks the
+  //  stream against the size the client declared, and nothing validates the
+  //  filename at all - so both are enforced here alone. Add the matching
+  //  server-side checks, and a 413 from the proxy for anything larger.
   async function uploadFile(file: File): Promise<void> {
+    if (file.size > MAX_FILE_BYTES) {
+      message.show(FILE_MESSAGES.fileTooLarge);
+      return;
+    }
+    if (file.name.length > MAX_FILENAME_LENGTH) {
+      message.show(FILE_MESSAGES.filenameTooLong);
+      return;
+    }
+
     await api.files.upload(file);
     await loadFiles();
   }
@@ -183,7 +199,6 @@ export async function homePage(): Promise<Node> {
   setActiveTab(activeTab);
   void loadFiles();
   void loadNotes();
-
 
   return page;
 }
