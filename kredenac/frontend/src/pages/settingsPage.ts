@@ -14,7 +14,7 @@ import { closeCutEdge } from "../lib/scrollEdge";
 import { setContentTab, type ContentTab } from "../lib/appTab";
 import type { Passkey } from "../types";
 
-export async function settingsPage(params: URLSearchParams): Promise<Node> {
+export async function settingsPage(): Promise<Node> {
   const list = h("div", { class: "settings-page__passkeys" });
 
   // Between Go back and Log out on desktop, where the nav row centres it; in
@@ -170,18 +170,7 @@ export async function settingsPage(params: URLSearchParams): Promise<Node> {
   }
 
   window.addEventListener("resize", placeMessage);
-  requestAnimationFrame(() => {
-    placeMessage();
-
-    // TODO: development only - ?m=<case> shows that message where it will
-    //  live, e.g. /settings?m=34. Remove once the settings messages are
-    //  wired to their triggers.
-    const preview = params.get("m");
-    if (!preview) return;
-    if (preview === "33") alertDialog(SETTINGS_MESSAGES["33"].split("\n"), () => void logout());
-    else if (preview === "39") window.dispatchEvent(new CustomEvent("kredenac:session-expired"));
-    else if (SETTINGS_MESSAGES[preview]) message.show(SETTINGS_MESSAGES[preview]);
-  });
+  requestAnimationFrame(placeMessage);
 
   // Desktop scrolls the cards alone, from the separator line down; mobile
   // scrolls them together with the delete button below them, since there the

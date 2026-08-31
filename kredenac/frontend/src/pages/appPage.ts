@@ -19,7 +19,7 @@ import { noteEditor } from "../components/noteEditor";
 import { contentTab, setContentTab, type ContentTab } from "../lib/appTab";
 import type { FileEntry, NoteEntry } from "../types";
 
-export async function appPage(params: URLSearchParams): Promise<Node> {
+export async function appPage(): Promise<Node> {
   let activeTab: AppTab = contentTab();
 
   const filesList = h("div", { class: "app-page__list" });
@@ -188,8 +188,8 @@ export async function appPage(params: URLSearchParams): Promise<Node> {
   const notesColumn = h(
     "div",
     { class: "app-page__column", "data-tab": "notes" },
-    button({ label: "Add a new note", variant: "icon", icon: "add-note", onClick: () => openCreateNote() }),
-    button({ label: "Create new note", variant: "corners", onClick: () => openCreateNote() }),
+    button({ label: "Add a new note", variant: "icon", icon: "add-note", onClick: openCreateNote }),
+    button({ label: "Create new note", variant: "corners", onClick: openCreateNote }),
     noteMessage.el,
     notesList
   );
@@ -307,11 +307,10 @@ export async function appPage(params: URLSearchParams): Promise<Node> {
     );
   }
 
-  function openCreateNote(preview?: string): void {
+  function openCreateNote(): void {
     openDialog(
       (handle) =>
         noteEditor({
-          preview,
           onSave: async (title, content) => {
             await api.notes.create(title, content);
             handle.close();
@@ -380,25 +379,7 @@ export async function appPage(params: URLSearchParams): Promise<Node> {
 
   // Needs the page in the document: the line reads which layout is in force
   // from its own box.
-  requestAnimationFrame(() => {
-    placeMessage();
-
-    // TODO: development only - ?m=<case> shows that message where it will
-    //  live, e.g. /?m=18. Remove once the file and note messages are wired
-    //  to their triggers.
-    const preview = params.get("m");
-    if (!preview) return;
-    // On mobile only one column is on screen, so the notes cases bring
-    // theirs to the front first.
-    if (NOTE_MESSAGES[preview]) setActiveTab("notes");
-
-    if (preview === "17") setUploading("some-long-example-filename.pdf");
-    else if (preview === "24") showListError(filesList, FILE_MESSAGES["24"]);
-    else if (preview === "31") showListError(notesList, NOTE_MESSAGES["31"]);
-    else if (FILE_MESSAGES[preview]) message.show(FILE_MESSAGES[preview]);
-    else if (preview === "28" || preview === "30") noteMessage.show(NOTE_MESSAGES[preview]);
-    else if (NOTE_MESSAGES[preview]) openCreateNote(preview);
-  });
+  requestAnimationFrame(placeMessage);
 
   return page;
 }

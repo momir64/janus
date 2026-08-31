@@ -5,9 +5,7 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const TYPE_MS = 22;
 const DELETE_MS = 12;
-// TODO: development only, so a message can be inspected before it types
-//  itself away. Restore to 3000 (3s) before this ships.
-const HOLD_MS = 600_000;
+const HOLD_MS = 3000;
 
 export interface MessageLineOptions {
   /** Extra class on the line, for pages that place it differently. */

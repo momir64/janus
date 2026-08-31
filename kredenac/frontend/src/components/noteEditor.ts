@@ -12,17 +12,12 @@ const BODY_LIMIT = 2000;
 
 interface NoteEditorOptions {
   note?: NoteEntry;
-  /**
-   * TODO: development only - a case number from NOTE_MESSAGES, shown as soon
-   *  as the editor opens. Remove with the rest of the ?m= scaffolding.
-   */
-  preview?: string;
   onSave: (title: string, content: string) => void | Promise<void>;
   onCancel: () => void;
 }
 
 /** The title + body form shared by the desktop "Note dialog" and the mobile "Create/Edit Note" page. */
-export function noteEditor({ note, preview, onSave, onCancel }: NoteEditorOptions): HTMLElement {
+export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLElement {
   // Sits above the title field, out of flow, so nothing below it moves.
   const message = messageLine({ className: "note-editor__message" });
 
@@ -82,12 +77,6 @@ export function noteEditor({ note, preview, onSave, onCancel }: NoteEditorOption
     //  this line is the one the reader is looking at.
     await onSave(title, content);
   };
-
-  // TODO: development only, with `preview` above. One frame, so the dialog
-  //  has put the line in the document and it has a width to measure.
-  if (preview && NOTE_MESSAGES[preview]) {
-    requestAnimationFrame(() => showMessage(preview));
-  }
 
   return h(
     "div",

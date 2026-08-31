@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
+    "dev:preview": "vite --config vite.config.preview.ts --port 5174 --strictPort",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

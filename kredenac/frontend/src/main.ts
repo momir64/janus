@@ -2,8 +2,7 @@ import "./style.scss";
 import { registerRoute, navigate, startRouter } from "./lib/router";
 import { alertDialog } from "./components/alertDialog";
 import { GLOBAL_MESSAGES } from "./lib/messages";
-import { isAuthenticated, setCsrfToken } from "./lib/session";
-import { enableDevMode } from "./lib/devMode";
+import { isAuthenticated } from "./lib/session";
 import { api } from "./lib/api";
 import { loginPage } from "./pages/loginPage";
 import { verifyPage } from "./pages/verifyPage";
@@ -12,15 +11,7 @@ import { settingsPage } from "./pages/settingsPage";
 
 // "/" is the whole app: the login page before signing in, the files and
 // notes it guards afterwards.
-registerRoute("/", async (params) => {
-  // TODO: development only - "?m=<case>" opens the app straight onto a
-  //  message preview, e.g. /?m=18. Remove with devMode.ts.
-  if (params.has("m") && !isAuthenticated()) {
-    enableDevMode();
-    setCsrfToken("dev");
-  }
-  return isAuthenticated() ? appPage(params) : loginPage();
-});
+registerRoute("/", async () => (isAuthenticated() ? appPage() : loginPage()));
 
 // The token is a path segment, not a query parameter.
 // TODO: the backend still builds the query form — MagicLinkService.kt has
@@ -30,17 +21,12 @@ registerRoute("/", async (params) => {
 registerRoute("/verify", verifyPage);
 registerRoute("/verify/:token", verifyPage);
 
-registerRoute("/settings", async (params) => {
-  // TODO: development only, as on "/" above.
-  if (params.has("m") && !isAuthenticated()) {
-    enableDevMode();
-    setCsrfToken("dev");
-  }
+registerRoute("/settings", async () => {
   if (!isAuthenticated()) {
     navigate("/");
     return document.createComment("redirecting");
   }
-  return settingsPage(params);
+  return settingsPage();
 });
 
 registerRoute("*", async () => {

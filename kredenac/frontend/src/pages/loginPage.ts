@@ -59,17 +59,11 @@ export async function loginPage(): Promise<Node> {
   //  (and `onBeforeSubmit` in loginSlot) once the backend flow is wired up
   //  end to end.
   //    a -> logged-in view    b -> valid email page    c -> invalid email page
-  //    s -> settings page
-  //  "a" with a case number appended previews that message where it lives
-  //  (a18, a26); dev mode is held in memory, so it has to be reached by
-  //  navigating rather than by typing the URL.
   const devShortcut = (email: string): boolean => {
-    const app = /^([as])([0-9]+[a-z]?)?$/.exec(email);
-    if (app) {
+    if (email === "a") {
       enableDevMode(); // otherwise the first 401 clears the session again
       setCsrfToken("dev");
-      const path = app[1] === "s" ? "/settings" : "/";
-      navigate(app[2] ? `${path}?m=${app[2]}` : path);
+      navigate("/");
       return true;
     }
     if (email === "b") {
