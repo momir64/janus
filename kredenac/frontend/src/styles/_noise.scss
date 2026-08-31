@@ -1,8 +1,6 @@
 @use "constants" as *;
 @use "mixins" as *;
 
-// Tile scale. The same tile rendered smaller gives finer grain, which suits
-// the tighter pixel density of the mobile layout.
 :root {
   --noise-size: 240px;
 
@@ -11,36 +9,8 @@
   }
 }
 
-// Film grain.
-//
-// The tile is greyscale noise composited with overlay. On a base darker than
-// 50% overlay resolves to `2 x base x blend`, so the composite mean equals
-// the base colour exactly when the tile's own mean is 0.5 — the grain then
-// averages out to $color-bg (#121211) rather than lifting it the way a white
-// speckle layer did.
-//
-// feTurbulence does NOT come out centred on 0.5 (measured raw mean here is
-// ~0.64), so the intercept below is not cosmetic: slope 0.8 / -0.1765 was
-// solved for by rasterising the tile and binary-searching until the mean hit
-// 0.5. Measured: mean 0.4994, tile range 0-183 (vs 0-242 at higher contrast,
-// which clipped to pure black and white), composite #121211. Changing either
-// number without re-solving will tint the whole page.
-//
-// The SVG is a FIXED 240x240 tile that repeats rather than one filter
-// stretched over the viewport: Firefox re-rasterises an feTurbulence filter
-// whenever its box changes size, which made the grain flicker and band while
-// resizing the window.
 $noise-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.35' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncG type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncB type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncA type='discrete' tableValues='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
 
-// An opaque surface that carries the same grain as the page — nav bars,
-// dialogs, the mobile note page. Without this they paint flat $color-bg over
-// the page's grain and read as smooth patches against it.
-//
-// `background-blend-mode` blends the element's own two background layers
-// (tile over colour) rather than blending with what is behind it, so the
-// surface stays opaque and hides the content underneath. `fixed` anchors the
-// tile to the viewport, the same origin the page's overlay uses, so the
-// grain runs continuously across the seam instead of restarting per element.
 @mixin noise-surface {
   background-color: $color-bg;
   background-image: $noise-tile;

@@ -1,5 +1,5 @@
 import { ref, template } from "../../../lib/dom";
-import { icon } from "../../../components/icon/icon";
+import { iconButton } from "../../../components/icon/icon";
 import { formatSize, formatTimestamp } from "../../../lib/format";
 import markup from "./file-card.html?raw";
 import type { FileEntry } from "../../../types";
@@ -28,13 +28,8 @@ export function fileCard({ file, onDownload, onDelete }: FileCardOptions): HTMLE
   if (file.createdAt) date.textContent = formatTimestamp(file.createdAt);
   else date.remove();
 
-  const remove = ref(root, "delete");
-  remove.append(icon("delete"));
-  remove.addEventListener("click", onDelete);
-
-  const download = ref(root, "download");
-  download.append(icon("download"));
-  download.addEventListener("click", onDownload);
+  iconButton(ref(root, "delete"), "delete", onDelete);
+  iconButton(ref(root, "download"), "download", onDownload);
 
   return root;
 }

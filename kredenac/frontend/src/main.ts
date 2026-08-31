@@ -9,8 +9,6 @@ import { verifyPage } from "./pages/verify/verify-page";
 import { homePage } from "./pages/home/home-page";
 import { settingsPage } from "./pages/settings/settings-page";
 
-// "/" is the whole app: the login page before signing in, the files and
-// notes it guards afterwards.
 registerRoute("/", async () => (isAuthenticated() ? homePage() : loginPage()));
 
 // The token is a path segment, not a query parameter.
@@ -34,9 +32,6 @@ registerRoute("*", async () => {
   return document.createComment("redirecting");
 });
 
-// Case 39: the session ended under whatever page is open. One dialog only,
-// however many requests fail together, and its OK is what returns to the
-// login page.
 let signedOutShown = false;
 window.addEventListener("kredenac:session-expired", () => {
   if (signedOutShown) return;
@@ -53,9 +48,6 @@ window.addEventListener("kredenac:session-expired", () => {
 
 const root = document.querySelector<HTMLDivElement>("#app")!;
 
-// Auth cookies are httpOnly; silently try to trade the refresh cookie (if
-// any) for a fresh CSRF token before the router's first render decides
-// which page to show.
 api.auth
   .refresh()
   .catch(() => undefined)

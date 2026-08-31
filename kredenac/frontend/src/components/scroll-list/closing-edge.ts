@@ -1,18 +1,3 @@
-/**
- * Closes the open top of a card that a scrolling list has cut through.
- *
- * A list that scrolls inside itself clips whatever card straddles its top
- * edge, and that card's own top border goes with it — leaving a box with two
- * sides and no lid. This draws a rule across the container's top edge in its
- * place, at the same weight and colour as the border it stands in for, and
- * only while a card is actually cut: scrolled to the top, or stopped in the
- * gap between two cards, there is nothing to close.
- */
-/**
- * `items` is the element whose children are the cards, for a scroller that
- * holds them at one remove - the settings page scrolls a box containing the
- * list rather than the list itself.
- */
 export function closeCutEdge(list: HTMLElement, items: HTMLElement = list): () => void {
   const update = (): void => {
     const top = list.getBoundingClientRect().top;
@@ -20,8 +5,6 @@ export function closeCutEdge(list: HTMLElement, items: HTMLElement = list): () =
 
     for (const child of Array.from(items.children)) {
       const box = child.getBoundingClientRect();
-      // Straddling the edge, rather than merely touching it — the half-pixel
-      // keeps a card that ends exactly on the edge from counting.
       if (box.top < top - 0.5 && box.bottom > top + 0.5) {
         cut = child as HTMLElement;
         break;
@@ -37,8 +20,6 @@ export function closeCutEdge(list: HTMLElement, items: HTMLElement = list): () =
   };
 
   list.addEventListener("scroll", update, { passive: true });
-  // The list resizing, and the cards being replaced by a re-render, both
-  // change which card meets the edge.
   new ResizeObserver(update).observe(list);
   new MutationObserver(update).observe(items, { childList: true });
 

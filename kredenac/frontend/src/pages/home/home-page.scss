@@ -2,32 +2,18 @@
 @use "../../styles/constants" as *;
 @use "../../styles/mixins" as *;
 
-// Measured from Figma:
-//   mobile  "Files Page" 153:837 / "Notes Page" 162:397 — 360 x 720
-//   desktop "Home Page"  88:554                          — 1920 x 930
-//
-// Desktop is two 600px columns at x=310 and x=1010 (100px gap), so the
-// content box is 1300 wide with symmetric 310px margins.
-
-// The lists scroll inside themselves, so the shell takes the viewport's
-// height and nothing below it can grow the page.
 .home-page {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  // mobile: first control at y=48, 20px side padding, 52px tab bar to clear
   padding: 48px 20px 52px;
 
   @include desktop {
-    // Same 32px gutter as the settings page, so the columns keep a margin
-    // once the window is narrower than the 1300 content box.
-    // width:100% because an auto cross-axis margin on a flex item cancels
-    // the stretch, which would leave the page shrink-to-fit.
     width: 100%;
     max-width: 1364px;
     margin: 0 auto;
-    padding: 44px 32px 0; // nav occupies 36..88; content starts at 132
+    padding: 44px 32px 0;
   }
 }
 
@@ -40,11 +26,7 @@
 
   @include desktop {
     flex-direction: row;
-    // Stretched rather than top-aligned, so each column runs the full height
-    // and its list has something definite to fill.
     align-items: stretch;
-    // Design gap is 100px (x=910 to x=1010); shrinks with the window but
-    // never past 48px.
     gap: clamp(48px, 5.208vw, 100px);
   }
 }
@@ -55,14 +37,13 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
-  gap: 32px; // mobile: control bottom 104 -> list 136
+  gap: 32px;
 
   @include desktop {
     flex: 1;
     max-width: 600px;
-    gap: 48px; // dropzone bottom 412 -> files 460; button bottom 204 -> notes 252
+    gap: 48px;
 
-    // Both columns are always visible on desktop; the tab state is mobile-only.
     &[hidden] {
       display: flex;
     }
@@ -75,7 +56,6 @@
   }
 }
 
-// Desktop shows the 600x280 drop target; mobile shows a 320x56 button.
 .dropzone {
   display: none;
 
@@ -105,39 +85,31 @@
 
   display: flex;
   flex-direction: column;
-  --list-gap: 14px; // mobile file pitch 81 = 67 + 14
+  --list-gap: 14px;
   gap: var(--list-gap);
-  // Carries the same measure past the last card, so scrolling to the end
-  // leaves it clear of the container's edge rather than flush against it.
   padding-bottom: 64px;
 
-  // The rows keep their own heights and the list scrolls; without this they
-  // would shrink to fit the container, which is what flex items do.
   > * {
     flex: none;
   }
 
   @include desktop {
-    --list-gap: 20px; // desktop file pitch 122 = 102 + 20
+    --list-gap: 20px;
   }
-
 }
 
 .home-page__list--notes {
-  --list-gap: 16px; // mobile note gap 457 - 441
+  --list-gap: 16px;
 
   @include desktop {
-    --list-gap: 24px; // desktop note gap 431 - 407
+    --list-gap: 24px;
   }
 }
 
 .home-page__empty {
   color: $color-text-muted;
-  // Explicit, so optionalBreaks can measure in line boxes: computed
-  // "normal" gives it no number to divide the height by.
   line-height: 1.4;
 
-  // A load that failed, rather than a list that is genuinely empty.
   &--error {
     color: color.adjust($color-danger, $lightness: 12%);
   }
@@ -153,18 +125,10 @@
   }
 }
 
-// The slot below the upload control, shared by the response line and the
-// cancel link an upload in progress shows - never both at once.
 .home-page__notice {
-  // The dropzone centres its children, which would otherwise leave these
-  // shrink-to-fit - and so the response line measuring near zero when it
-  // decides whether it needs its break.
   align-self: stretch;
 }
 
-// The notes column has no dropzone to sit inside, so on desktop the line is
-// a child of the column and takes its 48px gap on both sides - far more air
-// than a line of text wants. Pulled in to 12 above and 24 below.
 .home-page__column > .home-page__notice {
   @include desktop {
     margin: -36px 0 -24px;
@@ -173,13 +137,7 @@
 
 .home-page__cancel {
   @include reset-button;
-  // Centred rather than stretched, so only the words take the press: a
-  // full-width button would answer clicks well away from the text. The
-  // response line stretches instead, since it has a width to measure.
   align-self: center;
-  // Placed exactly where the response line sits, since the two share the
-  // slot: below the dropzone's label on desktop, and pulled into the
-  // column's own gap between the button and the list on mobile.
   margin-top: 12px;
 
   @include mobile-only {
@@ -204,8 +162,6 @@
   }
 }
 
-// The label carries the whole message while a file is going up, so the glyph
-// above it is dropped and the dropzone re-centres on the text alone.
 .dropzone--uploading {
   cursor: default;
 

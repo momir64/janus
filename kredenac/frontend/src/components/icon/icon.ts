@@ -28,13 +28,15 @@ const icons = {
 
 export type IconName = keyof typeof icons;
 
-export function icon(name: IconName, size?: number): HTMLImageElement {
+export function icon(name: IconName): HTMLImageElement {
   return h("img", {
     src: icons[name],
     alt: "",
-    // The per-name class lets a glyph carry its own treatment — the gear is
-    // rotated 30 degrees in the design, on both breakpoints.
     class: `icon icon--${name}`,
-    style: size ? `width:${size}px;height:${size}px` : undefined,
   });
+}
+
+export function iconButton(button: HTMLElement, name: IconName, onClick: () => void): void {
+  button.append(icon(name));
+  button.addEventListener("click", onClick);
 }

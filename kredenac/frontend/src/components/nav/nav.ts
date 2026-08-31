@@ -13,9 +13,6 @@ interface AppNavOptions {
 }
 
 export async function logout(): Promise<void> {
-  // The note editor sits above the page on mobile with the tab bar still
-  // reachable, so it has to be dismissed here too — the tab buttons do the
-  // same via handleTabChange, but Log out is not one of them.
   closeAllDialogs();
   await api.auth.logout();
   navigate("/");
@@ -29,9 +26,6 @@ function navButton(
   showLabel = true,
   iconLast = false
 ): HTMLElement {
-  // Figma puts the glyph before the label on Settings / Go back (149:201,
-  // 152:223) but after it on Log out (149:188), and inset each differently —
-  // hence the modifiers, which the desktop nav uses to place them.
   const parts = [icon(iconName), showLabel ? h("span", { class: "btn__label" }, label) : null];
   const classes = ["btn", "btn--nav"];
   if (active) classes.push("is-active");
@@ -45,17 +39,11 @@ function navButton(
   );
 }
 
-/**
- * Renders both the desktop top-corner nav and the mobile bottom-tab nav;
- * CSS shows one per breakpoint. On the Settings tab, the desktop nav swaps
- * its "Settings" button for "Go back" (mobile keeps the same four tabs).
- */
 export function appNav({ active, onTabChange }: AppNavOptions): [HTMLElement, HTMLElement] {
   const top = h(
     "nav",
     { class: "top-nav" },
     active === "settings"
-      // Back to whichever list was last open, not always the first one.
       ? navButton("back", "Go back", false, () => onTabChange(contentTab()))
       : navButton("settings", "Settings", false, () => onTabChange("settings")),
     navButton("logout", "Log out", false, logout, true, true)

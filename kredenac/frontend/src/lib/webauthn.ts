@@ -1,12 +1,10 @@
 import { fromBase64Url, toBase64Url } from "./base64url";
 import { api } from "./api";
 
-// Algorithms the backend's VerifyUtil accepts, restricted to the set every
-// modern platform authenticator and security key supports.
 const PUB_KEY_CRED_PARAMS: PublicKeyCredentialParameters[] = [
-  { type: "public-key", alg: -7 }, // ES256
-  { type: "public-key", alg: -257 }, // RS256
-  { type: "public-key", alg: -8 }, // EdDSA
+  { type: "public-key", alg: -7 },
+  { type: "public-key", alg: -257 },
+  { type: "public-key", alg: -8 },
 ];
 
 async function createCredential(
@@ -30,7 +28,6 @@ async function createCredential(
   return credential;
 }
 
-/** Registration ceremony for a brand new account, finished via the emailed magic-link token. */
 export async function registerWithToken(token: string, email: string): Promise<void> {
   const { challenge, rpId } = await api.auth.registerStart();
   const credential = await createCredential(challenge, rpId, email);
@@ -43,19 +40,6 @@ export async function registerWithToken(token: string, email: string): Promise<v
   });
 }
 
-/** Adds an additional passkey to the already-authenticated account. */
-export async function addCredential(email: string): Promise<void> {
-  const { challenge, rpId } = await api.auth.addCredentialStart();
-  const credential = await createCredential(challenge, rpId, email);
-  const response = credential.response as AuthenticatorAttestationResponse;
-
-  await api.auth.addCredentialFinish({
-    clientDataJSON: toBase64Url(response.clientDataJSON),
-    attestationObject: toBase64Url(response.attestationObject),
-  });
-}
-
-/** Usernameless login: the platform's passkey picker resolves the credential. */
 export async function login(): Promise<void> {
   const { challenge, rpId } = await api.auth.loginStart();
 

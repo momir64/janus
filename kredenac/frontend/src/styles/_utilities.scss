@@ -16,8 +16,6 @@
   }
 }
 
-// Set by optionalBreaks() when the design's line breaks no longer fit, at
-// which point the copy wraps as plain text instead.
 .u-no-breaks br {
   display: none;
 }

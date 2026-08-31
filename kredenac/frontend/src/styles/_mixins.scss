@@ -1,7 +1,5 @@
 @use "constants" as *;
 
-// The design is authored as two fixed layouts (mobile / desktop) rather than
-// a fluid range, so we build mobile-first and swap wholesale at one stop.
 @mixin desktop {
   @media (min-width: $breakpoint-desktop) {
     @content;
@@ -14,10 +12,6 @@
   }
 }
 
-// Small L-shaped accent mark at a box corner, e.g. the top-left of every
-// bordered panel and button in the design.
-// Defaults to --edge-accent so the mark tracks its host's hover state; pass
-// an explicit colour for marks that sit on something non-interactive.
 @mixin corner-bracket(
   $size: 16px,
   $thickness: 2px,
@@ -42,9 +36,6 @@
   }
 }
 
-// A narrow scrollbar in the design's greys, for anything that scrolls inside
-// itself as well as for the page. Only drawn when the content actually
-// overflows, since the containers are overflow: auto.
 @mixin thin-scrollbar($width: 6px) {
   scrollbar-width: thin;
   scrollbar-color: #{$color-border} transparent;
@@ -66,23 +57,12 @@
   }
 }
 
-// The colours a control lifts to when it is being attended to. Kept apart
-// from the states that trigger it, since the email field takes them on focus
-// as well as on hover.
 @mixin control-lift {
   --edge: #{$color-border-strong};
   --edge-accent: #{$color-text};
   --label: #ffffff;
 }
 
-// The one-step-brighter treatment a control takes while the pointer is over
-// it or while it is being pressed.
-//
-// Hover is gated on the pointer actually being able to hover: a touchscreen
-// leaves :hover on whatever was last tapped until something else is tapped,
-// so an unguarded rule makes a tapped button look stuck. :active is not
-// gated — it lasts only as long as the press, which is what gives a touch
-// device its feedback, and it answers a held mouse button too.
 @mixin hover-or-active {
   @media (hover: hover) {
     &:hover {

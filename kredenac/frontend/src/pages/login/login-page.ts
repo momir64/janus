@@ -1,4 +1,4 @@
-import { h, ref, template } from "../../lib/dom";
+import { h, onResize, ref, template } from "../../lib/dom";
 import { retype, typeInto } from "../../lib/typewriter";
 import { navigate } from "../../lib/router";
 import { setCsrfToken } from "../../lib/session";
@@ -15,17 +15,11 @@ import markup from "./login-page.html?raw";
 const build = template(markup);
 
 export async function loginPage(): Promise<Node> {
-
-  // The message hangs below the buttons and the link is placed from the page
-  // bottom, so on a short window the two can meet. The link gives way: it
-  // drops by however much they overlap, down to a floor that keeps it on the
-  // page, and returns to its measured position once the message clears.
   const FOOTER_GAP = 12;
   const FOOTER_FLOOR = 8;
 
   function placeFooter(): void {
-    if (!footer.isConnected) return; // a stale page's listener still firing
-    footer.style.bottom = ""; // measure from the position the design gives it
+    footer.style.bottom = "";
     const line = message.el.getBoundingClientRect();
     if (line.height === 0) return;
 
@@ -52,8 +46,6 @@ export async function loginPage(): Promise<Node> {
     }
   }
 
-  // While the email field is open, REGISTER becomes the field's submit
-  // button; both it and "Lost your passkey?" stay enabled throughout.
   let composing = false;
 
   // TODO: development shortcuts — typing one of these into the email field
@@ -63,7 +55,7 @@ export async function loginPage(): Promise<Node> {
   //    a -> logged-in view    b -> valid email page    c -> invalid email page
   const devShortcut = (email: string): boolean => {
     if (email === "a") {
-      enableDevMode(); // otherwise the first 401 clears the session again
+      enableDevMode();
       setCsrfToken("dev");
       navigate("/");
       return true;
@@ -79,9 +71,6 @@ export async function loginPage(): Promise<Node> {
     return false;
   };
 
-  // The label backspaces and retypes rather than swapping, matching the
-  // LOGIN -> placeholder transition. The counter drops any run that a newer
-  // toggle has superseded, so rapid clicks can't interleave two animations.
   let labelRun = 0;
   const setRegisterLabel = async (text: string, msPerChar: number) => {
     const run = ++labelRun;
@@ -93,17 +82,12 @@ export async function loginPage(): Promise<Node> {
     onLogin: handleLogin,
     onComposeChange: (isComposing) => {
       composing = isComposing;
-      // Opening pairs with the LOGIN -> placeholder animation, so it runs at
-      // that pace; dismissing via the X snaps back quicker.
       void setRegisterLabel(isComposing ? "VERIFY EMAIL" : "REGISTER", isComposing ? 55 : 26);
     },
-    // While the magic link is being requested the button is the only way to
-    // fire a second one, so it locks until the server answers.
     onSendingChange: (sending) => {
       registerButton.disabled = sending;
     },
     onMessage: (key) => message.show(LOGIN_MESSAGES[key]),
-    // Closing the field takes any message it produced with it.
     onDismiss: () => message.dismiss(),
     onBeforeSubmit: devShortcut,
   });
@@ -115,25 +99,19 @@ export async function loginPage(): Promise<Node> {
   });
   const registerLabel = registerButton.querySelector<HTMLElement>(".btn__label")!;
   const lostLink = h("button", { type: "button", onclick: () => slot.startCompose() }, "Lost your passkey?");
-  window.addEventListener("resize", placeFooter);
 
   const view = build();
   ref<HTMLImageElement>(view, "cabinet").src = cabinet;
-  // Drawn rather than written: the marks are computed geometry.
   ref(view, "content").before(hatchMarks());
   ref(view, "actions").append(slot.el, registerButton, message.el);
 
   const mark = ref(view, "mark");
   const footer = ref(view, "footer");
   footer.append(lostLink);
+  onResize(footer, placeFooter);
 
   const heading = typeInto(mark, "KREDENAC", 120, 300);
 
-  // The caret blinks until the page is first clicked, however long that
-  // takes. Waiting on both means a click during the typing retires it the
-  // moment the word lands rather than cutting the animation short. Captured
-  // so a handler that stops propagation cannot swallow it, and hidden rather
-  // than removed so the heading cannot shift as it goes.
   const firstClick = new Promise<void>((resolve) => {
     document.addEventListener("click", () => resolve(), { once: true, capture: true });
   });

@@ -13,7 +13,6 @@ interface ButtonOptions {
   disabled?: boolean;
 }
 
-/** Builds a `.btn` matching one of the design's recurring button species. */
 export function button(opts: ButtonOptions): HTMLButtonElement {
   const classes = ["btn", `btn--${opts.variant ?? "framed"}`];
   if (opts.danger) classes.push("btn--danger");

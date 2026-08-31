@@ -2,8 +2,6 @@
 @use "../../styles/mixins" as *;
 @use "../../styles/noise" as *;
 
-// Desktop: two 153x52 buttons at 36px from the page corners
-// (Figma 149:201 at x=36, 149:188 at x=1731 of 1920).
 .top-nav {
   display: none;
 
@@ -14,7 +12,6 @@
   }
 }
 
-// Mobile: four 90x52 tab cells pinned to the bottom (Figma 162:229..162:238).
 .bottom-nav {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -37,8 +34,6 @@
       border-left: 1px solid $color-border;
     }
 
-    // Resting tabs sit dim; the selected one is full strength, and any tab
-    // lifts on hover.
     .icon {
       opacity: 0.55;
     }

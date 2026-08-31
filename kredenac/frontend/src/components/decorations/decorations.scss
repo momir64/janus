@@ -7,7 +7,6 @@
   bottom: 8px;
   height: 12.27px;
   width: auto;
-  // Same colour as the top-left corner bracket, hover included.
   color: var(--edge-accent, #{$color-border-strong});
 
   @include desktop {
@@ -25,16 +24,12 @@
     transition: opacity 0.2s ease, transform 0.3s ease;
   }
 
-  // The surviving rightmost chevron rotates into a bottom-right corner mark.
   polyline.chevron-trail__corner {
     transform-box: fill-box;
     transform-origin: center;
     transform: rotate(45deg);
   }
 }
-
-// The exported glyphs are flat greys, so hover lifts them with a filter
-// rather than a colour — one rule covers every icon on an interactive host.
 
 .hatch-marks {
   line {
@@ -43,15 +38,6 @@
   }
 }
 
-// Corner hatching — the "lines" frames in Figma. 26.98 on mobile cards,
-// 30.98 on desktop, smaller on the dialog buttons. Only the box is set here;
-// decorations.ts draws the strokes to fit it at Figma's fixed 4px pitch, so
-// changing a size below changes how many strokes appear rather than
-// stretching the ones there are.
-//
-// The box is offset by the host's 1px border so its own edges are the
-// control's outer edges — that is what puts each stroke's two ends on them —
-// and the overflow clip keeps the stroke width from spilling past them.
 .corner-hatch {
   --hatch-size: 27px;
 
@@ -59,22 +45,17 @@
   width: var(--hatch-size);
   height: var(--hatch-size);
   pointer-events: none;
-  // Clips the stroke width at the box's edges, so the hatch stays inside the
-  // control instead of the strokes straddling its border.
   overflow: hidden;
 
   @include desktop {
     --hatch-size: 30.98px;
   }
 
-  // Follows the host control's hover state, like the corner brackets do.
   line {
     stroke: var(--edge, #{$color-border});
     stroke-width: 1;
   }
 
-  // Pulled out over the host's border so the box's edges are the control's
-  // outer edges; --hatch-edge is that border's width where it is not 1px.
   &--tl {
     top: calc(-1 * var(--hatch-edge, 1px));
     left: calc(-1 * var(--hatch-edge, 1px));

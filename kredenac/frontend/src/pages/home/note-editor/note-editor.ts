@@ -19,19 +19,14 @@ interface NoteEditorOptions {
 
 const build = template(markup);
 
-/** The title + body form shared by the desktop "Note dialog" and the mobile "Create/Edit Note" page. */
 export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLElement {
   const root = build();
   const titleInput = ref<HTMLInputElement>(root, "title");
   const bodyInput = ref<HTMLTextAreaElement>(root, "body");
 
-  // Sits above the title field, out of flow, so nothing below it moves.
   const message = messageHint({ className: "note-editor__message" });
   root.prepend(message.el);
 
-  // Which case the line is currently making, so that fixing what it
-  // complains about takes it away rather than leaving it to time out over a
-  // field that now reads correctly.
   let shown: NoteMessage | null = null;
 
   const showMessage = (key: NoteMessage): void => {
@@ -47,8 +42,6 @@ export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLE
 
   titleInput.value = note?.title ?? "";
   titleInput.maxLength = TITLE_LIMIT;
-  // Case 26. The attribute stops the typing at the limit rather than past
-  // it, so reaching it is the moment worth saying something.
   titleInput.addEventListener("input", () => {
     if (titleInput.value.length >= TITLE_LIMIT) showMessage("titleTooLong");
     else resolveMessage("titleTooLong");
@@ -57,7 +50,6 @@ export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLE
 
   bodyInput.value = note?.content ?? "";
   bodyInput.maxLength = BODY_LIMIT;
-  // Case 27.
   bodyInput.addEventListener("input", () => {
     if (bodyInput.value.length >= BODY_LIMIT) showMessage("bodyTooLong");
     else resolveMessage("bodyTooLong");
@@ -67,10 +59,8 @@ export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLE
   const submit = async () => {
     const title = titleInput.value.trim();
     const content = bodyInput.value.trim();
-    // Either half is enough to make a note; only an entirely empty one is
-    // refused, and the empty field is saved as such rather than filled in.
     if (!title && !content) {
-      showMessage("noteEmpty"); // case 25
+      showMessage("noteEmpty");
       return;
     }
     // TODO: case 29 - report a failed save here, once the note messages are

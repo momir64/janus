@@ -12,12 +12,9 @@ import errorIcon from "../../assets/icons/error.svg";
 const build = template(markup);
 const buildInvalid = template(invalidMarkup);
 
-/** Swaps the view for the invalid-link copy, which has no control of its own. */
 function showInvalid(view: HTMLElement): void {
   view.classList.add("verify-page--invalid");
 
-  // The view's own illustration is kept and re-pointed; everything else it
-  // carries is replaced by the copy below.
   const illustration = ref<HTMLImageElement>(view, "illustration");
   illustration.src = errorIcon;
 
@@ -45,9 +42,6 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
   //  address from. Falls back to the placeholder the design itself uses.
   ref(view, "email").textContent = params.get("email") ?? "example@example.com";
 
-  // Every registration failure belongs to this view — the invalid one has no
-  // control to press — so the line sits below the button, as on the login
-  // page.
   const message = messageHint();
 
   const registerButton = button({

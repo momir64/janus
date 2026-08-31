@@ -2,18 +2,12 @@
   <div class="passkey-card__head">
     <span class="passkey-card__name" data-ref="name"></span>
 
-    <!-- Desktop 147:178 says "used for this session";
-         mobile 2030:18 just "this session". -->
     <span class="passkey-card__session" data-ref="session">
       <span class="u-desktop-only">used for this session</span>
       <span class="u-mobile-only">this session</span>
     </span>
   </div>
 
-  <!-- The two frames word the detail differently and break it over a
-       different number of lines: desktop (139:135) puts the address and city
-       together on one line over three, mobile (2030:17) splits them over
-       four. Each row is written by the component. -->
   <div class="passkey-card__info passkey-card__info--desktop" data-ref="desktop-info"></div>
   <div class="passkey-card__info passkey-card__info--mobile" data-ref="mobile-info"></div>
 

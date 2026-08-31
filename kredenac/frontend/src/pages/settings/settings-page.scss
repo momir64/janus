@@ -1,17 +1,6 @@
 @use "../../styles/constants" as *;
 @use "../../styles/mixins" as *;
 
-// Measured from Figma:
-//   mobile  "Settings Page" 167:588 — 360 x 720 (16px gutter)
-//   desktop "Settings Page" 139:4   — 1920 x 930
-//
-// Desktop: passkey column 720 wide at x=310, delete button 360 wide ending
-// at x=1610, so the same 1300-wide content box as the Home page.
-
-// The frame holds the heading, the rule and the nav still; what scrolls is
-// inside it. Nothing here moves the document itself: on a phone a document
-// scroll collapses the browser's own chrome, which shifts the page under the
-// reader.
 .settings-scroll {
   flex: 1;
   min-height: 0;
@@ -19,7 +8,6 @@
   flex-direction: column;
   overflow: hidden;
 
-  // Stops at the tab bar instead of running under it.
   @include mobile-only {
     margin-bottom: 52px;
   }
@@ -33,24 +21,14 @@
   padding: 48px 16px 0;
 
   @include desktop {
-    // 1300 of content plus a 32px gutter each side, so the centred content
-    // is the design's 310..1610 at 1920 and still keeps a margin once the
-    // window is narrower than the content box.
     max-width: 1364px;
-    // The frame is a flex column now, and `margin: 0 auto` on a flex item
-    // cancels the cross-axis stretch it would otherwise get - without this
-    // the page shrinks to its content instead of filling the width.
     width: 100%;
     margin: 0 auto;
-    // No bottom padding, as on the app page: the cards run to the page's own
-    // bottom edge and hold their empty space inside the scroller instead.
     padding: 44px 56px 0;
   }
 }
 
 .settings-page__heading {
-  // Figma puts the heading text 2px in from the 16px gutter the rule and the
-  // cards share (157:20 at x=18 against 157:19 at x=16).
   margin-left: 2px;
   font-family: $font-display;
   font-weight: 400;
@@ -60,60 +38,44 @@
 
   @include desktop {
     margin-left: 0;
-    font-size: 40px; // 145:14, Chakra Petch Regular
+    font-size: 40px;
   }
 }
 
-// Figma mobile 157:19 — 260 wide under the heading; desktop 145:13 — 1340
-// wide, overhanging the 1300 content box by 20px on each side.
-// A zero-height line in Figma is centred on its y, so the stroke straddles
-// that coordinate rather than starting at it — hence the half-pixel here and
-// the odd offset on desktop, where the stroke is 2px.
 .settings-page__rule {
-  margin-top: 2.5px; // paints 82.5..83.5, centred on 83 (157:19)
+  margin-top: 2.5px;
   width: 260px;
   height: 0;
   border-top: 1px solid $color-border;
 
   @include desktop {
-    margin: 27px -20px 0; // paints 191..193, centred on 192 (145:13)
+    margin: 27px -20px 0;
     width: calc(100% + 40px);
-    border-top-width: 2px; // 145:13
+    border-top-width: 2px;
   }
 }
 
 .settings-page__layout {
-  margin-top: 35.5px; // rule bottom 83.5 -> first card 119
+  margin-top: 35.5px;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 42px;
 
-  // Stacked here, so the cards and the button below them scroll together.
-  //
-  // The horizontal axis is clipped rather than left alone: a box with one
-  // axis scrollable and the other `visible` has that other axis computed to
-  // `auto`, which gave the page a sideways scroll over the few pixels the
-  // scrollbar's own track sits past the content. `clip` closes it without
-  // making the axis scrollable.
+  // clip, not visible: one scrollable axis makes the other compute to auto,
+  // which gave the page a sideways scroll over the scrollbar's own track.
   @include mobile-only {
     overflow-x: clip;
     overflow-y: auto;
   }
 
   @include desktop {
-    // The cards scroll on their own from here, so this box starts at the
-    // rule, the offset to the first card moves inside it, and this box holds
-    // still - the delete button is not part of what scrolls.
     margin-top: 0;
     overflow: hidden;
     flex-direction: row;
     align-items: flex-start;
     justify-content: space-between;
-    // A floor, not the actual spacing: at full width space-between opens the
-    // design's 220px gap (1300 - 720 - 360), and this stops the two columns
-    // closing up once there is less room.
     gap: 48px;
   }
 }
@@ -121,49 +83,31 @@
 .settings-page__passkeys {
   display: flex;
   flex-direction: column;
-  gap: 16px; // mobile pitch 128 = 112 + 16
+  gap: 16px;
 
   @include desktop {
     overflow-y: auto;
-    // Held inside the scroller rather than above it, so the first card sits
-    // where the design puts it and passes under the rule when scrolled -
-    // rule bottom 193 -> first card 240.
     padding-top: 47px;
-    // The same empty space past the last card the app lists keep, and what
-    // the scrollbar takes as its bottom inset.
     padding-bottom: 64px;
-    gap: 24px; // desktop pitch 204 = 180 + 24
+    gap: 24px;
   }
 }
 
-// The scroller's wrapper is the flex item now, so the column's own width is
-// set on it; the cards inside simply fill it.
 .settings-page__cards {
-  // The row is top-aligned, which would leave this box as tall as its cards
-  // and so with nothing to scroll. Stretched, it takes the row's height and
-  // the cards run past it.
   @include desktop {
     align-self: stretch;
-    // A pixel higher than the row, so the edge the cards are cut on sits on
-    // the rule rather than just under it.
     margin-top: -1px;
   }
 
-  // Inside the scrolling column here: it has to take the height its cards
-  // need, not the height that is left, or they would be squashed into the
-  // box instead of running past it.
   @include mobile-only {
     flex: none;
   }
 
   @include desktop {
-    // Grows to the design's 720 and shrinks below it once the delete button
-    // and the minimum gap no longer leave room, but never past 580.
     flex: 1 1 auto;
     max-width: 720px;
   }
 
-  // The bar starts with the cards, not at the rule above them.
   .scroll-list__bar {
     @include desktop {
       top: 47px;
@@ -172,29 +116,20 @@
 }
 
 .settings-page__danger {
-  // As above: a flex item in a scrolling column, so it keeps its own height.
   @include mobile-only {
     flex: none;
   }
 
   @include desktop {
-    // The cards' own offset lives inside their scroller, so this column
-    // carries its own to stay level with the first of them.
     margin-top: 47px;
-    // Also resizable, between the design's 360 and a 300 floor.
     flex: 1 1 auto;
     max-width: 360px;
     min-width: 300px;
   }
 
-  // 580 of cards + 300 here + the 48px gap + 112 of page padding needs
-  // 1040px. Below that the pair no longer fits side by side at these widths.
-  // Rather than dropping the button to a row of its own, it keeps its place
-  // and takes its label over two lines - one word each - in a box tall
-  // enough to hold them.
-  //
-  // 160 is what the narrow band can spare: 580 + 160 + 48 + 112 comes to
-  // 900 exactly, the width the desktop layout starts at.
+  // 580 of cards + 160 here + the 48px gap + 112 of padding needs 900, the
+  // width the desktop layout starts at; below 1040 the pair no longer fits
+  // side by side at their design widths.
   @media (min-width: $breakpoint-desktop) and (max-width: 1039px) {
     min-width: 160px;
 
@@ -203,9 +138,6 @@
     }
 
     .btn__label {
-      // Narrowed to its longest word, so the pair breaks whatever room the
-      // box happens to have: the two lines belong with the taller frame,
-      // not with running out of width.
       width: min-content;
       line-height: 1.15;
       text-align: center;
@@ -213,13 +145,6 @@
   }
 }
 
-// Desktop: a third item in the nav row, between Go back and Log out. Both
-// buttons are the same 153px wide, so space-between centres it between them
-// on its own; flex:1 gives it the room in between as a definite width, which
-// is what it measures its break against.
-//
-// Mobile: that row is not rendered, so the line is placed from the page's
-// own top-right corner instead, and typed towards the right edge.
 .settings-page__message {
   position: static;
   flex: 1;
@@ -230,15 +155,11 @@
     position: absolute;
     top: 16px;
     right: 16px;
-    // Left edge as well, so the copy has a width to measure and only the
-    // text sits at the right - not a shrink-to-fit box.
     left: 16px;
     text-align: right;
   }
 }
 
-// Only the box that actually scrolls at this width draws the rule closing a
-// cut card: the other one would draw it across a column that has not moved.
 .settings-page__layout.is-cut {
   @include desktop {
     box-shadow: none;

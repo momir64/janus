@@ -1,38 +1,29 @@
 @use "../../../styles/constants" as *;
 @use "../../../styles/mixins" as *;
 
-// Figma desktop 139:128 - 720x180; mobile 2030:16 - 328x130.
 .passkey-card {
   position: relative;
-  // Mobile grew a line when the address and city were split apart; desktop
-  // still carries all three on 180px.
   height: 130px;
   padding: 8px 14px 14px 16px;
   border: 1px solid $color-border;
 
   @include desktop {
     height: 180px;
-    border-width: 1.5px; // 139:128
+    border-width: 1.5px;
     padding: 20px 24px 24px 26px;
   }
 
   &__head {
     display: flex;
-    // Centred against the name's line box, which lands the badge on Figma's
-    // offsets (name y=8 / badge y=16 mobile, 20 / 24 desktop).
     align-items: center;
     justify-content: space-between;
     gap: 1em;
   }
 
   &__name {
-    // Spline Sans Mono Regular (139:133 / 157:6)
     font-weight: 400;
     font-size: 14px;
     line-height: 32px;
-    // Takes whatever the badge leaves and truncates rather than running
-    // under it. min-width:0 is what lets a flex item shrink below its
-    // content, and so what makes the ellipsis possible at all.
     flex: 1;
     min-width: 0;
     overflow: hidden;
@@ -44,12 +35,10 @@
     }
   }
 
-  // Kept in flow rather than absolutely positioned, so it actually reserves
-  // the space the name truncates against.
   &__session {
     flex: none;
     font-family: $font-display;
-    font-weight: 400; // Chakra Petch Regular (147:178)
+    font-weight: 400;
     color: $color-text-muted;
     font-size: 12px;
     white-space: nowrap;
@@ -64,19 +53,18 @@
   }
 
   &__info {
-    margin-top: 2px; // name bottom 40 -> info 42
+    margin-top: 2px;
     display: flex;
     flex-direction: column;
     font-size: 11px;
     line-height: 18px;
 
     @include desktop {
-      margin-top: 18px; // name bottom 52 -> info 70
+      margin-top: 18px;
       font-size: 18px;
       line-height: 28px;
     }
 
-    // Figma sets the label Light and only the value Regular (139:135).
     font-weight: 300;
 
     b {
@@ -84,9 +72,6 @@
     }
   }
 
-  // Desktop lists three lines, mobile four (see passkeyCard.ts). Both are
-  // rendered and one is shown; the visibility utilities cannot be used here
-  // because they would override the flex column.
   &__info--desktop {
     display: none;
 

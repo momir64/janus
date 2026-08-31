@@ -22,10 +22,6 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
 
   if (response.status === 401) {
     clearSession();
-    // Case 39. The ceremony and refresh endpoints are how a session is
-    // obtained in the first place, so a 401 from one of them is a failed
-    // sign-in rather than a session that ended - and is reported by the page
-    // that asked for it.
     if (!path.startsWith("/auth/login") && !path.startsWith("/auth/register") && path !== "/auth/refresh") {
       window.dispatchEvent(new CustomEvent("kredenac:session-expired"));
     }
@@ -81,14 +77,6 @@ export const api = {
       clearSession();
     },
 
-    addCredentialStart: () =>
-      json<{ challenge: string; rpId: string }>("/auth/credentials/add/start", { method: "POST" }),
-
-    addCredentialFinish: (body: { clientDataJSON: string; attestationObject: string }) =>
-      request("/auth/credentials/add/finish", withJsonBody(body)).then(() => undefined),
-
-    // The backend only returns { id, algorithm } per credential today — the
-    // rest of Passkey's fields are optional for exactly that reason.
     listCredentials: () => json<Passkey[]>("/auth/credentials"),
 
     deleteCredential: (id: string) => request(`/auth/credentials/${id}`, { method: "DELETE" }).then(() => undefined),
@@ -118,18 +106,12 @@ export const api = {
     //  downloads that go through this client.
     download: async (id: string, filename: string) => {
       const response = await request(`/files/${id}`);
-      // Re-typed rather than served as stored: a blob: URL carries this
-      // origin, so opening a stored .html or .svg through one would run its
-      // script as us. As application/octet-stream the browser can only save
-      // it, whatever the file turns out to be.
       const blob = new Blob([await response.arrayBuffer()], { type: "application/octet-stream" });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = filename;
       link.click();
-      // Revoked on the next turn: released in the same tick, Firefox can
-      // cancel the download it was handed.
       setTimeout(() => URL.revokeObjectURL(url), 0);
     },
 

@@ -22,14 +22,10 @@ export function enableDevMode(): void {
     id: `f${i}`,
     filename: "Some filename...",
     contentType: "application/octet-stream",
-    // Varied so the row's size and date columns are actually exercised.
     size: Math.round(1024 ** 2 * (0.4 + i * 12.7)),
     createdAt: new Date(2022, 11, 31, 12, 34 - i).toISOString(),
   }));
 
-  // Stepped lengths, so the list shows short, medium and long cards
-  // together, plus the two one-sided shapes: a note needs a title or a body,
-  // not both.
   let notes: NoteEntry[] = [
     ...Array.from({ length: 6 }, (_, i) => ({
       id: `n${i}`,

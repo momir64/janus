@@ -12,8 +12,6 @@ body {
   height: 100%;
 }
 
-// The settings page and anything else that scrolls the document take the
-// same scrollbar the lists use.
 html {
   @include thin-scrollbar;
 }
@@ -60,7 +58,3 @@ img,
 svg {
   display: block;
 }
-
-// The two frames word several labels differently (e.g. the settings heading
-// is "Passkeys associated with this account" on desktop but "Associated
-// passkeys" on mobile), so both strings are rendered and CSS picks one.

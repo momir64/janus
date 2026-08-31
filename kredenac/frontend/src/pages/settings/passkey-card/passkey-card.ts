@@ -1,5 +1,5 @@
 import { h, ref, template } from "../../../lib/dom";
-import { icon } from "../../../components/icon/icon";
+import { iconButton } from "../../../components/icon/icon";
 import markup from "./passkey-card.html?raw";
 import type { Passkey } from "../../../types";
 
@@ -12,17 +12,12 @@ type InfoLine = [label: string, value: string];
 
 const build = template(markup);
 
-/**
- * Fills one of the two detail blocks, or removes it: a card with nothing to
- * say in that column should not leave an empty box behind.
- */
 function fillInfo(block: HTMLElement, lines: (InfoLine | null)[]): void {
   const present = lines.filter((line): line is InfoLine => line !== null);
   if (present.length === 0) {
     block.remove();
     return;
   }
-  // Figma sets the label Light and only the value Regular (139:135).
   block.append(...present.map(([label, value]) => h("span", {}, `${label} `, h("b", {}, value))));
 }
 
@@ -49,9 +44,7 @@ export function passkeyCard({ passkey, onDelete }: PasskeyCardOptions): HTMLElem
     createdAt ? ["Created at:", createdAt] : null,
   ]);
 
-  const remove = ref(root, "delete");
-  remove.append(icon("delete"));
-  remove.addEventListener("click", onDelete);
+  iconButton(ref(root, "delete"), "delete", onDelete);
 
   return root;
 }
