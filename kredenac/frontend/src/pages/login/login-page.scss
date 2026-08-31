@@ -62,6 +62,11 @@ $login-column-min: 480px;
   --pad-b: max(0px, 100dvh * 0.233333 - var(--shortfall));
   padding: var(--pad-t) 32px var(--pad-b);
 
+  @include mobile-only {
+    max-width: 420px;
+    margin-inline: auto;
+  }
+
   @include desktop {
     margin-left: var(--split);
     padding: 48px var(--pad-r) 120px var(--pad-l);

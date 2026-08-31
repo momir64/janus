@@ -7,6 +7,7 @@ import { login } from "../../lib/webauthn";
 import { loginEmailField } from "./login-email-field/login-email-field";
 import { messageHint } from "../../components/message-hint/message-hint";
 import { LOGIN_MESSAGES } from "../../lib/messages";
+import { failure } from "../../lib/failure";
 import { button } from "../../components/button/button";
 import { hatchMarks } from "../../components/decorations/decorations";
 import cabinet from "../../assets/cabinet.webp";
@@ -36,13 +37,21 @@ export async function loginPage(): Promise<Node> {
     try {
       await login();
       navigate("/");
-    } catch {
-      // TODO: wire the sign-in messages through message.show(), keyed by
-      //  LOGIN_MESSAGES: a NotAllowedError stays silent (case 1), any other
-      //  DOMException is browserBlocked, an ApiError 401 passkeyRejected and
-      //  400 passkeyRetry, 429 tooManyLogins, 5xx serverError, and a fetch
-      //  rejection noConnection. passkeyCloned needs api.ts to keep the 401
-      //  body and the backend to send a "passkey_cloned" code.
+    } catch (error) {
+      const { dom, status, code, offline } = failure(error);
+
+      if (dom === "NotAllowedError") return;
+
+      // TODO: `passkey_cloned` is the code the backend is to send when it
+      //  revokes a cloned authenticator; until then this reads as a rejected
+      //  passkey like any other 401.
+      if (code === "passkey_cloned") message.show(LOGIN_MESSAGES.passkeyCloned);
+      else if (dom) message.show(LOGIN_MESSAGES.browserBlocked);
+      else if (offline) message.show(LOGIN_MESSAGES.noConnection);
+      else if (status === 401) message.show(LOGIN_MESSAGES.passkeyRejected);
+      else if (status === 400) message.show(LOGIN_MESSAGES.passkeyRetry);
+      else if (status === 429) message.show(LOGIN_MESSAGES.tooManyLogins);
+      else message.show(LOGIN_MESSAGES.serverError);
     }
   }
 
@@ -95,10 +104,10 @@ export async function loginPage(): Promise<Node> {
   const registerButton = button({
     label: "REGISTER",
     variant: "arrow",
-    onClick: () => (composing ? slot.submit() : slot.startCompose()),
+    onClick: () => (composing ? slot.submit() : slot.startCompose("register")),
   });
   const registerLabel = registerButton.querySelector<HTMLElement>(".btn__label")!;
-  const lostLink = h("button", { type: "button", onclick: () => slot.startCompose() }, "Lost your passkey?");
+  const lostLink = h("button", { type: "button", onclick: () => slot.startCompose("recovery") }, "Lost your passkey?");
 
   const view = build();
   ref<HTMLImageElement>(view, "cabinet").src = cabinet;

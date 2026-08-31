@@ -63,10 +63,11 @@ export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLE
       showMessage("noteEmpty");
       return;
     }
-    // TODO: case 29 - report a failed save here, once the note messages are
-    //  wired to their triggers. The dialog stays open on a rejection, so
-    //  this line is the one the reader is looking at.
-    await onSave(title, content);
+    try {
+      await onSave(title, content);
+    } catch {
+      showMessage("saveFailed");
+    }
   };
 
   ref(root, "actions").append(

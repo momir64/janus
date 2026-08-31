@@ -131,20 +131,32 @@
   &::before {
     width: 10px;
     height: 10px;
+    top: 6px;
+    left: 6px;
+    border-width: 1.5px;
 
     @include desktop {
       width: 20px;
       height: 20px;
+      top: 9px;
+      left: 9px;
+      border-width: 2.5px;
     }
   }
 
   &::after {
     width: 10px;
     height: 10px;
+    bottom: 6px;
+    right: 6px;
+    border-width: 1.5px;
 
     @include desktop {
       width: 20px;
       height: 20px;
+      bottom: 9px;
+      right: 9px;
+      border-width: 2.5px;
     }
   }
 }

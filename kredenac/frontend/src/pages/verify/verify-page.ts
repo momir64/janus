@@ -3,11 +3,23 @@ import { navigate } from "../../lib/router";
 import { registerWithToken } from "../../lib/webauthn";
 import { optionalBreaks } from "../../lib/optional-breaks";
 import { button } from "../../components/button/button";
+import { failure } from "../../lib/failure";
+import { VERIFY_MESSAGES } from "../../lib/messages";
 import { messageHint } from "../../components/message-hint/message-hint";
 import markup from "./verify-page.html?raw";
 import invalidMarkup from "./verify-invalid.html?raw";
 import emailSuccess from "../../assets/icons/email-success.svg";
 import errorIcon from "../../assets/icons/error.svg";
+
+const BY_DOM: Record<string, keyof typeof VERIFY_MESSAGES> = {
+  NotAllowedError: "registrationCancelled",
+  InvalidStateError: "passkeyExists",
+  ConstraintError: "deviceCannotStore",
+  NotSupportedError: "deviceUnsupported",
+  SecurityError: "invalidDomain",
+  UnknownError: "browserBlocked",
+  AbortError: "browserBlocked",
+};
 
 const build = template(markup);
 const buildInvalid = template(invalidMarkup);
@@ -52,17 +64,21 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
       try {
         await registerWithToken(token, "Kredenac account");
         navigate("/");
-      } catch {
-        // TODO: wire the registration messages through message.show() and
-        //  VERIFY_MESSAGES: NotAllowedError and a resolved
-        //  non-PublicKeyCredential are registrationCancelled (cases 14, 16g),
-        //  InvalidStateError passkeyExists (15), ConstraintError
-        //  deviceCannotStore (16b), NotSupportedError deviceUnsupported
-        //  (16c), SecurityError invalidDomain (16d), UnknownError and
-        //  AbortError browserBlocked (16e), a 429 tooManyAttempts (16a), and
-        //  a 5xx or fetch rejection registrationFailed (16f). Case 13 keeps
-        //  the invalid page, and waits on the token-trade flow so an expired
-        //  link is caught before a passkey is created.
+      } catch (error) {
+        const { dom, status } = failure(error);
+
+        // TODO: a rejected token only surfaces here, after a passkey has been
+        //  created and left orphaned on the device. The planned trade - token
+        //  for email, up front - moves this ahead of the ceremony.
+        if (status === 401) {
+          showInvalid(view);
+          return;
+        }
+
+        const key =
+          (dom ? BY_DOM[dom] : undefined) ??
+          (status === 429 ? "tooManyAttempts" : "registrationFailed");
+        message.show(VERIFY_MESSAGES[key]);
       } finally {
         registerButton.disabled = false;
       }

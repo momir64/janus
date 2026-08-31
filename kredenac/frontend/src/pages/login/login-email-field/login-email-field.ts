@@ -4,6 +4,7 @@ import { chevronTrail, closeGlyph } from "../../../components/decorations/decora
 import { api } from "../../../lib/api";
 import { interceptBack } from "../../../lib/router";
 import type { LoginMessage } from "../../../lib/messages";
+import { failure } from "../../../lib/failure";
 import { isDesktop } from "../../../lib/breakpoint";
 import { collapseChevrons } from "./chevron-handover";
 
@@ -19,17 +20,16 @@ interface LoginEmailFieldOptions {
   onDismiss?: () => void;
   onSendingChange: (sending: boolean) => void;
   onMessage: (key: LoginMessage) => void;
-  /**
-   * Given the submitted address, returns true to skip the normal
-   * magic-link request. TODO: only used by the development shortcuts in
-   * loginPage — remove both together.
-   */
+  // TODO: development only - returns true to skip the magic-link request, so
+  //  the shortcuts in login-page can jump straight to a screen. Goes with them.
   onBeforeSubmit?: (email: string) => boolean;
 }
 
+export type Intent = "register" | "recovery";
+
 export interface LoginEmailFieldHandle {
   el: HTMLElement;
-  startCompose: () => void;
+  startCompose: (intent?: Intent) => void;
   submit: () => void;
 }
 
@@ -46,6 +46,7 @@ export function loginEmailField({
   let hasEntry = false;
   let dropping = false;
   let sending = false;
+  let intent: Intent = "register";
 
   function claimBack(): void {
     hasEntry = true;
@@ -84,7 +85,8 @@ export function loginEmailField({
     );
   }
 
-  async function startCompose(): Promise<void> {
+  async function startCompose(opened: Intent): Promise<void> {
+    intent = opened;
     const current = root;
     if (!(current instanceof HTMLButtonElement)) return;
 
@@ -190,11 +192,12 @@ export function loginEmailField({
     try {
       await api.auth.requestMagicLink(address);
       if (field.isConnected) revert();
-    } catch {
-      // TODO: wire the magic-link messages — 5xx is case 8, 429 is 9, a
-      //  fetch rejection is 10 — and on success 11a or 11b depending on
-      //  whether the field was opened by REGISTER or "Lost your passkey?",
-      //  which the slot does not track yet.
+      onMessage(intent === "recovery" ? "recoverySent" : "registrationSent");
+    } catch (error) {
+      const { status, offline } = failure(error);
+      if (offline) onMessage("noConnection");
+      else if (status === 429) onMessage("tooManyEmails");
+      else onMessage("emailNotSent");
       if (field.isConnected) input.disabled = false;
     } finally {
       sending = false;
@@ -204,7 +207,7 @@ export function loginEmailField({
 
   return {
     el: root,
-    startCompose: () => void startCompose(),
+    startCompose: (opened = "register") => void startCompose(opened),
     submit: () => {
       const input = root.querySelector<HTMLInputElement>("input");
       if (input) void submit(input.value);

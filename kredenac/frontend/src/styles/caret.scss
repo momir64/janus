@@ -10,7 +10,7 @@
   height: 0;
   vertical-align: baseline;
   animation: caret-blink 1.4s step-end infinite;
-  animation-delay: -400ms; // starts part-way in, so the first blink lands at 300ms
+  animation-delay: -400ms;
 
   &::before {
     content: "";

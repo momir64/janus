@@ -7,6 +7,7 @@ const DOT_INTERVAL_MS = 600;
 
 interface UploadStatusOptions {
   zone: DropzoneHandle;
+  onCancel: () => void;
   button: HTMLButtonElement;
 }
 
@@ -27,7 +28,7 @@ function dotRun(): { el: HTMLElement; show: (count: number) => void } {
   };
 }
 
-export function uploadStatus({ zone, button }: UploadStatusOptions): UploadStatusHandle {
+export function uploadStatus({ zone, button, onCancel }: UploadStatusOptions): UploadStatusHandle {
   const buttonLabel = button.querySelector<HTMLElement>(".btn__label")!;
   const idleZone = zone.label.textContent ?? "";
   const idleButton = buttonLabel.textContent ?? "";
@@ -46,9 +47,7 @@ export function uploadStatus({ zone, button }: UploadStatusOptions): UploadStatu
       hidden: true,
       onclick: (e: MouseEvent) => {
         e.stopPropagation();
-        // TODO: abort the request itself once an AbortSignal is threaded
-        //  through request() and api.files.upload; today this only restores
-        //  the controls.
+        onCancel();
         set(null);
       },
     },

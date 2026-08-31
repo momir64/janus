@@ -21,12 +21,7 @@ export function fileCard({ file, onDownload, onDelete }: FileCardOptions): HTMLE
 
   ref(root, "size").textContent = formatSize(file.size);
 
-  // TODO: the backend's FileDto has no upload timestamp, so `createdAt`
-  //  comes back empty and the row simply drops the date. Renders as soon
-  //  as the API sends one.
-  const date = ref(root, "date");
-  if (file.createdAt) date.textContent = formatTimestamp(file.createdAt);
-  else date.remove();
+  ref(root, "date").textContent = formatTimestamp(file.createdAt);
 
   iconButton(ref(root, "delete"), "delete", onDelete);
   iconButton(ref(root, "download"), "download", onDownload);

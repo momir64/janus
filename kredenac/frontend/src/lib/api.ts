@@ -2,36 +2,96 @@ import { clearSession, getCsrfToken, setCsrfToken } from "./session";
 import type { FileEntry, NoteEntry, Passkey } from "../types";
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    // TODO: the backend answers with prose today. It is to send
+    //  { code, message } so a caller can branch on the code - clone
+    //  detection is a 401 indistinguishable from a bad signature otherwise.
+    public code?: string
+  ) {
     super(message);
   }
 }
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+interface Session {
+  csrfToken: string;
+  // TODO: the backend does not send this yet. Until it does the session is
+  //  kept alive by the 401 retry alone, which costs one wasted request per
+  //  expiry; with it, the refresh happens before anything fails.
+  expiresIn?: number;
+}
+
+const MAX_REFRESH_MARGIN_MS = 30_000;
+let renewal = 0;
+
+function startSession({ csrfToken, expiresIn }: Session): void {
+  setCsrfToken(csrfToken);
+  clearTimeout(renewal);
+  if (!expiresIn) return;
+  const lifetime = expiresIn * 1000;
+  const margin = Math.min(MAX_REFRESH_MARGIN_MS, lifetime * 0.1);
+  renewal = window.setTimeout(() => void refreshSession(), Math.max(lifetime - margin, 5_000));
+}
+
+// Endpoints that establish a session; a 401 from one is a failed sign-in.
+const ANONYMOUS = ["/auth/login", "/auth/register", "/auth/refresh"];
+
+const isAnonymous = (path: string): boolean => ANONYMOUS.some((p) => path.startsWith(p));
+
+async function failure(response: Response): Promise<ApiError> {
+  const body = await response.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(body) as { code?: string; message?: string };
+    return new ApiError(response.status, parsed.message ?? response.statusText, parsed.code);
+  } catch {
+    return new ApiError(response.status, body || response.statusText);
+  }
+}
+
+// The rotation detects reuse, so two requests refreshing at once would present
+// the same token twice and revoke the chain. They share one attempt instead.
+let refreshing: Promise<boolean> | null = null;
+
+function refreshSession(): Promise<boolean> {
+  refreshing ??= api.auth
+    .refresh()
+    .then(() => true)
+    .catch(() => false)
+    .finally(() => {
+      refreshing = null;
+    });
+  return refreshing;
+}
+
 async function request(path: string, init: RequestInit = {}): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase();
-  const headers = new Headers(init.headers);
 
-  if (!SAFE_METHODS.has(method)) {
-    const csrf = getCsrfToken();
-    if (csrf) headers.set("X-CSRF-Token", csrf);
-  }
+  const send = (): Promise<Response> => {
+    const headers = new Headers(init.headers);
+    if (!SAFE_METHODS.has(method)) {
+      const csrf = getCsrfToken();
+      if (csrf) headers.set("X-CSRF-Token", csrf);
+    }
+    return fetch(`/api${path}`, { ...init, headers, credentials: "include" });
+  };
 
-  const response = await fetch(`/api${path}`, { ...init, headers, credentials: "include" });
+  let response = await send();
 
-  if (response.status === 401) {
-    clearSession();
-    if (!path.startsWith("/auth/login") && !path.startsWith("/auth/register") && path !== "/auth/refresh") {
+  // An expired access token is not the end of a session: the refresh cookie
+  // outlives it. Only a refresh that itself fails ends one.
+  if (response.status === 401 && !isAnonymous(path)) {
+    if (await refreshSession()) response = await send();
+    else {
+      clearSession();
       window.dispatchEvent(new CustomEvent("kredenac:session-expired"));
     }
-    throw new ApiError(401, "Not authenticated");
   }
 
-  if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new ApiError(response.status, text || response.statusText);
-  }
+  if (response.status === 401 && isAnonymous(path)) clearSession();
+  if (!response.ok) throw await failure(response);
 
   return response;
 }
@@ -63,13 +123,12 @@ export const api = {
       authenticatorData: string;
       signature: string;
     }) => {
-      const { csrfToken } = await json<{ csrfToken: string }>("/auth/login/finish", withJsonBody(body));
-      setCsrfToken(csrfToken);
+      startSession(await json<Session>("/auth/login/finish", withJsonBody(body)));
     },
 
     refresh: async () => {
-      const { csrfToken } = await json<{ csrfToken: string }>("/auth/refresh", { method: "POST" });
-      setCsrfToken(csrfToken);
+      const session = await json<Session>("/auth/refresh", { method: "POST" });
+      startSession(session);
     },
 
     logout: async () => {
@@ -90,11 +149,11 @@ export const api = {
   files: {
     list: () => json<FileEntry[]>("/files"),
 
-    upload: (file: File) => {
+    upload: (file: File, signal?: AbortSignal) => {
       const form = new FormData();
       form.set("size", String(file.size));
       form.set("file", file);
-      return request("/files", { method: "POST", body: form }).then(() => undefined);
+      return request("/files", { method: "POST", body: form, signal }).then(() => undefined);
     },
 
     // TODO: the backend hands the file back with the content type its

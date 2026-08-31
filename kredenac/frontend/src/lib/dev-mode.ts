@@ -2,7 +2,8 @@
 //  signed-in screens can be walked through without a backend — without it
 //  the first list request 401s, which clears the session and bounces
 //  Settings straight back to the login page. Remove this file together with
-//  the shortcuts in loginPage.ts and `onBeforeSubmit` in loginSlot.ts.
+//  the shortcuts in login-page.ts and `onBeforeSubmit` in
+//  login-email-field.ts.
 import { api } from "./api";
 import { clearSession } from "./session";
 import type { FileEntry, NoteEntry, Passkey } from "../types";

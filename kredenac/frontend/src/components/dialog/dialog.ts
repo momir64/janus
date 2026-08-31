@@ -13,6 +13,11 @@ export interface DialogOptions {
 
 const open = new Set<DialogHandle>();
 
+function shieldPage(): void {
+  const page = document.querySelector<HTMLElement>("#app");
+  if (page) page.inert = open.size > 0;
+}
+
 const build = template(markup);
 
 export function closeAllDialogs(): void {
@@ -22,9 +27,6 @@ export function closeAllDialogs(): void {
 export function openDialog(content: (dialog: DialogHandle) => Node, options: DialogOptions = {}): DialogHandle {
   const variant = options.variant;
   const dismissible = options.dismissible ?? true;
-
-  // Focus stays on whatever opened the dialog otherwise, and an Enter meant
-  // for the dialog presses that control again.
   const opener = document.activeElement as HTMLElement | null;
   const backdrop = build();
   const dialog = ref(backdrop, "dialog");
@@ -42,10 +44,12 @@ export function openDialog(content: (dialog: DialogHandle) => Node, options: Dia
       document.removeEventListener("keydown", onKeydown);
       backdrop.remove();
       open.delete(handle);
+      shieldPage();
       if (opener?.isConnected) opener.focus({ preventScroll: true });
     },
   };
   open.add(handle);
+  shieldPage();
 
   const close = ref(backdrop, "close");
   if (dismissible) iconButton(close, "close", () => handle.close());

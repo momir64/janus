@@ -1,7 +1,6 @@
 import { h } from "./dom";
 import { sleep } from "./timing";
 
-// Keeps the caret, an atomic inline, from being stranded on a line of its own.
 export const WORD_JOINER = String.fromCharCode(0x2060);
 
 export interface TypewriterHandle {

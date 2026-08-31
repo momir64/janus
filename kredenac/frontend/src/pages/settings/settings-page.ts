@@ -57,9 +57,12 @@ export async function settingsPage(): Promise<Node> {
             confirmDialog(
               last ? lastQuestion : current ? currentQuestion : question,
               async () => {
-                // TODO: case 34 - report a failed delete through
-              //  SETTINGS_MESSAGES.passkeyDeleteFailed.
-                await api.auth.deleteCredential(passkey.id);
+                try {
+                  await api.auth.deleteCredential(passkey.id);
+                } catch {
+                  message.show(SETTINGS_MESSAGES.passkeyDeleteFailed);
+                  return;
+                }
                 if (last || current) {
                   const session = isDesktop()
                     ? SETTINGS_MESSAGES.sessionPasskeyRemoved
@@ -88,9 +91,12 @@ export async function settingsPage(): Promise<Node> {
         "Are you sure you want to proceed?",
       ],
       async () => {
-        // TODO: case 35 - report a failed deletion through
-        //  SETTINGS_MESSAGES.accountDeleteFailed.
-        await api.auth.deleteAccount();
+        try {
+          await api.auth.deleteAccount();
+        } catch {
+          message.show(SETTINGS_MESSAGES.accountDeleteFailed);
+          return;
+        }
         navigate("/");
       },
       { frame: "wide" }

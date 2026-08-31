@@ -12,8 +12,6 @@ export function optionalBreaks(el: HTMLElement): void {
       (br) => getComputedStyle(br).display !== "none"
     ).length;
 
-    // Counted from the height, not from Range.getClientRects(): Firefox
-    // returns one rect per inline run, so an <a> reads as a line of its own.
     const lineHeight = Number.parseFloat(getComputedStyle(el).lineHeight);
     if (!Number.isFinite(lineHeight) || lineHeight <= 0) return;
     const lines = Math.round(el.clientHeight / lineHeight);

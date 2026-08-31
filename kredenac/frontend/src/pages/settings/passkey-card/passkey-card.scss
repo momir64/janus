@@ -3,12 +3,12 @@
 
 .passkey-card {
   position: relative;
-  height: 130px;
+  min-height: 130px;
   padding: 8px 14px 14px 16px;
   border: 1px solid $color-border;
 
   @include desktop {
-    height: 180px;
+    min-height: 180px;
     border-width: 1.5px;
     padding: 20px 24px 24px 26px;
   }

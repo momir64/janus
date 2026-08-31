@@ -30,7 +30,6 @@
   position: static;
   align-self: stretch;
 
-  // display:none rather than an empty box, or it claims one of the column's gaps
   &:empty {
     display: none;
   }

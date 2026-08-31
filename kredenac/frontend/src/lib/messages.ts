@@ -1,12 +1,4 @@
-/**
- * Response messages, grouped by the surface that shows them. Each carries the
- * case number it was given in the message audit, so a message can be traced
- * back to the exact failure it belongs to and the TODOs that name a number
- * still lead somewhere.
- *
- * A "\n" marks where a message breaks when it is too wide for one line.
- * The line uses it only when it has to, so a wider viewport reads it unbroken.
- */
+// A "\n" marks where a message breaks when it is too wide for one line
 
 export const LOGIN_MESSAGES = {
   browserBlocked: "Something went wrong. Your device\nor browser blocked the sign-in.",

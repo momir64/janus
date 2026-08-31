@@ -24,7 +24,8 @@ async function createCredential(
     },
   });
 
-  if (!(credential instanceof PublicKeyCredential)) throw new Error("Passkey creation was cancelled");
+  if (!(credential instanceof PublicKeyCredential))
+    throw new DOMException("Passkey creation was cancelled", "NotAllowedError");
   return credential;
 }
 
@@ -52,7 +53,8 @@ export async function login(): Promise<void> {
     },
   });
 
-  if (!(credential instanceof PublicKeyCredential)) throw new Error("Passkey login was cancelled");
+  if (!(credential instanceof PublicKeyCredential))
+    throw new DOMException("Passkey login was cancelled", "NotAllowedError");
   const response = credential.response as AuthenticatorAssertionResponse;
 
   await api.auth.loginFinish({

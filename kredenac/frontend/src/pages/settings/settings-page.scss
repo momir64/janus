@@ -63,8 +63,6 @@
   flex-direction: column;
   gap: 42px;
 
-  // clip, not visible: one scrollable axis makes the other compute to auto,
-  // which gave the page a sideways scroll over the scrollbar's own track.
   @include mobile-only {
     overflow-x: clip;
     overflow-y: auto;
@@ -83,6 +81,7 @@
 .settings-page__passkeys {
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 16px;
 
   @include desktop {
@@ -105,6 +104,7 @@
 
   @include desktop {
     flex: 1 1 auto;
+    min-width: 0;
     max-width: 720px;
   }
 
@@ -127,9 +127,10 @@
     min-width: 300px;
   }
 
-  // 580 of cards + 160 here + the 48px gap + 112 of padding needs 900, the
-  // width the desktop layout starts at; below 1040 the pair no longer fits
-  // side by side at their design widths.
+  // Side by side the pair needs 580 for the cards, 48 for the gap and 112 of
+  // page padding, which leaves the button its 300px minimum only from 1040 up.
+  // Below that it narrows to 160 and stacks its label onto two lines, a total
+  // of 900 - the width the desktop layout itself starts at.
   @media (min-width: $breakpoint-desktop) and (max-width: 1039px) {
     min-width: 160px;
 

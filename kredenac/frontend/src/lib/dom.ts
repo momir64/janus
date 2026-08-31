@@ -71,8 +71,6 @@ export function template(markup: string): () => HTMLElement {
   const parsed = document.createElement("template");
   parsed.innerHTML = markup.trim();
 
-  // Indentation would otherwise become text nodes h() never produced: enough
-  // to space inline items apart, and enough to defeat :empty.
   const walker = document.createTreeWalker(
     parsed.content,
     NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT

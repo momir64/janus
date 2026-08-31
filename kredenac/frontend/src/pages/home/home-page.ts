@@ -5,6 +5,8 @@ import { messageHint } from "../../components/message-hint/message-hint";
 import { FILE_MESSAGES, NOTE_MESSAGES } from "../../lib/messages";
 import { optionalBreaks } from "../../lib/optional-breaks";
 import { isDesktop } from "../../lib/breakpoint";
+import { truncateFilename } from "../../lib/format";
+import { failure } from "../../lib/failure";
 import { button } from "../../components/button/button";
 import { dropzone } from "./dropzone/dropzone";
 import { uploadStatus } from "./upload-status";
@@ -23,6 +25,7 @@ import type { FileEntry, NoteEntry } from "../../types";
 const build = template(markup);
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
+const NAME_IN_MESSAGE = 24;
 const MAX_FILENAME_LENGTH = 255;
 
 export async function homePage(): Promise<Node> {
@@ -37,7 +40,12 @@ export async function homePage(): Promise<Node> {
 
   const zone = dropzone({ onFile: (file) => void uploadFile(file) });
   const uploadButton = button({ label: "Upload new file", variant: "corners", onClick: zone.openPicker });
-  const upload = uploadStatus({ zone, button: uploadButton });
+  let uploading: AbortController | null = null;
+  const upload = uploadStatus({
+    zone,
+    button: uploadButton,
+    onCancel: () => uploading?.abort(),
+  });
 
   const columnHint = () =>
     messageHint({ className: "message-hint--inline home-page__notice", fitPadding: 32 });
@@ -87,8 +95,28 @@ export async function homePage(): Promise<Node> {
       return;
     }
 
-    await api.files.upload(file);
-    await loadFiles();
+    uploading = new AbortController();
+    upload.set(file.name);
+    try {
+      await api.files.upload(file, uploading.signal);
+      await loadFiles();
+    } catch (error) {
+      const { dom, status } = failure(error);
+      if (dom === "AbortError") return;
+      message.show(status === 413 ? FILE_MESSAGES.fileTooLarge : FILE_MESSAGES.uploadFailed);
+    } finally {
+      uploading = null;
+      upload.set(null);
+    }
+  }
+
+  function named(text: string, filename: string): string {
+    return text.replace("{filename}", truncateFilename(filename, NAME_IN_MESSAGE));
+  }
+
+  function fileFailure(error: unknown, filename: string, otherwise: string): void {
+    const { status } = failure(error);
+    message.show(named(status === 404 ? FILE_MESSAGES.fileMissing : otherwise, filename));
   }
 
   async function loadFiles(): Promise<void> {
@@ -124,11 +152,18 @@ export async function homePage(): Promise<Node> {
     renderList(filesList, files, "No files yet.", (file) =>
       fileCard({
         file,
-        onDownload: () => api.files.download(file.id, file.filename),
+        onDownload: () =>
+          api.files
+            .download(file.id, file.filename)
+            .catch((error) => fileFailure(error, file.filename, FILE_MESSAGES.downloadFailed)),
         onDelete: () =>
           confirmDialog(["Are you sure you want to delete", `${file.filename}?`], async () => {
-            await api.files.delete(file.id);
-            await loadFiles();
+            try {
+              await api.files.delete(file.id);
+              await loadFiles();
+            } catch (error) {
+              fileFailure(error, file.filename, FILE_MESSAGES.deleteFailed);
+            }
           }),
       })
     );
@@ -149,11 +184,15 @@ export async function homePage(): Promise<Node> {
         onEdit: () => openNote(note),
         onDelete: () =>
           confirmDialog(["Are you sure you want to delete", `"${note.title}"?`], async () => {
-            // TODO: cases 30 and 28 - report a failed delete through
-            //  noteMessage.show(): a 404 is NOTE_MESSAGES.noteMissing,
-            //  anything else NOTE_MESSAGES.deleteFailed.
-            await api.notes.delete(note.id);
-            await loadNotes();
+            try {
+              await api.notes.delete(note.id);
+              await loadNotes();
+            } catch (error) {
+              const { status } = failure(error);
+              noteMessage.show(
+                status === 404 ? NOTE_MESSAGES.noteMissing : NOTE_MESSAGES.deleteFailed
+              );
+            }
           }),
       })
     );
