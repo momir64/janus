@@ -1,0 +1,66 @@
+@use "constants" as *;
+@use "mixins" as *;
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+// The settings page and anything else that scrolls the document take the
+// same scrollbar the lists use.
+html {
+  @include thin-scrollbar;
+}
+
+body {
+  margin: 0;
+  font-family: $font-mono;
+  font-weight: 300;
+  color: $color-text;
+  color-scheme: dark;
+  -webkit-font-smoothing: antialiased;
+}
+
+#app {
+  min-height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+button {
+  font-family: inherit;
+}
+
+input,
+textarea {
+  font-family: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+}
+
+a {
+  color: inherit;
+}
+
+img,
+svg {
+  display: block;
+}
+
+// The two frames word several labels differently (e.g. the settings heading
+// is "Passkeys associated with this account" on desktop but "Associated
+// passkeys" on mobile), so both strings are rendered and CSS picks one.

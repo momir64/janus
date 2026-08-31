@@ -1,17 +1,28 @@
-@use "styles/tokens";
-@use "styles/reset";
+@use "styles/constants";
+@use "styles/base";
+@use "styles/utilities";
 @use "styles/noise";
-@use "styles/decorations";
+@use "styles/app-shell";
 
-@use "styles/components/button";
-@use "styles/components/panel";
-@use "styles/components/dialog";
-@use "styles/components/form";
-@use "styles/components/message";
-@use "styles/components/nav";
-@use "styles/components/note-editor";
+@use "components/decorations/decorations";
+@use "components/icon/icon";
+@use "components/scroll-list/scroll-list";
 
-@use "styles/pages/login";
-@use "styles/pages/app";
-@use "styles/pages/settings";
-@use "styles/pages/verify";
+@use "components/button/button";
+@use "pages/home/file-card/file-card";
+@use "pages/home/dropzone/dropzone";
+@use "pages/home/note-card/note-card";
+@use "pages/settings/passkey-card/passkey-card";
+@use "styles/icon-button";
+@use "components/dialog/dialog";
+@use "styles/input-field";
+@use "styles/caret";
+@use "components/message-hint/message-hint";
+@use "components/nav/nav";
+@use "pages/home/note-editor/note-editor";
+
+@use "pages/login/login-page";
+@use "pages/login/login-email-field/login-email-field";
+@use "pages/home/home-page";
+@use "pages/settings/settings-page";
+@use "pages/verify/verify-page";

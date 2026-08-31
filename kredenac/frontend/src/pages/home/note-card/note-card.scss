@@ -1,0 +1,107 @@
+@use "../../../styles/constants" as *;
+@use "../../../styles/mixins" as *;
+
+.note-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid $color-border; // 157:198 / 119:1195
+  --hatch-edge: 1.5px;
+  // Clips the corner hatch to the card itself. The hatch carries its own
+  // clip, but that is a second box rounded to the device pixel grid
+  // independently of this one, so at some zoom levels a sliver of stroke
+  // still painted outside the border.
+  overflow: hidden;
+  padding: 26px 16px 16px 26px;
+
+  @include desktop {
+    padding: 32px 22px 22px 32px;
+  }
+
+  &__title,
+  &__body {
+    // text stops 10px short of the actions gutter (body width 268 of 320)
+    padding-right: 10px;
+  }
+
+  // Top-right corner, above the title rather than beside it (2035:160 /
+  // 2032:34). Placed from the card edges so a long title cannot move it.
+  &__date {
+    position: absolute;
+    right: 6.5px;
+    top: 14.5px;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: 300;
+    color: $color-text-muted; // white4
+    white-space: nowrap;
+
+    @include desktop {
+      right: 9px;
+      top: 21.5px;
+      font-size: 14px;
+    }
+  }
+
+  &__title {
+    // Spline Sans Mono Regular (119:1200) — the <h3> would otherwise render
+    // at the browser's bold default.
+    font-weight: 400;
+    font-size: 16px; // 157:203
+    // A long title truncates instead of wrapping and pushing the body down.
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include desktop {
+      font-size: 20px;
+    }
+  }
+
+  &__body {
+    // Only reached when the note has no title; the pair rule below overrides
+    // it whenever one is there.
+    margin-top: 4px;
+    font-weight: 300;
+    font-size: 12px; // 157:204
+    line-height: 18px;
+    // Newlines typed in the editor survive into the card.
+    white-space: pre-wrap;
+
+    @include desktop {
+      font-size: 16px;
+      line-height: 22px; // 119:1201
+    }
+  }
+
+  // Only when the two sit together: a body that is the note's whole content
+  // starts where the title would have.
+  &__title + &__body {
+    margin-top: 16px; // title bottom 38 -> body 54
+
+    @include desktop {
+      margin-top: 20px; // title bottom 47 -> body 67
+    }
+  }
+
+  &__actions {
+    // Sits on its own row below the copy, pinned to the right so the icons
+    // land 16px in from the card edge (22px desktop), as in Figma.
+    align-self: flex-end;
+    margin-top: 12px;
+    display: flex;
+    gap: 12px; // desktop edit->delete 550-532 = 18
+
+    @include desktop {
+      margin-top: 16px;
+      gap: 18px;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+    }
+  }
+}
+
+// passkey card — Figma mobile 2030:13 (328x130), desktop 139:128 (720x180)

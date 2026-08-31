@@ -1,0 +1,66 @@
+@use "constants" as *;
+
+.caret {
+  --caret-bar: 0.85em;
+  // How far the bar sits past the last character. Applied to the painted
+  // bar rather than as a margin, so the element itself stays weightless.
+  --caret-gap: 5px;
+
+  display: inline-block;
+  position: relative;
+  // Zero-width and marginless: the caret takes up no room on the line, so
+  // it can never be the thing that does not fit and gets pushed onto a line
+  // of its own. The bar is painted outside that empty box and is allowed to
+  // hang past the text's right edge.
+  width: 0;
+  height: 0;
+  vertical-align: baseline;
+  animation: caret-blink 1.4s step-end infinite;
+  // The blink restarts from zero whenever typing stops, which would leave
+  // the caret lit for the whole first half-cycle. A negative delay starts it
+  // part-way in, so the first blink lands 300ms after the last character
+  // rather than 700, without touching the rate itself.
+  animation-delay: -400ms;
+
+  &::before {
+    content: "";
+    position: absolute;
+    // Negative, by half the bar's excess over the cap height, which drops it
+    // as far below the letters as it rises above them.
+    // The cap height comes from whichever context the caret is typed into,
+    // falling back to Chakra Petch Medium's. Declared as a fallback rather
+    // than on .caret itself, since a value set here would shadow the one
+    // inherited from the surrounding text.
+    bottom: calc((var(--caret-cap, 0.7031em) - var(--caret-bar)) / 2);
+    left: var(--caret-gap);
+    width: 2px;
+    height: var(--caret-bar);
+    background: currentColor;
+  }
+
+  // Solid while text is being typed or deleted, so the caret does not blink
+  // against the characters' own rhythm.
+  &--active {
+    animation: none;
+    opacity: 1;
+  }
+
+  // Retired by hiding rather than removing. Taking the element out of the
+  // flow re-measures the line box and nudged the heading by a fraction of a
+  // pixel; leaving it in place guarantees nothing moves.
+  &--done {
+    visibility: hidden;
+    animation: none;
+  }
+}
+
+@keyframes caret-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}

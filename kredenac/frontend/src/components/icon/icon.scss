@@ -1,0 +1,35 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+.icon {
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+@media (hover: hover) {
+  .icon-btn:hover .icon,
+  .btn:hover .icon,
+  .dropzone:hover .icon,
+  .dialog__close:hover .icon {
+    filter: brightness(1.45);
+  }
+}
+
+// The same lift while the control is held, on any device — see the
+// hover-or-active mixin.
+.icon-btn:active .icon,
+.btn:active .icon,
+.dropzone:active .icon,
+.dialog__close:active .icon {
+  filter: brightness(1.45);
+}
+
+// Figma rotates the gear 30 degrees: its 18.949x20 glyph is placed in a
+// 26.41x26.795 box (149:210 desktop, 162:234 mobile), which is exactly the
+// bounding box of that glyph turned 30 degrees.
+.icon--settings {
+  transform: rotate(30deg);
+}
+
+// 16 diagonal strokes (see decorations.ts). Figma exports this group at
+// #909090, but it is matched to the "+" marks and dashed rules instead —
+// 1px of $color-border — so all the page furniture reads as one weight.

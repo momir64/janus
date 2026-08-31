@@ -52,3 +52,41 @@ export function mount(root: Element, ...children: Child[]): void {
   clear(root);
   append(root, children);
 }
+
+/**
+ * Turns a component's markup into a factory that clones it.
+ *
+ * Whitespace-only text nodes and comments are stripped as it is parsed: an HTML file is
+ * indented to be read, and every one of those gaps is a real text node that
+ * building the same markup by hand never produced. Left in, they add a space
+ * between inline items, and they defeat :empty - which at least one
+ * component relies on to take no space when it has nothing to say.
+ */
+export function template(markup: string): () => HTMLElement {
+  const parsed = document.createElement("template");
+  parsed.innerHTML = markup.trim();
+
+  // Comments go with them: they annotate the file for whoever reads it, and
+  // have no business in the rendered document.
+  const walker = document.createTreeWalker(
+    parsed.content,
+    NodeFilter.SHOW_TEXT | NodeFilter.SHOW_COMMENT
+  );
+  const drop: ChildNode[] = [];
+  while (walker.nextNode()) {
+    const node = walker.currentNode as ChildNode;
+    if (node.nodeType === Node.COMMENT_NODE || !(node as Text).data.trim()) drop.push(node);
+  }
+  drop.forEach((node) => node.remove());
+
+  const root = parsed.content.firstElementChild;
+  if (!root) throw new Error("template has no root element");
+  return () => root.cloneNode(true) as HTMLElement;
+}
+
+/** The element marked `data-ref="name"` inside `root`, which must be there. */
+export function ref<T extends HTMLElement = HTMLElement>(root: HTMLElement, name: string): T {
+  const found = root.querySelector<T>(`[data-ref="${name}"]`);
+  if (!found) throw new Error(`missing [data-ref="${name}"]`);
+  return found;
+}

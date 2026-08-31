@@ -1,0 +1,384 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+// Measured from Figma:
+//   mobile  "Login Page" 153:946 — 360 x 720
+//   desktop "Login Page" 1:3     — 1920 x 930
+//
+// Desktop key positions: cabinet 1265 wide, divider x=1044, content column
+// x=1168..1708 (540 wide), corner 231, KREDENAC 271, tagline 327,
+// login 443, register 553, footer 826.
+
+// The column's padding is a share of the page rather than fixed pixels, so
+// it keeps scaling as the window resizes. Percentage padding resolves
+// against the containing block — the whole page — not the panel, so these
+// are 124/1920 and 212/1920, which reproduce 124px and 212px at 1920.
+//
+// The column narrows along with the padding rather than being pinned to a
+// panel width: it is 28.125% of the page (540 at 1920) until that would take
+// it under 480px, after which it holds. Solving panel = column + padding for
+// the split gives 82.5% - 480px as the floor, so the cabinet absorbs the
+// difference.
+$login-pad-left: clamp(2%, calc(19.8332% - 160.5px), 6.4583%);
+$login-pad-right: 11.0417%;
+$login-column-min: 480px;
+
+.login-page {
+  --pad-l: #{$login-pad-left};
+  // The right margin is the wider of the two by design (212 vs 124 at 1920)
+  // but closes on the left one as the window narrows, reaching parity at
+  // ~1400px. Past that both shrink together, so the whole panel can be
+  // narrower without the column giving up its 480px.
+  --pad-r: max(#{$login-pad-left}, calc(#{$login-pad-right} - (1920px - 100%) * 0.1234));
+  --split: max(0px, min(54.375%, calc(100% - #{$login-column-min} - var(--pad-l) - var(--pad-r))));
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+// The cabinet rect in Figma runs to x=1265, past the divider, but it is
+// clipped at the divider (x=1044) so nothing shows on the right of the line.
+.login-page__cabinet {
+  display: none;
+
+  @include desktop {
+    display: block;
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--split);
+    overflow: hidden;
+  }
+
+  // An <img> rather than a background, so the cabinet can be anchored by its
+  // own centre. A background offset had to be expressed against the image
+  // edge, and because `background-size: auto 100%` ties the image's width to
+  // the container's HEIGHT, any fixed offset slid the cabinet sideways
+  // whenever the window height changed.
+  //
+  // Measured from the asset, the cabinet's centre sits at 41.3% of its
+  // width, so pulling back by that much lands the cabinet on whatever point
+  // `left` names — independent of panel width AND window height.
+  //
+  // At 1920 that point is the panel centre, which is Figma's position. The
+  // term is exactly 0 there and grows as the window narrows, easing the
+  // cabinet rightwards; max() stops it going the other way above 1920.
+  // The coefficient is the only knob for how fast it moves.
+  img {
+    position: absolute;
+    top: 0;
+    left: calc(50% + max(0px, (1920px - 100vw) * 0.05));
+    height: 100%;
+    width: auto;
+    max-width: none;
+    transform: translateX(-41.3%);
+  }
+}
+
+// Solid rule at x=1044, y 90..840 (88:553) — not a border on the cabinet,
+// which runs past it to x=1265.
+.login-page__divider {
+  display: none;
+
+  @include desktop {
+    display: block;
+    position: absolute;
+    left: var(--split);
+    top: 9.677%;
+    bottom: 9.677%;
+    width: 1px;
+    background: $color-border;
+  }
+}
+
+.login-page__content {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  // Design block sits above centre: mobile 190..440 of 720 (2048:27 down to
+  // the register button), desktop 231..635 of 930.
+  //
+  // Proportional rather than fixed, so the bias holds at the 720 the frame is
+  // drawn at and folds up as the space shrinks. Fixed padding reserved 246px
+  // around the block whatever the height, more than a phone with its keyboard
+  // open (453 left) could hold — so the block was pushed below the fold
+  // rather than merely sitting lower.
+  //
+  // The proportional bias alone left the block sitting high once the space
+  // got tight, so a second term gives it back as the viewport falls short of
+  // 720. The two corrections are equal and opposite, so the padding still
+  // totals the same and the block goes on fitting.
+  --shortfall: calc((720px - 100dvh) * 0.02);
+  --pad-t: calc(100dvh * 0.108333 + var(--shortfall));
+  --pad-b: max(0px, 100dvh * 0.233333 - var(--shortfall));
+  padding: var(--pad-t) 32px var(--pad-b);
+
+  @include desktop {
+    margin-left: var(--split);
+    padding: 48px var(--pad-r) 120px var(--pad-l);
+  }
+}
+
+.login-page__bracket {
+  width: 18px;
+  height: 18px;
+  border-top: 1.5px solid $color-border;
+  border-left: 1.5px solid $color-border;
+
+  @include desktop {
+    width: 28px;
+    height: 28px;
+    border-width: 2px;
+  }
+}
+
+.login-page__mark {
+  // corner bottom 208 -> mark top 214 (mobile); 259 -> 271 (desktop)
+  margin-left: 20px;
+  font-family: $font-display;
+  font-weight: 500;
+  font-size: 32px; // 2048:28
+
+  @include desktop {
+    margin-left: 32px;
+    font-size: 48px;
+  }
+}
+
+.login-page__tagline {
+  // Both gaps below shrink with the viewport rather than holding a fixed
+  // height the way the type does, so the block folds up on a short window
+  // instead of running past the fold. Each is written as its share of the
+  // frame it was measured in — 16 of 720 is 2.2222dvh — so it is exactly the
+  // drawn value at that height and proportionally less below it, with a
+  // floor that keeps the copy from closing up on the heading.
+  margin: clamp(6px, 2.2222dvh, 16px) 0 0 20px;
+  color: $color-text-muted;
+  font-size: 11px; // 2048:26
+  line-height: 20px;
+
+  @include desktop {
+    // 24 of 930.
+    margin: clamp(6px, 2.5806dvh, 24px) 0 0 32px;
+    font-size: 18px;
+    line-height: 32px;
+  }
+}
+
+.login-page__actions {
+  // tagline bottom 286 -> login top 322 (mobile); 391 -> 443 (desktop).
+  // Proportional below the frame's own height, as on the tagline: 36 of 720
+  // is 5dvh, and the floor is reached at 440.
+  margin-top: clamp(22px, 5dvh, 36px);
+  position: relative; // the message line is placed from this box
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @include desktop {
+    // 52 of 930, floored at 500.
+    margin-top: clamp(28px, 5.5914dvh, 52px);
+    gap: 28px;
+  }
+}
+
+// Mobile centred on the page (x=118, w=125 of 360); desktop centred on the
+// button column (x=1340, w=196 -> centre 1438, column centre 1438).
+.login-page__footer {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 36px;
+  text-align: center;
+
+  @include desktop {
+    // Spans exactly the band the buttons do — the content starts at --split
+    // and is inset by its own padding — so the centred link shares their
+    // centre.
+    left: calc(var(--split) + var(--pad-l));
+    right: var(--pad-r);
+    bottom: 75px;
+  }
+
+  button {
+    @include reset-button;
+    @include focus-ring;
+    color: $color-border-strong;
+    font-family: $font-display;
+    font-size: 16px;
+    text-decoration: underline;
+    // Figma leaves the weight to the renderer here (76:126 / 153:990) and
+    // sets only how far the rule sits below the text.
+    text-decoration-thickness: auto;
+    text-underline-offset: 14.5%;
+    cursor: pointer;
+    transition: color 0.15s ease;
+
+    // One step lighter on hover, like the buttons' edges and labels.
+    @include hover-or-active {
+      color: $color-text;
+    }
+
+    @include desktop {
+      font-size: 22px;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
+}
+
+// "+" registration marks: 20x20 at 20px inset (mobile), 32x32 at 48px.
+// Two full-length 1px #6E6E6E strokes at full opacity (72:76 et al).
+.login-page__corner {
+  position: absolute;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+
+  @include desktop {
+    width: 32px;
+    height: 32px;
+  }
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    background: $color-border;
+  }
+
+  &::before {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    transform: translateY(-50%);
+  }
+
+  &::after {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-50%);
+  }
+
+  &--tl {
+    top: 20px;
+    left: 20px;
+
+    @include desktop {
+      top: 48px;
+      left: 48px;
+    }
+  }
+
+  &--tr {
+    top: 20px;
+    right: 20px;
+
+    @include desktop {
+      top: 48px;
+      right: 48px;
+    }
+  }
+
+  &--bl {
+    bottom: 20px;
+    left: 20px;
+
+    @include desktop {
+      bottom: 48px;
+      left: 48px;
+    }
+  }
+
+  &--br {
+    bottom: 20px;
+    right: 20px;
+
+    @include desktop {
+      bottom: 48px;
+      right: 48px;
+    }
+  }
+}
+
+// Hatch marks (Group 5): mobile 96.87x14.5 at (56,24);
+// desktop 152.44x22.5 at (112,54). Drawn as 16 real strokes — see
+// decorations.ts for why this can't be a repeating gradient.
+.hatch-marks {
+  position: absolute;
+  z-index: 1;
+  top: 24px;
+  left: 56px;
+  width: 96.87px;
+  height: 14.5px;
+
+  @include desktop {
+    top: 54px;
+    left: 112px;
+    width: 152.44px;
+    height: 22.5px;
+  }
+}
+
+// Dashed construction rules, desktop only:
+//   vertical   x=65,  y 120..810 (72:122)
+//   horizontal y=866, x 122..982 (72:79)
+//
+// Everything vertical is a fixed pixel inset, matching the "+" marks: the
+// vertical rule sits 120px from the top and bottom edges, the horizontal one
+// 64px from the bottom. Only the horizontal rule's right end is
+// proportional, so it keeps its distance from the divider.
+//
+// The dashes are a px-based gradient (Figma's 10/10 dasharray) so their
+// length never changes with the window — a stretched SVG scaled the pattern
+// along with the line. A plain element also takes top/bottom insets
+// directly, which a replaced <svg> would not.
+.login-page__rule {
+  display: none;
+
+  @include desktop {
+    display: block;
+    position: absolute;
+    z-index: 1;
+  }
+
+  &--v {
+    @include desktop {
+      left: 65px;
+      top: 120px;
+      bottom: 120px;
+      width: 1px;
+      background-image: repeating-linear-gradient(
+              to bottom,
+              $color-border 0 10px,
+              transparent 10px 20px
+      );
+    }
+  }
+
+  &--h {
+    @include desktop {
+      left: 122px;
+      // Ends 62px short of the divider (982 of 1044), so it tracks the
+      // split rather than a fixed percentage.
+      right: calc(100% - var(--split) + 62px);
+      bottom: 64px;
+      height: 1px;
+      background-image: repeating-linear-gradient(
+              to right,
+              $color-border 0 10px,
+              transparent 10px 20px
+      );
+    }
+  }
+}
+

@@ -1,17 +1,17 @@
 import "./style.scss";
 import { registerRoute, navigate, startRouter } from "./lib/router";
-import { alertDialog } from "./components/alertDialog";
+import { alertDialog } from "./components/dialog/alert-dialog";
 import { GLOBAL_MESSAGES } from "./lib/messages";
 import { isAuthenticated } from "./lib/session";
 import { api } from "./lib/api";
-import { loginPage } from "./pages/loginPage";
-import { verifyPage } from "./pages/verifyPage";
-import { appPage } from "./pages/appPage";
-import { settingsPage } from "./pages/settingsPage";
+import { loginPage } from "./pages/login/login-page";
+import { verifyPage } from "./pages/verify/verify-page";
+import { homePage } from "./pages/home/home-page";
+import { settingsPage } from "./pages/settings/settings-page";
 
 // "/" is the whole app: the login page before signing in, the files and
 // notes it guards afterwards.
-registerRoute("/", async () => (isAuthenticated() ? appPage() : loginPage()));
+registerRoute("/", async () => (isAuthenticated() ? homePage() : loginPage()));
 
 // The token is a path segment, not a query parameter.
 // TODO: the backend still builds the query form — MagicLinkService.kt has

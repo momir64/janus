@@ -1,0 +1,258 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+@use "../../styles/noise" as *;
+
+// Measured from Figma:
+//   mobile  "Deletion dialog" 157:61 (308x180), "Account deletion" 157:90 (328x184)
+//   desktop "Deletion dialog" 136:1336 (600x330), "Account deletion" 146:127 (720x380)
+//   note editor: mobile is a full page (167:531), desktop a 640x690 dialog (138:1403)
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(0, 0, 0, 0.6);
+  animation: fade-in 0.15s ease;
+}
+
+.dialog {
+  position: relative;
+  // Focused on open, to take it off the control that opened it; that is not
+  // something to draw a ring around.
+  outline: none;
+  @include noise-surface;
+  border: 1px solid $color-border;
+  width: 100%;
+  max-width: 312px;
+  padding: 42px 24px 38px;
+  display: flex;
+  flex-direction: column;
+  // Capped to the space available, so a short window shrinks the note
+  // editor's body field (see _note-editor.scss) instead of overflowing.
+  max-height: 100%;
+  animation: pop-in 0.18s ease;
+
+  @include desktop {
+    max-width: 600px;
+    padding: 68px 94px 56px;
+  }
+}
+
+// Account deletion carries more copy and is a wider frame in Figma
+// (146:127 is 720x380, against 600x330 for the plain deletion dialog).
+// The acknowledgement dialogs carry two sentences rather than a question,
+// so they are given a little more room to hold them on desktop.
+.dialog--alert {
+  @include desktop {
+    max-width: 640px;
+  }
+}
+
+// The last-passkey confirmation puts a warning above its question, so it is
+// given more width, and side padding to match, to hold the pair.
+.dialog--roomy {
+  @include desktop {
+    max-width: 640px;
+    padding: 68px 64px 56px;
+  }
+}
+
+.dialog--alert-narrow {
+  @include desktop {
+    max-width: 560px;
+  }
+}
+
+.dialog--alert-session {
+  @include desktop {
+    max-width: 680px;
+    padding: 68px 64px 56px;
+  }
+}
+
+// The current-session warning: a paragraph rather than a question, with
+// narrower side padding than the standard frame so it has the width to hold
+// it in three lines.
+.dialog--session {
+  @include desktop {
+    max-width: 720px;
+    padding: 68px 72px 56px;
+  }
+}
+
+.dialog--wide {
+  max-width: 342px;
+  padding: 46px 16px 26px;
+
+  @include desktop {
+    max-width: 720px;
+    padding: 90px 81px 68px;
+  }
+
+  &::before {
+    @include corner-bracket(16px, 1.5px, $color-border, top-left);
+    top: 12px;
+    left: 12px;
+
+    @include desktop {
+      width: 28px;
+      height: 28px;
+      border-width: 2px;
+      top: 24px;
+      left: 24px;
+    }
+  }
+
+  &::after {
+    @include corner-bracket(16px, 1.5px, $color-border, bottom-right);
+    bottom: 12px;
+    right: 12px;
+
+    @include desktop {
+      width: 28px;
+      height: 28px;
+      border-width: 2px;
+      bottom: 24px;
+      right: 24px;
+    }
+  }
+}
+
+// On mobile the note editor is a PAGE, not a modal (Figma "Create Edit Note
+// Page" 167:531): no dimmed backdrop, and it stops short of the 52px tab
+// bar so the nav stays visible and usable, exactly as the frame shows.
+// Purely a CSS switch over the same markup, so resizing across the
+// breakpoint can't leave it in a broken state.
+.dialog-backdrop--note {
+  @include mobile-only {
+    inset: 0 0 52px 0;
+    padding: 0;
+    // Opaque, not a dim: this is a page standing in for the notes list, so
+    // the list must not show through it. The tab bar below stays visible.
+    @include noise-surface;
+    // Scrolls within its own region once the window is too short for the
+    // editor. Without this the block overflows the backdrop and, because
+    // the backdrop outranks the tab bar, paints straight over the buttons.
+    overflow-y: auto;
+    // flex-start plus `margin: auto` on the child (below) centres it the
+    // same way `align-items: center` would, but without cutting off the top
+    // of the content when it overflows.
+    align-items: flex-start;
+    animation: none;
+  }
+}
+
+.dialog--note {
+  @include mobile-only {
+    max-width: none;
+    width: 100%;
+    height: auto;
+    border: none;
+    background: none;
+    padding: 20px;
+    animation: none;
+    // Overflow-safe vertical centring: at the design height this still puts
+    // the title at y=94, and when the window is shorter it scrolls instead
+    // of spilling past the tab bar.
+    margin: auto 0;
+
+    &::before,
+    &::after {
+      display: none;
+    }
+
+    // The frame closes with CANCEL rather than an X.
+    .dialog__close {
+      display: none;
+    }
+  }
+
+  @include desktop {
+    max-width: 640px;
+    padding: 80px 80px 72px;
+  }
+}
+
+.dialog__close {
+  @include reset-button;
+  @include focus-ring;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 16px;
+  height: 16px;
+
+  @include desktop {
+    top: 29px;
+    right: 28px;
+    width: 23px;
+    height: 23px;
+  }
+
+  img {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.dialog__message {
+  font-family: $font-display;
+  color: $color-text-muted;
+  font-size: 16px;
+  line-height: 24px;
+  text-align: center;
+
+  .dialog--wide & {
+    font-size: 15px;
+    @include desktop {
+      font-size: 28px;
+    }
+  }
+
+  @include desktop {
+    font-size: 28px;
+    line-height: 46px;
+  }
+
+  // Each segment is laid out as one unit, so a line break falls between
+  // segments rather than mid-phrase — but only when the line actually runs
+  // out of room.
+  //
+  // Applied only while every segment still fits its own line; confirmDialog
+  // measures that and drops the class otherwise, at which point the copy
+  // reverts to plain inline text and wraps normally. Without that fallback a
+  // too-wide segment wraps inside itself while the next one still starts a
+  // new line, which looks ragged.
+  &--segmented > span {
+    display: inline-block;
+  }
+}
+
+.dialog__actions {
+  margin-top: 32px;
+  display: flex;
+  justify-content: center;
+  gap: 28px;
+
+  @include desktop {
+    margin-top: 48px;
+    gap: 32px;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}

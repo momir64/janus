@@ -1,4 +1,4 @@
-@use "tokens" as *;
+@use "constants" as *;
 
 // The design is authored as two fixed layouts (mobile / desktop) rather than
 // a fluid range, so we build mobile-first and swap wholesale at one stop.

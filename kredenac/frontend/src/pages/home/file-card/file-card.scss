@@ -1,0 +1,98 @@
+@use "../../../styles/constants" as *;
+@use "../../../styles/mixins" as *;
+
+.file-card {
+  position: relative;
+  height: 67px;
+  border: 1px solid $color-border;
+
+  @include desktop {
+    height: 102px;
+    border-width: 1.5px; // 2032:38
+  }
+
+  &__name,
+  &__size,
+  &__date {
+    position: absolute;
+    transform: translateY(-50%);
+  }
+
+  &__name {
+    left: 15px;
+    top: 21.5px;
+    // Stops clear of the timestamp, which is 102px wide sitting 7px in
+    // (2035:115) — 143px at 8.5px on desktop (2032:45).
+    right: 117px;
+    font-size: 14px; // 2035:113, Spline Sans Mono Regular
+    font-weight: 400;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include desktop {
+      left: 23px;
+      top: 34px;
+      right: 160px;
+      font-size: 18px;
+    }
+  }
+
+  &__size {
+    left: 15px;
+    top: 45px; // 2035:114 sits 20px up from the inner bottom edge
+    font-size: 12px;
+    font-weight: 300; // label Light, value Regular (2035:114)
+
+    @include desktop {
+      left: 23px;
+      top: 69.5px;
+      font-size: 16px;
+    }
+
+    b {
+      font-weight: 400;
+    }
+  }
+
+  &__date {
+    right: 7px;
+    top: 15px;
+    font-size: 10px;
+    font-weight: 300;
+    color: $color-text-muted; // white4 (2035:115)
+    white-space: nowrap;
+
+    @include desktop {
+      right: 9px;
+      top: 21.5px;
+      font-size: 14px;
+    }
+  }
+
+  &__actions {
+    position: absolute;
+    right: 9px;
+    bottom: 9px;
+    display: flex;
+    gap: 10px; // download left 286 - delete right 276
+
+    @include desktop {
+      right: 19px;
+      bottom: 19px;
+      gap: 20px; // 548 - 528
+    }
+
+    .icon {
+      width: 24px;
+      height: 24px;
+
+      @include desktop {
+        width: 32px;
+        height: 32px;
+      }
+    }
+  }
+}
+
+// drag 'n' drop target — Figma desktop 129:1318 (600x280, icon 100 at y=68)

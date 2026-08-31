@@ -1,0 +1,9 @@
+<div class="dialog-backdrop">
+  <!-- tabindex so the box itself can take the focus when it opens: leaving
+       it on the control that opened the dialog means an Enter meant for the
+       dialog presses that control again. -->
+  <div class="dialog" role="dialog" aria-modal="true" tabindex="-1" data-ref="dialog">
+    <button class="dialog__close" aria-label="Close" data-ref="close"></button>
+    <div data-ref="content"></div>
+  </div>
+</div>

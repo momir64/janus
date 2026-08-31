@@ -1,0 +1,8 @@
+@use "constants" as *;
+
+.app-shell {
+  position: relative; // settings places its message line from this box
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+}

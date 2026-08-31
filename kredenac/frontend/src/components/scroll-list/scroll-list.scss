@@ -1,0 +1,78 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+// A scroller with its own scrollbar drawn alongside it (see lib/scrollbar.ts).
+// The bar sits outside the scroller's box, so the content keeps its full
+// width whether or not there is anything to scroll.
+.scroll-list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+
+  > *:first-child {
+    flex: 1;
+    min-height: 0;
+    // The native bar is hidden: this one replaces it, and leaving it in
+    // would take width from the content.
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+.scroll-list__bar {
+  position: absolute;
+  top: 0;
+  // 4px clear of the scroller's right edge; `bottom` is set from the script,
+  // which holds it clear of the scroller's bottom by the same measure as the
+  // empty space kept past the last item.
+  left: 100%;
+  margin-left: 4px;
+  width: 3px;
+  // Only drawn when there is something to scroll.
+  display: none;
+
+  .scroll-list--scrollable & {
+    display: block;
+
+    // Touch scrolling has no need of one, and the phone draws its own
+    // overlay bar while a scroll is in progress.
+    @include mobile-only {
+      display: none;
+    }
+  }
+
+  // Against the scroller's own edge, for one that spans the window and has
+  // no margin beside it to sit in.
+  .scroll-list--inside & {
+    left: auto;
+    right: 4px;
+    margin-left: 0;
+  }
+}
+
+// Square ends, like everything else on the page, and no end arrows — there
+// is nothing here to draw them with.
+.scroll-list__thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: $color-border;
+  cursor: default;
+
+  &:hover,
+  &:active {
+    background: $color-border-strong;
+  }
+}
+
+// Stands in for the top border of a card the scroll has cut through - see
+// closeCutEdge(). An inset shadow rather than a border, so it is painted on
+// the scroller's own edge and adds nothing to the layout.
+.is-cut {
+  box-shadow: inset 0 var(--cut-width, 1px) 0 0 var(--cut-color, #{$color-border});
+}

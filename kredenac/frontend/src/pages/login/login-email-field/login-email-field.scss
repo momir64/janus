@@ -1,0 +1,163 @@
+@use "../../../styles/constants" as *;
+@use "../../../styles/mixins" as *;
+
+.login-email-field__field {
+  justify-content: flex-start;
+  align-items: center;
+
+  // A focused field is being attended to just as a hovered one is, so it
+  // takes the same colours — edge, corner mark and label alike.
+  &:focus-within {
+    @include control-lift;
+  }
+
+  // Reads as a text field, and clicking anywhere in it focuses the input.
+  cursor: text;
+  // Leaves room for the close button, which sits in the top-right corner.
+  padding-right: 20px;
+
+  @include desktop {
+    padding-right: 40px;
+  }
+
+  // The rightmost chevron rotates into this corner as the button becomes a
+  // field. It only appears once the trail has finished and been removed, so
+  // the two never overlap; insets match the chevron's landing spot.
+  &::after {
+    content: "";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 9px;
+    height: 9px;
+    border-right: 1px solid var(--edge-accent, #{$color-border-strong});
+    border-bottom: 1px solid var(--edge-accent, #{$color-border-strong});
+    opacity: 0;
+
+    @include desktop {
+      right: 12px;
+      bottom: 12px;
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+    }
+  }
+
+  &--settled::after {
+    opacity: 1;
+  }
+}
+
+.login-email-field__input {
+  // Spline Sans Mono's capitals, for the placeholder's caret.
+  --caret-cap: 0.75em;
+  flex: 1;
+  min-width: 0;
+  // Fills the field's height so a click anywhere down its length lands on
+  // the input rather than only on the text itself.
+  align-self: stretch;
+  font-family: $font-mono;
+  // The value is at the email field's own size and weight from the moment
+  // the field appears. Anything typed while "LOGIN" is still draining is the
+  // address, not the label, so it should never be drawn at the label's size.
+  font-size: 14px;
+  font-weight: 400;
+  color: $color-text;
+  // Hidden until the field is genuinely waiting for input: through the
+  // label draining and the address typing itself, a caret would read as a
+  // cursor sitting in text the reader did not write. loginSlot reveals it
+  // once the placeholder lands, or as soon as the field is clicked.
+  caret-color: transparent;
+
+  .login-email-field__field--caret & {
+    caret-color: auto;
+  }
+
+  @include desktop {
+    font-size: 22px;
+  }
+
+  // The field is already outlined by its own border; a focus ring on top
+  // reads as a doubled border.
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
+
+  // The placeholder is the one still carrying "LOGIN", so it alone keeps the
+  // button label's size and weight (.btn--arrow) until the delete pass
+  // empties it — the switch then lands while it is empty and is never seen
+  // mid-word.
+  &::placeholder {
+    // Still carrying the button's label at this point, so it keeps the
+    // label's colour — the change lands with the size change below, in the
+    // gap where the field is empty.
+    color: var(--label, #{$color-text});
+    font-size: 16px;
+    font-weight: 300;
+
+    @include desktop {
+      font-size: 25px;
+    }
+  }
+
+  .login-email-field__field--typing &::placeholder {
+    // A step back from the muted text the rest of the page uses, so the
+    // suggestion never reads as something already typed.
+    color: $color-border-strong;
+    font-size: 14px;
+    font-weight: 400;
+
+    @include desktop {
+      font-size: 22px;
+    }
+  }
+}
+
+// Sits in the top-right corner on the same 5px / 12px margin the field's
+// other corner marks use, and only fades in once the chevrons have finished
+// collapsing into the bottom-right corner.
+.login-email-field__close {
+  @include reset-button;
+  @include focus-ring;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+
+  @include desktop {
+    top: 12px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .login-email-field__field--settled & {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  // Brightens only when the X itself is hovered — hovering the field
+  // elsewhere leaves it alone.
+  color: $color-border-strong;
+
+  @include hover-or-active {
+    color: $color-text;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  line {
+    stroke: currentColor;
+    stroke-width: 2;
+    transition: stroke 0.15s ease;
+  }
+}
