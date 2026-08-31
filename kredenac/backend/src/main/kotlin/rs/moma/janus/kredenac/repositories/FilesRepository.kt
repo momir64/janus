@@ -20,7 +20,6 @@ class StoredFile(
     val encryptedFilename: ByteArray,
     val encryptedFilenameIv: ByteArray,
     val encryptedContentIv: ByteArray,
-    val contentType: String,
     val size: Long,
     val createdAt: Instant
 )
@@ -28,17 +27,16 @@ class StoredFile(
 class FilesRepository {
     context(owner: Owner)
     suspend fun insert(
-        id: Uuid, encryptedFilename: ByteArray, encryptedFilenameIv: ByteArray, encryptedContentIv: ByteArray,
-        contentType: String, size: Long
+        id: Uuid, encryptedFilename: ByteArray, encryptedFilenameIv: ByteArray,
+        encryptedContentIv: ByteArray, size: Long
     ) = withContext(Dispatchers.IO) {
         transaction {
             FilesTable.insert {
                 it[FilesTable.id] = id
-                it[userId] = owner.userId
+                it[FilesTable.userId] = owner.userId
                 it[FilesTable.encryptedFilename] = encryptedFilename
                 it[FilesTable.encryptedFilenameIv] = encryptedFilenameIv
                 it[FilesTable.encryptedContentIv] = encryptedContentIv
-                it[FilesTable.contentType] = contentType
                 it[FilesTable.size] = size
             }
         }
@@ -83,7 +81,6 @@ class FilesRepository {
         encryptedFilename = this[FilesTable.encryptedFilename],
         encryptedFilenameIv = this[FilesTable.encryptedFilenameIv],
         encryptedContentIv = this[FilesTable.encryptedContentIv],
-        contentType = this[FilesTable.contentType],
         size = this[FilesTable.size],
         createdAt = this[FilesTable.createdAt]
     )

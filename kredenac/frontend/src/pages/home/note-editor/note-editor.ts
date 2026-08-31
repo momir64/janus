@@ -5,9 +5,6 @@ import { ref, template } from "../../../lib/dom";
 import type { NoteDto } from "../../../types";
 import markup from "./note-editor.html?raw";
 
-// TODO: the backend validates neither length - NotesRoutes accepts whatever
-//  it is given and the columns have no limit of their own - so these are
-//  enforced here alone. Add the matching server-side checks.
 const TITLE_LIMIT = 200;
 const BODY_LIMIT = 2000;
 

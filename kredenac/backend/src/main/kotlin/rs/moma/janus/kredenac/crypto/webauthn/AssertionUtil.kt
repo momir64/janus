@@ -19,11 +19,8 @@ sealed class LoginOutcome {
 }
 
 suspend fun WebAuthnService.verifyLogin(
-    credentialId: Base64Url,
-    clientDataJSON: Base64Url,
-    authenticatorData: Base64Url,
-    signature: Base64Url,
-    cookie: String?
+    credentialId: Base64Url, clientDataJSON: Base64Url, authenticatorData: Base64Url,
+    signature: Base64Url, cookie: String?, ip: String?, location: String?
 ): LoginOutcome {
     val clientDataBytes = clientDataJSON.decode()
     val clientData = decodeClientData(clientDataBytes, "webauthn.get")
@@ -52,6 +49,6 @@ suspend fun WebAuthnService.verifyLogin(
     if (!algorithm.verify(credential.publicKey, signedData, signature.decode()))
         throw UnauthorizedException("Signature verification failed")
 
-    credentialRepository.updateSignCount(credential, signCount)
+    credentialRepository.recordUse(credential, signCount, ip, location)
     return LoginOutcome.Success(credential.userId, credential.id)
 }

@@ -10,7 +10,8 @@ const PUB_KEY_CRED_PARAMS: PublicKeyCredentialParameters[] = [
 async function createCredential(
   challenge: string,
   rpId: string,
-  userName: string
+  userName: string,
+  excludeCredentials: string[]
 ): Promise<PublicKeyCredential> {
   const credential = await navigator.credentials.create({
     publicKey: {
@@ -20,6 +21,7 @@ async function createCredential(
       pubKeyCredParams: PUB_KEY_CRED_PARAMS,
       authenticatorSelection: { residentKey: "required", userVerification: "required" },
       attestation: "none",
+      excludeCredentials: excludeCredentials.map((id) => ({ type: "public-key", id: fromBase64Url(id) })),
       timeout: 60_000,
     },
   });
@@ -29,21 +31,29 @@ async function createCredential(
   return credential;
 }
 
-export async function registerWithToken(token: string, email: string): Promise<void> {
-  const { challenge, rpId } = await api.auth.registerStart();
-  const credential = await createCredential(challenge, rpId, email);
-  const response = credential.response as AuthenticatorAttestationResponse;
+export async function startRegistration(token: string): Promise<RegistrationHandle> {
+  const { challenge, rpId, email, excludeCredentials } = await api.auth.registerStart(token);
 
-  await api.auth.registerFinish({
-    token,
-    clientDataJSON: toBase64Url(response.clientDataJSON),
-    attestationObject: toBase64Url(response.attestationObject),
-  });
+  return {
+    email,
+    complete: async () => {
+      const credential = await createCredential(challenge, rpId, email, excludeCredentials);
+      const response = credential.response as AuthenticatorAttestationResponse;
+
+      await api.auth.registerFinish({
+        clientDataJSON: toBase64Url(response.clientDataJSON),
+        attestationObject: toBase64Url(response.attestationObject),
+      });
+    },
+  };
 }
 
-export async function login(): Promise<void> {
-  const { challenge, rpId } = await api.auth.loginStart();
+export interface RegistrationHandle {
+  email: string;
+  complete: () => Promise<void>;
+}
 
+async function assertCredential(challenge: string, rpId: string) {
   const credential = await navigator.credentials.get({
     publicKey: {
       challenge: fromBase64Url(challenge),
@@ -57,10 +67,39 @@ export async function login(): Promise<void> {
     throw new DOMException("Passkey login was cancelled", "NotAllowedError");
   const response = credential.response as AuthenticatorAssertionResponse;
 
-  await api.auth.loginFinish({
+  return {
     credentialId: toBase64Url(credential.rawId),
     clientDataJSON: toBase64Url(response.clientDataJSON),
     authenticatorData: toBase64Url(response.authenticatorData),
     signature: toBase64Url(response.signature),
+  };
+}
+
+export async function login(): Promise<void> {
+  const { challenge, rpId } = await api.auth.loginStart();
+  await api.auth.loginFinish(await assertCredential(challenge, rpId));
+}
+
+export interface NewPasskeyChallenge {
+  excludeCredentials: string[];
+  challenge: string;
+  rpId: string;
+}
+
+export async function verifyForNewPasskey(): Promise<NewPasskeyChallenge> {
+  const { challenge, rpId } = await api.auth.addPasskeyStart();
+  return api.auth.addPasskeyVerify(await assertCredential(challenge, rpId));
+}
+
+export async function addPasskey(
+  { excludeCredentials, challenge, rpId }: NewPasskeyChallenge,
+  userName: string
+): Promise<void> {
+  const credential = await createCredential(challenge, rpId, userName, excludeCredentials);
+  const response = credential.response as AuthenticatorAttestationResponse;
+
+  await api.auth.addPasskeyFinish({
+    clientDataJSON: toBase64Url(response.clientDataJSON),
+    attestationObject: toBase64Url(response.attestationObject),
   });
 }

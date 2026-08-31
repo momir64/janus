@@ -12,7 +12,7 @@ import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
-data class IssuedRefreshToken(val refreshToken: String, val chainId: Uuid)
+data class IssuedRefreshToken(val refreshToken: String, val chainId: Uuid, val credentialId: Uuid)
 
 class RefreshTokenService(
     private val repository: RefreshTokenRepository,
@@ -28,7 +28,7 @@ class RefreshTokenService(
         val rawToken = Base64.UrlSafe.withPadding(ABSENT).encode(bytes)
         val token = HmacUtil.hash(hmacSecret, rawToken)
         repository.insert(userId, credentialId, chainId, token, Clock.System.now() + 30.days)
-        return IssuedRefreshToken(rawToken, chainId)
+        return IssuedRefreshToken(rawToken, chainId, credentialId)
     }
 
     suspend fun revoke(refreshToken: String) {

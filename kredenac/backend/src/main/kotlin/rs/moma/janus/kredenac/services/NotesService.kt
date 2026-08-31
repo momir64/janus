@@ -1,6 +1,9 @@
 package rs.moma.janus.kredenac.services
 
+import rs.moma.janus.kredenac.common.MAX_NOTE_CONTENT_LENGTH
+import rs.moma.janus.kredenac.common.MAX_NOTE_TITLE_LENGTH
 import rs.moma.janus.kredenac.repositories.NotesRepository
+import rs.moma.janus.kredenac.common.BadRequestException
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
 import rs.moma.janus.kredenac.common.NotFoundException
 import rs.moma.janus.kredenac.repositories.StoredNote
@@ -17,6 +20,7 @@ class NotesService(private val notesRepository: NotesRepository, private val use
 
     context(owner: Owner)
     suspend fun create(title: String, content: String) {
+        checkLengths(title, content)
         val encryptionKey = userService.getEncryptionKey()
         val title = AesUtil.encrypt(encryptionKey, title.toByteArray())
         val content = AesUtil.encrypt(encryptionKey, content.toByteArray())
@@ -25,6 +29,7 @@ class NotesService(private val notesRepository: NotesRepository, private val use
 
     context(owner: Owner)
     suspend fun update(noteId: Uuid, title: String, content: String) {
+        checkLengths(title, content)
         val encryptionKey = userService.getEncryptionKey()
         val title = AesUtil.encrypt(encryptionKey, title.toByteArray())
         val content = AesUtil.encrypt(encryptionKey, content.toByteArray())
@@ -36,6 +41,13 @@ class NotesService(private val notesRepository: NotesRepository, private val use
     suspend fun delete(noteId: Uuid) {
         if (!notesRepository.delete(noteId))
             throw NotFoundException("Note not found")
+    }
+
+    private fun checkLengths(title: String, content: String) {
+        if (title.length > MAX_NOTE_TITLE_LENGTH)
+            throw BadRequestException("Title is longer than $MAX_NOTE_TITLE_LENGTH characters")
+        if (content.length > MAX_NOTE_CONTENT_LENGTH)
+            throw BadRequestException("Note is longer than $MAX_NOTE_CONTENT_LENGTH characters")
     }
 
     private fun StoredNote.toDto(encryptionKey: ByteArray): NoteDto {

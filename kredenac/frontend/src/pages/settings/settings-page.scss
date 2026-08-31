@@ -134,7 +134,7 @@
   @media (min-width: $breakpoint-desktop) and (max-width: 1039px) {
     min-width: 160px;
 
-    .btn--danger {
+    .btn {
       height: 112px;
     }
 
@@ -150,7 +150,6 @@
   position: static;
   flex: 1;
   min-width: 0;
-  align-self: center;
 
   @include mobile-only {
     position: absolute;

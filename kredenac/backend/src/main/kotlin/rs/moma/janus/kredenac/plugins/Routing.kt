@@ -6,9 +6,11 @@ import rs.moma.janus.kredenac.routes.authRoutes
 import io.ktor.server.application.*
 import io.ktor.server.routing.*
 
+const val API_ROOT = "/api"
+
 fun Application.configureRouting() {
     routing {
-        route("/api") {
+        route(API_ROOT) {
             notesRoutes()
             filesRoutes()
             authRoutes()

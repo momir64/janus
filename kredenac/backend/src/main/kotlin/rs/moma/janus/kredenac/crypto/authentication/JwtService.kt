@@ -1,7 +1,7 @@
 package rs.moma.janus.kredenac.crypto.authentication
 
 import kotlin.io.encoding.Base64.PaddingOption.ABSENT_OPTIONAL
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.serialization.Serializable
 import javax.crypto.spec.SecretKeySpec
 import kotlinx.serialization.json.Json
@@ -13,16 +13,16 @@ import javax.crypto.Mac
 import kotlin.uuid.Uuid
 
 @Serializable
-data class JwtClaims(val sub: String, val sid: String, val iat: Long, val exp: Long)
+data class JwtClaims(val sub: String, val sid: String, val cid: String, val iat: Long, val exp: Long)
 
-class JwtService(secret: ByteArray) {
+class JwtService(secret: ByteArray, val accessTokenTtl: Duration = 5.minutes) {
     private val base64 = Base64.UrlSafe.withPadding(ABSENT_OPTIONAL)
     private val key = SecretKeySpec(secret, "HmacSHA256")
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun issue(userId: Uuid, sid: String, ttl: Duration = 900.seconds): String {
+    fun issue(userId: Uuid, sid: String, cid: Uuid, ttl: Duration = accessTokenTtl): String {
         val now = Clock.System.now()
-        val claims = JwtClaims(userId.toString(), sid, now.epochSeconds, (now + ttl).epochSeconds)
+        val claims = JwtClaims(userId.toString(), sid, cid.toString(), now.epochSeconds, (now + ttl).epochSeconds)
         val headerEncoded = base64.encode("""{"alg":"HS256","typ":"JWT"}""".toByteArray())
         val payloadEncoded = base64.encode(json.encodeToString(claims).toByteArray())
         val signingInput = "$headerEncoded.$payloadEncoded"

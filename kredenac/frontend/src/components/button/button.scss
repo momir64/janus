@@ -103,15 +103,58 @@
   }
 }
 
-.btn--danger {
-  --edge: #{$color-danger-border};
-  --edge-accent: #{$color-danger-border};
-  --label: #{$color-danger};
+@mixin block-button {
   height: 48px;
   border-width: 2px;
   font-family: $font-display;
   font-weight: 500;
   font-size: 16px;
+
+  @include desktop {
+    height: 72px;
+    border-width: 3px;
+    font-size: 26px;
+  }
+
+  &::before,
+  &::after {
+    width: 10px;
+    height: 10px;
+    border-width: 1.5px;
+
+    @include desktop {
+      width: 20px;
+      height: 20px;
+      border-width: 2.5px;
+    }
+  }
+
+  &::before {
+    top: 6px;
+    left: 6px;
+
+    @include desktop {
+      top: 9px;
+      left: 9px;
+    }
+  }
+
+  &::after {
+    bottom: 6px;
+    right: 6px;
+
+    @include desktop {
+      bottom: 9px;
+      right: 9px;
+    }
+  }
+}
+
+.btn--danger {
+  @include block-button;
+  --edge: #{$color-danger-border};
+  --edge-accent: #{$color-danger-border};
+  --label: #{$color-danger};
   margin-bottom: 56px;
 
   &:not(:disabled) {
@@ -121,43 +164,15 @@
       --label: #{color.adjust($color-danger, $lightness: 12%)};
     }
   }
+}
 
-  @include desktop {
-    height: 72px;
-    border-width: 3px;
-    font-size: 26px;
-  }
+.btn--block {
+  @include block-button;
+  font-weight: 400;
+  margin-bottom: 24px;
 
-  &::before {
-    width: 10px;
-    height: 10px;
-    top: 6px;
-    left: 6px;
-    border-width: 1.5px;
-
-    @include desktop {
-      width: 20px;
-      height: 20px;
-      top: 9px;
-      left: 9px;
-      border-width: 2.5px;
-    }
-  }
-
-  &::after {
-    width: 10px;
-    height: 10px;
-    bottom: 6px;
-    right: 6px;
-    border-width: 1.5px;
-
-    @include desktop {
-      width: 20px;
-      height: 20px;
-      bottom: 9px;
-      right: 9px;
-      border-width: 2.5px;
-    }
+  @include mobile-only {
+    margin-bottom: 16px;
   }
 }
 

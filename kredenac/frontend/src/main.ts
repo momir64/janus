@@ -11,11 +11,6 @@ import "./style.scss";
 
 registerRoute("/", async () => (isAuthenticated() ? homePage() : loginPage()));
 
-// The token is a path segment, not a query parameter.
-// TODO: the backend still builds the query form — MagicLinkService.kt has
-//  "$frontendOrigin/verify?token=$token" — so it needs changing to
-//  "$frontendOrigin/verify/$token" before a real magic link lands here.
-//  Bare "/verify" stays registered for the invalid-link page.
 registerRoute("/verify", verifyPage);
 registerRoute("/verify/:token", verifyPage);
 

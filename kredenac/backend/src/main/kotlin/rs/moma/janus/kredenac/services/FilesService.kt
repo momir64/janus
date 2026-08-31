@@ -4,8 +4,11 @@ import rs.moma.janus.kredenac.repositories.FileContentRepository
 import rs.moma.janus.kredenac.repositories.FilesRepository
 import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.common.BadRequestException
+import rs.moma.janus.kredenac.common.MAX_FILENAME_LENGTH
+import rs.moma.janus.kredenac.common.MAX_FILE_SIZE_BYTES
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
 import rs.moma.janus.kredenac.common.NotFoundException
+import rs.moma.janus.kredenac.common.MAX_FILE_SIZE_MB
 import rs.moma.janus.kredenac.repositories.StoredFile
 import rs.moma.janus.kredenac.common.Owner
 import rs.moma.janus.kredenac.dtos.FileDto
@@ -14,7 +17,7 @@ import kotlinx.io.IOException
 import java.io.InputStream
 import kotlin.uuid.Uuid
 
-class DecryptedFile(val filename: String, val contentType: String, val bytes: ByteArray)
+class DecryptedFile(val filename: String, val bytes: ByteArray)
 
 class FilesService(
     private val filesRepository: FilesRepository,
@@ -28,20 +31,21 @@ class FilesService(
     }
 
     context(owner: Owner)
-    suspend fun upload(filename: String, contentType: String, stream: InputStream, declaredSize: Long) {
+    suspend fun upload(filename: String, stream: InputStream, declaredSize: Long) {
+        if (declaredSize !in 0..MAX_FILE_SIZE_BYTES)
+            throw BadRequestException("File is larger than the $MAX_FILE_SIZE_MB MB limit")
+        if (filename.length > MAX_FILENAME_LENGTH)
+            throw BadRequestException("Filename is longer than $MAX_FILENAME_LENGTH characters")
+
         val encryptionKey = userService.getEncryptionKey()
         val id = Uuid.random()
 
+        val totalSize = declaredSize + AesUtil.GCM_TAG_LENGTH_BYTES
         val fileStream = SizeLimitedInputStream(stream, declaredSize)
         val encryptedFile = AesUtil.encrypt(encryptionKey, fileStream, id.toByteArray())
 
         try {
-            fileContentRepository.put(
-                id,
-                encryptedFile.stream,
-                declaredSize + AesUtil.GCM_TAG_LENGTH_BYTES,
-                contentType
-            )
+            fileContentRepository.put(id, encryptedFile.stream, totalSize)
         } catch (e: Exception) {
             if (e is SizeLimitExceededException || e.cause is SizeLimitExceededException)
                 throw BadRequestException("Uploaded file did not match declared size")
@@ -49,7 +53,7 @@ class FilesService(
         }
 
         val filename = AesUtil.encrypt(encryptionKey, filename.toByteArray(), id.toByteArray())
-        filesRepository.insert(id, filename.ciphertext, filename.iv, encryptedFile.iv, contentType, fileStream.count)
+        filesRepository.insert(id, filename.ciphertext, filename.iv, encryptedFile.iv, fileStream.count)
     }
 
     context(owner: Owner)
@@ -67,7 +71,7 @@ class FilesService(
             throw e
         }
 
-        return DecryptedFile(String(filename), stored.contentType, content)
+        return DecryptedFile(String(filename), content)
     }
 
     context(owner: Owner)
@@ -79,7 +83,7 @@ class FilesService(
 
     private fun StoredFile.toDto(encryptionKey: ByteArray): FileDto {
         val filename = String(AesUtil.decrypt(encryptionKey, encryptedFilename, encryptedFilenameIv, id.toByteArray()))
-        return FileDto(id.toString(), filename, contentType, size, createdAt.toString())
+        return FileDto(id.toString(), filename, size, createdAt.toString())
     }
 }
 

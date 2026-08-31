@@ -81,10 +81,6 @@ export async function homePage(): Promise<Node> {
     noteMessage.el
   );
 
-  // TODO: neither limit exists on the backend - FilesService only checks the
-  //  stream against the size the client declared, and nothing validates the
-  //  filename at all - so both are enforced here alone. Add the matching
-  //  server-side checks, and a 413 from the proxy for anything larger.
   async function uploadFile(file: File): Promise<void> {
     if (file.size > MAX_FILE_BYTES) {
       message.show(FILE_MESSAGES.fileTooLarge);

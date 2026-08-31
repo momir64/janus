@@ -1,4 +1,5 @@
 import { iconButton } from "../../../components/icon/icon";
+import { formatTimestamp } from "../../../lib/format";
 import { h, ref, template } from "../../../lib/dom";
 import type { PasskeyDto } from "../../../types";
 import markup from "./passkey-card.html?raw";
@@ -25,7 +26,7 @@ export function passkeyCard({ passkey, onDelete }: PasskeyCardOptions): HTMLElem
   const { lastUsedIp, lastUsedLocation, lastUsedAt, createdAt } = passkey;
   const root = build();
 
-  ref(root, "name").textContent = passkey.deviceName ?? `Passkey (${passkey.algorithm})`;
+  ref(root, "name").textContent = passkey.deviceName ?? "Unknown passkey device";
 
   if (!passkey.currentSession) ref(root, "session").remove();
 
@@ -33,15 +34,15 @@ export function passkeyCard({ passkey, onDelete }: PasskeyCardOptions): HTMLElem
     lastUsedIp
       ? ["Last used from:", lastUsedLocation ? `${lastUsedIp} (${lastUsedLocation})` : lastUsedIp]
       : null,
-    lastUsedAt ? ["Last time used:", lastUsedAt] : null,
-    createdAt ? ["Created at:", createdAt] : null,
+    lastUsedAt ? ["Last time used:", formatTimestamp(lastUsedAt)] : null,
+    createdAt ? ["Created at:", formatTimestamp(createdAt)] : null,
   ]);
 
   fillInfo(ref(root, "mobile-info"), [
     lastUsedIp ? ["Last used ip:", lastUsedIp] : null,
     lastUsedLocation ? ["Last used from:", lastUsedLocation] : null,
-    lastUsedAt ? ["Last used at:", lastUsedAt] : null,
-    createdAt ? ["Created at:", createdAt] : null,
+    lastUsedAt ? ["Last used at:", formatTimestamp(lastUsedAt)] : null,
+    createdAt ? ["Created at:", formatTimestamp(createdAt)] : null,
   ]);
 
   iconButton(ref(root, "delete"), "delete", onDelete);

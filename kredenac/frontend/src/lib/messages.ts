@@ -54,6 +54,8 @@ export const SETTINGS_MESSAGES = {
   passkeyDeleteFailed: "Failed to delete the passkey.",
   accountDeleteFailed: "Failed to delete the account.",
   listFailed: "Failed to list your passkeys.",
+  passkeyVerifyFailed: "Couldn't verify that passkey.\nPlease try again.",
+  passkeyAddFailed: "Failed to add the new passkey.",
 } as const;
 
 export const GLOBAL_MESSAGES = {

@@ -1,10 +1,10 @@
 import { messageHint } from "../../components/message-hint/message-hint";
 import { loginEmailField } from "./login-email-field/login-email-field";
+import { LOGIN_MESSAGES, type LoginMessage } from "../../lib/messages";
 import { hatchMarks } from "../../components/decorations/decorations";
 import { h, onResize, ref, template } from "../../lib/dom";
 import { button } from "../../components/button/button";
 import { retype, typeInto } from "../../lib/typewriter";
-import { LOGIN_MESSAGES } from "../../lib/messages";
 import { enableDevMode } from "../../lib/dev-mode";
 import { setCsrfToken } from "../../lib/session";
 import cabinet from "../../assets/cabinet.webp";
@@ -14,6 +14,8 @@ import markup from "./login-page.html?raw";
 import { login } from "../../lib/webauthn";
 
 const build = template(markup);
+
+const NOTICES = new Set<LoginMessage>(["registrationSent", "recoverySent"]);
 
 export async function loginPage(): Promise<Node> {
   const FOOTER_GAP = 12;
@@ -42,9 +44,6 @@ export async function loginPage(): Promise<Node> {
 
       if (dom === "NotAllowedError") return;
 
-      // TODO: `passkey_cloned` is the code the backend is to send when it
-      //  revokes a cloned authenticator; until then this reads as a rejected
-      //  passkey like any other 401.
       if (code === "passkey_cloned") message.show(LOGIN_MESSAGES.passkeyCloned);
       else if (dom) message.show(LOGIN_MESSAGES.browserBlocked);
       else if (offline) message.show(LOGIN_MESSAGES.noConnection);
@@ -96,7 +95,7 @@ export async function loginPage(): Promise<Node> {
     onSendingChange: (sending) => {
       registerButton.disabled = sending;
     },
-    onMessage: (key) => message.show(LOGIN_MESSAGES[key]),
+    onMessage: (key) => message.show(LOGIN_MESSAGES[key], NOTICES.has(key) ? "notice" : undefined),
     onDismiss: () => message.dismiss(),
     onBeforeSubmit: devShortcut,
   });

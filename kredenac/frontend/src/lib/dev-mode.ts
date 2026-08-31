@@ -22,7 +22,6 @@ export function enableDevMode(): void {
   let files: FileDto[] = Array.from({ length: 12 }, (_, i) => ({
     id: `f${i}`,
     filename: "Some filename...",
-    contentType: "application/octet-stream",
     size: Math.round(1024 ** 2 * (0.4 + i * 12.7)),
     createdAt: new Date(2022, 11, 31, 12, 34 - i).toISOString(),
   }));
@@ -50,13 +49,12 @@ export function enableDevMode(): void {
 
   let passkeys: PasskeyDto[] = Array.from({ length: 6 }, (_, i) => ({
     id: `p${i}`,
-    algorithm: "ES256",
     deviceName: "Passkey device name",
     currentSession: i === 0,
     lastUsedIp: "192.168.0.16",
     lastUsedLocation: "Belgrade, RS",
-    lastUsedAt: "12:34 31.12.2022.",
-    createdAt: "12:34 15.03.2000.",
+    lastUsedAt: new Date(2022, 11, 31, 12, 34).toISOString(),
+    createdAt: new Date(2000, 2, 15, 12, 34).toISOString(),
   }));
 
   let seq = 0;
@@ -68,7 +66,6 @@ export function enableDevMode(): void {
       {
         id: `f${++seq}`,
         filename: file.name,
-        contentType: file.type,
         size: file.size,
         createdAt: new Date().toISOString(),
       },

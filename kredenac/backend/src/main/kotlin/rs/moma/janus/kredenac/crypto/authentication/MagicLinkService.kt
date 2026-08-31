@@ -22,7 +22,7 @@ class MagicLinkService(
         val token = Base64.UrlSafe.withPadding(ABSENT).encode(bytes)
         tokenRepository.insert(token, 15.minutes, email)
 
-        val link = "$frontendOrigin/verify?token=$token"
+        val link = "$frontendOrigin/verify/$token"
         val hasAccount = userRepository.findIdByEmail(email) != null
 
         val subject = if (hasAccount) "Add a new passkey to Kredenac" else "Finish signing up for Kredenac"
@@ -42,5 +42,5 @@ class MagicLinkService(
         )
     }
 
-    suspend fun getEmail(token: String) = tokenRepository.consume(token)
+    suspend fun getEmail(token: String) = tokenRepository.peek(token)
 }

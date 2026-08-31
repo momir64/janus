@@ -15,6 +15,9 @@ import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.eq
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import kotlin.time.Instant
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class StoredCredential(
@@ -23,29 +26,42 @@ class StoredCredential(
     val credentialId: ByteArray,
     val algorithm: String,
     val publicKey: ByteArray,
-    val signCount: Long
-)
+    val signCount: Long,
+    val aaguid: Uuid?,
+    val createdAt: Instant,
+    val lastUsedAt: Instant?,
+    val lastUsedIp: String?,
+    val lastUsedLocation: String?
+) {
+    fun withUse(signCount: Long, at: Instant, ip: String?, location: String?) = StoredCredential(
+        id, userId, credentialId, algorithm, publicKey, signCount, aaguid, createdAt, at, ip, location
+    )
+}
 
 class CredentialRepository(private val hmacSecret: ByteArray) {
     suspend fun insert(
         userId: Uuid, credentialId: ByteArray,
-        algorithm: String, publicKey: ByteArray
+        algorithm: String, publicKey: ByteArray, aaguid: Uuid?
     ): Uuid = withContext(Dispatchers.IO) {
-        val id = Uuid.random()
-        val signCount = 0L
+        val credential = StoredCredential(
+            Uuid.random(), userId, credentialId, algorithm, publicKey, 0,
+            aaguid, Clock.System.now(), null, null, null
+        )
 
         transaction {
             CredentialTable.insert {
-                it[CredentialTable.id] = id
-                it[CredentialTable.userId] = userId
-                it[CredentialTable.credentialId] = credentialId
-                it[CredentialTable.algorithm] = algorithm
-                it[CredentialTable.publicKey] = publicKey
-                it[CredentialTable.signCount] = signCount
-                it[integrityHash] = hashFor(id, userId, signCount, publicKey)
+                it[id] = credential.id
+                it[CredentialTable.userId] = credential.userId
+                it[CredentialTable.credentialId] = credential.credentialId
+                it[CredentialTable.algorithm] = credential.algorithm
+                it[CredentialTable.publicKey] = credential.publicKey
+                it[signCount] = credential.signCount
+                it[CredentialTable.aaguid] = credential.aaguid
+                it[createdAt] = credential.createdAt
+                it[integrityHash] = credential.hash()
             }
         }
-        id
+        credential.id
     }
 
     suspend fun findByCredentialId(credentialId: ByteArray): StoredCredential? = withContext(Dispatchers.IO) {
@@ -66,14 +82,19 @@ class CredentialRepository(private val hmacSecret: ByteArray) {
         }
     }
 
-    suspend fun updateSignCount(stored: StoredCredential, newSignCount: Long) = withContext(Dispatchers.IO) {
-        transaction {
-            CredentialTable.update({ (CredentialTable.id eq stored.id) and (CredentialTable.userId eq stored.userId) }) {
-                it[signCount] = newSignCount
-                it[integrityHash] = hashFor(stored.id, stored.userId, newSignCount, stored.publicKey)
+    suspend fun recordUse(credential: StoredCredential, newSignCount: Long, ip: String?, location: String?) =
+        withContext(Dispatchers.IO) {
+            val used = credential.withUse(newSignCount, Clock.System.now(), ip, location)
+            transaction {
+                CredentialTable.update({ (CredentialTable.id eq used.id) and (CredentialTable.userId eq used.userId) }) {
+                    it[signCount] = used.signCount
+                    it[lastUsedAt] = used.lastUsedAt
+                    it[lastUsedIp] = used.lastUsedIp
+                    it[lastUsedLocation] = used.lastUsedLocation
+                    it[integrityHash] = used.hash()
+                }
             }
         }
-    }
 
     context(owner: Owner)
     suspend fun delete(id: Uuid): Boolean = withContext(Dispatchers.IO) {
@@ -89,22 +110,44 @@ class CredentialRepository(private val hmacSecret: ByteArray) {
         }
     }
 
-    private fun hashFor(id: Uuid, userId: Uuid, signCount: Long, publicKey: ByteArray): String {
-        return HmacUtil.hash(hmacSecret, id.toByteArray() + userId.toByteArray() + signCount.toByteArray() + publicKey)
+    private fun StoredCredential.hash(): String {
+        val input = ByteArrayOutputStream()
+        fun put(bytes: ByteArray?) {
+            input.write((bytes?.size ?: 0).toLong().toByteArray())
+            if (bytes != null) input.write(bytes)
+        }
+        put(id.toByteArray())
+        put(userId.toByteArray())
+        put(credentialId)
+        put(algorithm.toByteArray())
+        put(publicKey)
+        put(signCount.toByteArray())
+        put(aaguid?.toByteArray())
+        put(createdAt.epochSeconds.toByteArray())
+        put(lastUsedAt?.epochSeconds?.toByteArray())
+        put(lastUsedIp?.toByteArray())
+        put(lastUsedLocation?.toByteArray())
+        return HmacUtil.hash(hmacSecret, input.toByteArray())
     }
 
     private fun ResultRow.toStoredCredential(): StoredCredential {
-        val id = this[CredentialTable.id]
-        val userId = this[CredentialTable.userId]
-        val publicKey = this[CredentialTable.publicKey]
-        val signCount = this[CredentialTable.signCount]
-
-        if (hashFor(id, userId, signCount, publicKey) != this[CredentialTable.integrityHash])
-            throw CompromisedException("Credential data (id=$id) for user=$userId failed integrity check")
-
-        return StoredCredential(
-            id, userId, this[CredentialTable.credentialId],
-            this[CredentialTable.algorithm], publicKey, signCount
+        val credential = StoredCredential(
+            id = this[CredentialTable.id],
+            userId = this[CredentialTable.userId],
+            credentialId = this[CredentialTable.credentialId],
+            algorithm = this[CredentialTable.algorithm],
+            publicKey = this[CredentialTable.publicKey],
+            signCount = this[CredentialTable.signCount],
+            aaguid = this[CredentialTable.aaguid],
+            createdAt = this[CredentialTable.createdAt],
+            lastUsedAt = this[CredentialTable.lastUsedAt],
+            lastUsedIp = this[CredentialTable.lastUsedIp],
+            lastUsedLocation = this[CredentialTable.lastUsedLocation]
         )
+
+        if (credential.hash() != this[CredentialTable.integrityHash])
+            throw CompromisedException("Credential data (id=${credential.id}) for user=${credential.userId} failed integrity check")
+
+        return credential
     }
 }

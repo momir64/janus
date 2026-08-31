@@ -5,9 +5,6 @@ export class ApiError extends Error {
   constructor(
     public status: number,
     message: string,
-    // TODO: the backend answers with prose today. It is to send
-    //  { code, message } so a caller can branch on the code - clone
-    //  detection is a 401 indistinguishable from a bad signature otherwise.
     public code?: string
   ) {
     super(message);
@@ -18,9 +15,6 @@ const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
 interface Session {
   csrfToken: string;
-  // TODO: the backend does not send this yet. Until it does the session is
-  //  kept alive by the 401 retry alone, which costs one wasted request per
-  //  expiry; with it, the refresh happens before anything fails.
   expiresIn?: number;
 }
 
@@ -36,9 +30,7 @@ function startSession({ csrfToken, expiresIn }: Session): void {
   renewal = window.setTimeout(() => void refreshSession(), Math.max(lifetime - margin, 5_000));
 }
 
-// Endpoints that establish a session; a 401 from one is a failed sign-in.
 const ANONYMOUS = ["/auth/login", "/auth/register", "/auth/refresh"];
-
 const isAnonymous = (path: string): boolean => ANONYMOUS.some((p) => path.startsWith(p));
 
 async function failure(response: Response): Promise<ApiError> {
@@ -80,8 +72,6 @@ async function request(path: string, init: RequestInit = {}): Promise<Response> 
 
   let response = await send();
 
-  // An expired access token is not the end of a session: the refresh cookie
-  // outlives it. Only a refresh that itself fails ends one.
   if (response.status === 401 && !isAnonymous(path)) {
     if (await refreshSession()) response = await send();
     else {
@@ -110,9 +100,13 @@ export const api = {
     requestMagicLink: (email: string) =>
       request("/auth/register/verify", withJsonBody({ email })).then(() => undefined),
 
-    registerStart: () => json<{ challenge: string; rpId: string }>("/auth/register/start", { method: "POST" }),
+    registerStart: (token: string) =>
+      json<{ excludeCredentials: string[]; challenge: string; rpId: string; email: string }>(
+        "/auth/register/start",
+        withJsonBody({ token })
+      ),
 
-    registerFinish: (body: { token: string; clientDataJSON: string; attestationObject: string }) =>
+    registerFinish: (body: { clientDataJSON: string; attestationObject: string }) =>
       request("/auth/register/finish", withJsonBody(body)).then(() => undefined),
 
     loginStart: () => json<{ challenge: string; rpId: string }>("/auth/login/start", { method: "POST" }),
@@ -130,6 +124,23 @@ export const api = {
       const session = await json<Session>("/auth/refresh", { method: "POST" });
       startSession(session);
     },
+
+    addPasskeyStart: () =>
+      json<{ challenge: string; rpId: string }>("/auth/credentials/add/start", { method: "POST" }),
+
+    addPasskeyVerify: (body: {
+      credentialId: string;
+      clientDataJSON: string;
+      authenticatorData: string;
+      signature: string;
+    }) =>
+      json<{ excludeCredentials: string[]; challenge: string; rpId: string; }>(
+        "/auth/credentials/add/verify",
+        withJsonBody(body)
+      ),
+
+    addPasskeyFinish: (body: { clientDataJSON: string; attestationObject: string }) =>
+      request("/auth/credentials/add/finish", withJsonBody(body)).then(() => undefined),
 
     logout: async () => {
       await request("/auth/logout", { method: "POST" });
@@ -156,13 +167,6 @@ export const api = {
       return request("/files", { method: "POST", body: form, signal }).then(() => undefined);
     },
 
-    // TODO: the backend hands the file back with the content type its
-    //  uploader declared (FilesRoutes.kt:57, respondBytes(..., parse(
-    //  file.contentType))), so opening /api/files/{id} directly renders a
-    //  stored .html or .svg as a document on this origin - with the session
-    //  cookie. It wants "Content-Disposition: attachment" and
-    //  application/octet-stream there; the re-typed blob below only covers
-    //  downloads that go through this client.
     download: async (id: string, filename: string) => {
       const response = await request(`/files/${id}`);
       const blob = new Blob([await response.arrayBuffer()], { type: "application/octet-stream" });
@@ -178,11 +182,6 @@ export const api = {
   },
 
   notes: {
-    // TODO: a note may carry only a title or only a body — the editor accepts
-    //  either and sends "" for the missing half. Confirm the backend's
-    //  NoteDto treats an empty title/content as valid rather than rejecting
-    //  it; if it does reject, the empty half needs omitting from the body
-    //  instead.
     list: () => json<NoteDto[]>("/notes"),
 
     create: (title: string, content: string) =>

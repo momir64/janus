@@ -9,7 +9,6 @@ import io.ktor.server.auth.authenticate
 import io.ktor.server.auth.principal
 import io.ktor.server.routing.Route
 import io.ktor.server.application.*
-import io.ktor.server.response.*
 import org.koin.ktor.ext.inject
 import io.ktor.server.routing.*
 import io.ktor.http.HttpMethod
@@ -17,7 +16,7 @@ import io.ktor.server.auth.*
 import kotlin.uuid.Uuid
 import io.ktor.http.*
 
-data class SessionPrincipal(val userId: Uuid)
+data class SessionPrincipal(val userId: Uuid, val credentialId: Uuid)
 
 private val safeMethods = setOf(HttpMethod.Get, HttpMethod.Head, HttpMethod.Options)
 
@@ -32,7 +31,7 @@ fun Application.configureAuthentication() {
 
                 if (claims == null) {
                     context.challenge(this, Error("Invalid or missing access token")) { challenge, call ->
-                        call.respond(HttpStatusCode.Unauthorized)
+                        call.error(HttpStatusCode.Unauthorized)
                         challenge.complete()
                     }
                     return@authenticate
@@ -42,18 +41,21 @@ fun Application.configureAuthentication() {
                     val csrfHeader = context.call.request.headers["X-CSRF-Token"]
                     if (!csrfService.isValid(claims.sid, csrfHeader)) {
                         context.challenge(this, Error("Invalid CSRF token")) { challenge, call ->
-                            call.respond(HttpStatusCode.Forbidden)
+                            call.error(HttpStatusCode.Forbidden)
                             challenge.complete()
                         }
                         return@authenticate
                     }
                 }
 
-                context.principal(SessionPrincipal(Uuid.parse(claims.sub)))
+                context.principal(SessionPrincipal(Uuid.parse(claims.sub), Uuid.parse(claims.cid)))
             }
         }
     }
 }
+
+val RoutingContext.sessionCredentialId: Uuid
+    get() = call.principal<SessionPrincipal>()!!.credentialId
 
 fun Route.authenticated(method: HttpMethod, path: String, body: suspend context(Owner) RoutingContext.() -> Unit) {
     authenticate("jwt-cookie") {

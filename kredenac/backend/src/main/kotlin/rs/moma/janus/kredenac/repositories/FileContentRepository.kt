@@ -30,14 +30,13 @@ class FileContentRepository(
     private fun objectKey(userId: Uuid, fileId: Uuid) = "$userId/$fileId"
 
     context(owner: Owner)
-    suspend fun put(fileId: Uuid, stream: InputStream, size: Long, contentType: String) {
+    suspend fun put(fileId: Uuid, stream: InputStream, size: Long) {
         withContext(Dispatchers.IO) {
             client.putObject(
                 PutObjectArgs.builder()
                     .bucket(bucket)
                     .`object`(objectKey(owner.userId, fileId))
                     .stream(stream, size, -1)
-                    .contentType(contentType)
                     .build()
             )
         }

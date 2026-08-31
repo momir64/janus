@@ -2,8 +2,13 @@ import { openMessageDialog } from "./dialog-message";
 import { button } from "../button/button";
 
 interface AlertOptions {
-  frame?: "narrow" | "session";
+  frame?: "narrow" | "session" | "wide";
+  dismissible?: boolean;
 }
+
+// "wide" is the shared frame the confirm dialogs use, the rest are alert-only.
+const frameVariant = (frame: AlertOptions["frame"]): string =>
+  frame === "wide" ? "wide" : frame ? `alert-${frame}` : "alert";
 
 export function alertDialog(
   message: string | string[],
@@ -23,6 +28,6 @@ export function alertDialog(
         },
       }),
     ],
-    { dismissible: false, variant: options.frame ? `alert-${options.frame}` : "alert" }
+    { dismissible: options.dismissible ?? false, variant: frameVariant(options.frame) }
   );
 }

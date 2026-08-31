@@ -43,6 +43,7 @@ fun Application.configureDependencies() {
             val hmacSecret = Env.getBytes("DB_HMAC_SECRET")
             val masterKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("MASTER_KEY_BASE64"))
             val emailEncryptionKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("EMAIL_ENCRYPTION_KEY_BASE64"))
+            val tokenEncryptionKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("TOKEN_ENCRYPTION_KEY_BASE64"))
 
             single { RefreshTokenRepository(hmacSecret) }
 
@@ -58,7 +59,7 @@ fun Application.configureDependencies() {
             val redisClient = RedisClient.create(redisUri)
             redisClient.options = ClientOptions.builder().sslOptions(sslOptions).build()
             single<RedisCoroutinesCommands<String, String>> { redisClient.connect().coroutines() }
-            single { TokenRepository(get(), emailEncryptionKey, hmacSecret) }
+            single { TokenRepository(get(), tokenEncryptionKey, hmacSecret) }
 
             single { JwtService(Env.getBytes("JWT_SECRET")) }
             single { CsrfService(Env.getBytes("CSRF_SECRET")) }
@@ -79,7 +80,7 @@ fun Application.configureDependencies() {
                 )
             }
 
-            single { UserService(get(), get(), get(), get(), get(), get(), get()) }
+            single { UserService(get(), get(), get(), get(), get(), get(), get(), get()) }
             single { FilesService(get(), get(), get()) }
             singleOf(::NotesService)
         })

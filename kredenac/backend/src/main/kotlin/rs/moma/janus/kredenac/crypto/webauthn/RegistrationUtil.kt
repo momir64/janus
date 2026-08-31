@@ -2,25 +2,32 @@ package rs.moma.janus.kredenac.crypto.webauthn
 
 import rs.moma.janus.kredenac.crypto.webauthn.CborValue.Companion.get
 import rs.moma.janus.kredenac.crypto.algorithms.VerifyUtil
-import rs.moma.janus.kredenac.crypto.algorithms.RsaUtil
 import rs.moma.janus.kredenac.common.BadRequestException
+import rs.moma.janus.kredenac.crypto.algorithms.RsaUtil
+import rs.moma.janus.kredenac.common.readBigEndianLong
 import rs.moma.janus.kredenac.crypto.algorithms.EcUtil
 import rs.moma.janus.kredenac.crypto.algorithms.EdUtil
-import rs.moma.janus.kredenac.common.readBigEndianLong
 import rs.moma.janus.kredenac.dtos.Base64Url
+import kotlin.uuid.Uuid
 
-class ParsedAttestation(val credentialId: ByteArray, val publicKey: ByteArray, val algorithm: String)
+class ParsedAttestation(
+    val credentialId: ByteArray,
+    val publicKey: ByteArray,
+    val algorithm: String,
+    val aaguid: Uuid?
+)
 
 suspend fun WebAuthnService.verifyRegistration(
     clientDataJSON: Base64Url,
     attestationObject: Base64Url,
     cookie: String?
-): ParsedAttestation {
-    val clientDataBytes = clientDataJSON.decode()
-    val clientData = decodeClientData(clientDataBytes, "webauthn.create")
+): Pair<ParsedAttestation, String> {
+    val challenge = decodeClientData(clientDataJSON.decode(), "webauthn.create").challenge
+    val bond = consumeChallengeBond(challenge, cookie)
+    return parseAttestation(attestationObject) to bond
+}
 
-    verifyChallengeSession(clientData.challenge, cookie)
-
+private fun WebAuthnService.parseAttestation(attestationObject: Base64Url): ParsedAttestation {
     val attestationObject = attestationObject.decode()
     val attestationMap = CborValue.from(attestationObject) ?: throw BadRequestException("Invalid attestation object")
     val authData = attestationMap["authData"]?.asByteStr() ?: throw BadRequestException("Missing authData")
@@ -41,6 +48,9 @@ private fun parseAuthData(authData: ByteArray): ParsedAttestation {
     val flags = authData[32]
     val attestedCredentialDataPresent = (flags.toInt() and 0x40) != 0
     if (!attestedCredentialDataPresent) throw BadRequestException("No attested credential data present")
+
+    val aaguidBytes = authData.copyOfRange(37, 53)
+    val aaguid = if (aaguidBytes.all { it.toInt() == 0 }) null else Uuid.fromByteArray(aaguidBytes)
 
     val credentialIdStart = 55
     if (authData.size < credentialIdStart) throw BadRequestException("authData too short for attested credential data")
@@ -75,5 +85,5 @@ private fun parseAuthData(authData: ByteArray): ParsedAttestation {
         else -> throw BadRequestException("Unsupported key type: $kty")
     }
 
-    return ParsedAttestation(credentialId, publicKey, algorithm.name)
+    return ParsedAttestation(credentialId, publicKey, algorithm.name, aaguid)
 }

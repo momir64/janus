@@ -1,8 +1,8 @@
+import { startRegistration, type RegistrationHandle } from "../../lib/webauthn";
 import { messageHint } from "../../components/message-hint/message-hint";
 import emailSuccess from "../../assets/icons/email-success.svg";
 import { optionalBreaks } from "../../lib/optional-breaks";
 import { button } from "../../components/button/button";
-import { registerWithToken } from "../../lib/webauthn";
 import invalidMarkup from "./verify-invalid.html?raw";
 import errorIcon from "../../assets/icons/error.svg";
 import { VERIFY_MESSAGES } from "../../lib/messages";
@@ -39,20 +39,23 @@ function showInvalid(view: HTMLElement): void {
 
 export async function verifyPage(params: URLSearchParams): Promise<Node> {
   const token = params.get("token");
+  const view = build();
 
   if (!token) {
-    const view = build();
     showInvalid(view);
     return view;
   }
 
-  const view = build();
-  ref<HTMLImageElement>(view, "illustration").src = emailSuccess;
+  let registration: RegistrationHandle;
+  try {
+    registration = await startRegistration(token);
+  } catch {
+    showInvalid(view);
+    return view;
+  }
 
-  // TODO: the backend resolves the magic-link token to an email server-side
-  //  and never returns it, so there is no endpoint to read the verified
-  //  address from. Falls back to the placeholder the design itself uses.
-  ref(view, "email").textContent = params.get("email") ?? "example@example.com";
+  ref<HTMLImageElement>(view, "illustration").src = emailSuccess;
+  ref(view, "email").textContent = registration.email;
 
   const message = messageHint();
 
@@ -62,18 +65,10 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
     onClick: async () => {
       registerButton.disabled = true;
       try {
-        await registerWithToken(token, "Kredenac account");
+        await registration.complete();
         navigate("/");
       } catch (error) {
         const { dom, status } = failure(error);
-
-        // TODO: a rejected token only surfaces here, after a passkey has been
-        //  created and left orphaned on the device. The planned trade - token
-        //  for email, up front - moves this ahead of the ceremony.
-        if (status === 401) {
-          showInvalid(view);
-          return;
-        }
 
         const key =
           (dom ? BY_DOM[dom] : undefined) ??

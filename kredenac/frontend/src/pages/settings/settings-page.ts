@@ -1,3 +1,4 @@
+import { addPasskey, verifyForNewPasskey, type NewPasskeyChallenge } from "../../lib/webauthn";
 import { attachScrollbar } from "../../components/scroll-list/scrollbar";
 import { closeCutEdge } from "../../components/scroll-list/closing-edge";
 import { messageHint } from "../../components/message-hint/message-hint";
@@ -12,6 +13,7 @@ import { SETTINGS_MESSAGES } from "../../lib/messages";
 import { isDesktop } from "../../lib/breakpoint";
 import markup from "./settings-page.html?raw";
 import type { PasskeyDto } from "../../types";
+import { failure } from "../../lib/failure";
 import { navigate } from "../../lib/router";
 import { api } from "../../lib/api";
 
@@ -40,10 +42,6 @@ export async function settingsPage(): Promise<Node> {
           passkey,
           onDelete: () => {
             const last = passkeyCount === 1;
-            // TODO: the backend does not say which credential the session is
-            //  running on - listCredentials returns { id, algorithm } and the
-            //  session's credentialId lives only in the refresh token. Have
-            //  it flag the current one, and this reads it.
             const current = passkey.currentSession === true;
             const question = ["Are you sure you want to delete", "this passkey?"];
             const lastQuestion = [
@@ -103,6 +101,43 @@ export async function settingsPage(): Promise<Node> {
     );
   }
 
+  function addNewPasskey(): void {
+    alertDialog(
+      [
+        "Before adding a new passkey, please",
+        "use one of your already registered",
+        "passkeys to verify that it's you.",
+      ],
+      async () => {
+        addButton.disabled = true;
+        let registration: NewPasskeyChallenge;
+        try {
+          registration = await verifyForNewPasskey();
+        } catch (error) {
+          if (failure(error).dom !== "NotAllowedError")
+            message.show(SETTINGS_MESSAGES.passkeyVerifyFailed);
+          return;
+        } finally {
+          addButton.disabled = false;
+        }
+
+        alertDialog("Now you can register a new passkey.", async () => {
+          addButton.disabled = true;
+          try {
+            await addPasskey(registration, "Kredenac account");
+            await loadPasskeys();
+          } catch (error) {
+            if (failure(error).dom !== "NotAllowedError")
+              message.show(SETTINGS_MESSAGES.passkeyAddFailed);
+          } finally {
+            addButton.disabled = false;
+          }
+        }, { dismissible: true });
+      },
+      { dismissible: true, frame: "wide" }
+    );
+  }
+
   const [top, bottom] = appNav({
     active: "settings",
     onTabChange: (tab) => {
@@ -117,7 +152,15 @@ export async function settingsPage(): Promise<Node> {
   const layout = ref(page, "layout");
   const frame = ref(page, "frame");
 
+  const addButton = button({
+    label: "ADD NEW PASSKEY",
+    variant: "framed",
+    block: true,
+    onClick: () => addNewPasskey(),
+  });
+
   ref(page, "danger").append(
+    addButton,
     button({ label: "DELETE ACCOUNT", variant: "framed", danger: true, onClick: deleteAccount })
   );
 

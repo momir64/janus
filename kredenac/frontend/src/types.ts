@@ -1,7 +1,6 @@
 export interface FileDto {
   id: string;
   filename: string;
-  contentType: string;
   size: number;
   createdAt: string;
 }
@@ -15,7 +14,6 @@ export interface NoteDto {
 
 export interface PasskeyDto {
   id: string;
-  algorithm: string;
   deviceName?: string;
   lastUsedIp?: string;
   lastUsedLocation?: string;

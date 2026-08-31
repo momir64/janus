@@ -7,6 +7,7 @@ interface ButtonOptions {
   onClick?: (e: MouseEvent) => void;
   variant?: "arrow" | "framed" | "dialog" | "corners" | "icon" | "nav";
   danger?: boolean;
+  block?: boolean;
   icon?: IconName;
   hatch?: "tl" | "br";
   type?: "button" | "submit";
@@ -16,6 +17,7 @@ interface ButtonOptions {
 export function button(opts: ButtonOptions): HTMLButtonElement {
   const classes = ["btn", `btn--${opts.variant ?? "framed"}`];
   if (opts.danger) classes.push("btn--danger");
+  if (opts.block) classes.push("btn--block");
 
   const children: (Node | string)[] = [];
   if (opts.icon && opts.variant !== "icon") children.push(icon(opts.icon));

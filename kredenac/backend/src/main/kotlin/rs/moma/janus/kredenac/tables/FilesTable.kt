@@ -10,7 +10,6 @@ object FilesTable : Table("files") {
     val encryptedFilename = binary("encrypted_filename")
     val encryptedFilenameIv = binary("encrypted_filename_iv")
     val encryptedContentIv = binary("encrypted_content_iv")
-    val contentType = varchar("content_type", 128)
     val size = long("size")
     val createdAt = timestamp("created_at").clientDefault { Clock.System.now() }
     override val primaryKey = PrimaryKey(id)

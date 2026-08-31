@@ -26,22 +26,32 @@ class WebAuthnService(
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val secureRandom = SecureRandom()
+    private val challengeTtl = 3.minutes
 
-    suspend fun start(): ChallengeSession {
+    suspend fun start(token: String? = null): ChallengeSession {
         val bytes = ByteArray(32)
         secureRandom.nextBytes(bytes)
         val challenge = Base64.UrlSafe.withPadding(ABSENT).encode(bytes)
         val sessionCookie = HmacUtil.hash(hmacSecret, "$challenge:cookie")
-        tokenRepository.insert(challenge, 3.minutes)
+        tokenRepository.insert(challenge, challengeTtl, token, true)
         return ChallengeSession(challenge, sessionCookie)
     }
 
     suspend fun verifyChallengeSession(challenge: String, cookie: String?) {
+        verifyChallengeCookie(challenge, cookie)
+        if (!tokenRepository.consumePresence(challenge))
+            throw BadRequestException("Challenge isn't pending, it might have expired")
+    }
+
+    suspend fun consumeChallengeBond(challenge: String, cookie: String?): String {
+        verifyChallengeCookie(challenge, cookie)
+        return tokenRepository.consumeBond(challenge)
+    }
+
+    private fun verifyChallengeCookie(challenge: String, cookie: String?) {
         val sessionCookie = HmacUtil.hash(hmacSecret, "$challenge:cookie")
         if (cookie == null || sessionCookie != cookie)
             throw BadRequestException("Challenge session cookie is missing or isn't valid")
-        if (!tokenRepository.consumePresence(challenge))
-            throw BadRequestException("Challenge isn't pending, it might have expired")
     }
 
     fun decodeClientData(bytes: ByteArray, expectedType: String): ClientDataJson {

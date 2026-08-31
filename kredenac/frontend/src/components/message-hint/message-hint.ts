@@ -14,7 +14,7 @@ export interface MessageHintOptions {
 
 export interface MessageHintHandle {
   el: HTMLElement;
-  show: (text: string) => void;
+  show: (text: string, tone?: "notice") => void;
   dismiss: () => void;
 }
 
@@ -93,11 +93,12 @@ export function messageHint({ className, fitPadding = 0, onLayout, }: MessageHin
     });
   }
 
-  async function show(text: string): Promise<void> {
+  async function show(text: string, tone?: "notice"): Promise<void> {
     const current = ++run;
     const stale = () => run !== current;
     dismissed = false;
 
+    el.classList.toggle("message-hint--notice", tone === "notice");
     el.replaceChildren();
 
     const caret = h("span", { class: "caret caret--active" });
@@ -148,7 +149,7 @@ export function messageHint({ className, fitPadding = 0, onLayout, }: MessageHin
 
   return {
     el,
-    show: (text) => void show(text),
+    show: (text, tone) => void show(text, tone),
     dismiss: () => {
       dismissed = true;
       holdResolve?.();

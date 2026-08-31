@@ -34,7 +34,7 @@ class NotesRepository {
     ): Uuid = withContext(Dispatchers.IO) {
         transaction {
             NotesTable.insert {
-                it[userId] = owner.userId
+                it[NotesTable.userId] = owner.userId
                 it[NotesTable.encryptedTitle] = encryptedTitle
                 it[NotesTable.encryptedTitleIv] = encryptedTitleIv
                 it[NotesTable.encryptedContent] = encryptedContent

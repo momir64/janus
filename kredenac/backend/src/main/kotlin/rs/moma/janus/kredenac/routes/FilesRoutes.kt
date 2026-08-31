@@ -7,14 +7,13 @@ import rs.moma.janus.kredenac.plugins.authenticatedPost
 import rs.moma.janus.kredenac.plugins.authenticatedGet
 import rs.moma.janus.kredenac.services.FilesService
 import io.ktor.utils.io.jvm.javaio.toInputStream
+import rs.moma.janus.kredenac.common.uuidParam
 import io.ktor.http.content.forEachPart
 import io.ktor.http.content.PartData
-import io.ktor.server.util.getOrFail
 import io.ktor.server.response.*
 import org.koin.ktor.ext.inject
 import io.ktor.server.request.*
 import io.ktor.server.routing.*
-import kotlin.uuid.Uuid
 import io.ktor.http.*
 
 fun Route.filesRoutes() {
@@ -37,8 +36,7 @@ fun Route.filesRoutes() {
                     is PartData.FileItem -> {
                         val size = declaredSize ?: throw BadRequestException("Missing size field")
                         val filename = part.originalFileName ?: "file"
-                        val contentType = part.contentType?.toString() ?: OctetStream.toString()
-                        filesService.upload(filename, contentType, part.provider().toInputStream(), size)
+                        filesService.upload(filename, part.provider().toInputStream(), size)
                         uploaded = true
                     }
                     else -> {}
@@ -51,14 +49,14 @@ fun Route.filesRoutes() {
         }
 
         authenticatedGet("/{id}") {
-            val fileId = Uuid.parse(call.parameters.getOrFail("id"))
+            val fileId = call.uuidParam("id")
             val file = filesService.download(fileId)
             call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"${file.filename}\"")
-            call.respondBytes(file.bytes, ContentType.parse(file.contentType))
+            call.respondBytes(file.bytes, OctetStream)
         }
 
         authenticatedDelete("/{id}") {
-            val fileId = Uuid.parse(call.parameters.getOrFail("id"))
+            val fileId = call.uuidParam("id")
             filesService.delete(fileId)
             call.respond(HttpStatusCode.NoContent)
         }
