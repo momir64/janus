@@ -2,7 +2,7 @@ const MARKUP_ATTRS = new Set(["innerHTML", "outerHTML", "srcdoc", "insertAdjacen
 const URL_ATTRS = new Set(["href", "src", "action", "formaction", "xlink:href", "ping"]);
 const EXECUTABLE_SCHEME = /^\s*(javascript|vbscript|data:text\/html)/i;
 
-export function safeUrl(value: string): string {
+function safeUrl(value: string): string {
   return EXECUTABLE_SCHEME.test(value) ? "" : value;
 }
 
