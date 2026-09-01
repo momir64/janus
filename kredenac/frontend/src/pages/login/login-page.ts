@@ -5,8 +5,6 @@ import { hatchMarks } from "../../components/decorations/decorations";
 import { h, onResize, ref, template } from "../../lib/dom";
 import { button } from "../../components/button/button";
 import { retype, typeInto } from "../../lib/typewriter";
-import { enableDevMode } from "../../lib/dev-mode";
-import { setCsrfToken } from "../../lib/session";
 import cabinet from "../../assets/cabinet.webp";
 import { failure } from "../../lib/failure";
 import { navigate } from "../../lib/router";
@@ -56,29 +54,6 @@ export async function loginPage(): Promise<Node> {
 
   let composing = false;
 
-  // TODO: development shortcuts — typing one of these into the email field
-  //  jumps straight to a page instead of sending a magic link. Remove these
-  //  (and `onBeforeSubmit` in loginSlot) once the backend flow is wired up
-  //  end to end.
-  //    a -> logged-in view    b -> valid email page    c -> invalid email page
-  const devShortcut = (email: string): boolean => {
-    if (email === "a") {
-      enableDevMode();
-      setCsrfToken("dev");
-      navigate("/");
-      return true;
-    }
-    if (email === "b") {
-      navigate("/verify/dev");
-      return true;
-    }
-    if (email === "c") {
-      navigate("/verify");
-      return true;
-    }
-    return false;
-  };
-
   let labelRun = 0;
   const setRegisterLabel = async (text: string, msPerChar: number) => {
     const run = ++labelRun;
@@ -97,7 +72,6 @@ export async function loginPage(): Promise<Node> {
     },
     onMessage: (key) => message.show(LOGIN_MESSAGES[key], NOTICES.has(key) ? "notice" : undefined),
     onDismiss: () => message.dismiss(),
-    onBeforeSubmit: devShortcut,
   });
 
   const registerButton = button({

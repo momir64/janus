@@ -20,9 +20,6 @@ interface LoginEmailFieldOptions {
   onDismiss?: () => void;
   onSendingChange: (sending: boolean) => void;
   onMessage: (key: LoginMessage) => void;
-  // TODO: development only - returns true to skip the magic-link request, so
-  //  the shortcuts in login-page can jump straight to a screen. Goes with them.
-  onBeforeSubmit?: (email: string) => boolean;
 }
 
 export type Intent = "register" | "recovery";
@@ -39,7 +36,6 @@ export function loginEmailField({
                                   onSendingChange,
                                   onMessage,
                                   onDismiss,
-                                  onBeforeSubmit,
                                 }: LoginEmailFieldOptions): LoginEmailFieldHandle {
   let root: HTMLElement = idleButton();
 
@@ -173,8 +169,6 @@ export function loginEmailField({
     if (!input || sending) return;
 
     const address = email.trim();
-
-    if (onBeforeSubmit?.(address)) return;
 
     if (!address) {
       onMessage("emailMissing");
