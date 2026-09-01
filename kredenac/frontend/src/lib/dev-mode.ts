@@ -52,9 +52,9 @@ export function enableDevMode(): void {
     id: `p${i}`,
     deviceName: "Passkey device name",
     currentSession: i === 0,
-    lastUsedIp: "192.168.0.16",
-    lastUsedLocation: "Belgrade, RS",
-    lastUsedAt: new Date(2022, 11, 31, 12, 34).toISOString(),
+    lastUsedIp: i === 1 ? undefined : "192.168.0.16",
+    lastUsedLocation: i === 1 ? undefined : "Belgrade, RS",
+    lastUsedAt: i === 1 ? undefined : new Date(2022, 11, 31, 12, 34).toISOString(),
     createdAt: new Date(2000, 2, 15, 12, 34).toISOString(),
   }));
 
