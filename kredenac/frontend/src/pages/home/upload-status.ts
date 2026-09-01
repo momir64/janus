@@ -1,9 +1,5 @@
 import type { DropzoneHandle } from "./dropzone/dropzone";
-import { truncateFilename } from "../../lib/format";
-import { isDesktop } from "../../lib/breakpoint";
 import { h } from "../../lib/dom";
-
-const DOT_INTERVAL_MS = 600;
 
 interface UploadStatusOptions {
   zone: DropzoneHandle;
@@ -14,18 +10,8 @@ interface UploadStatusOptions {
 export interface UploadStatusHandle {
   cancelLink: HTMLElement;
   set: (filename: string | null) => void;
+  setPercent: (percent: number) => void;
   relabel: () => void;
-}
-
-function dotRun(): { el: HTMLElement; show: (count: number) => void } {
-  const dots = [0, 1, 2].map(() => h("span", {}, "."));
-  return {
-    el: h("span", {}, ...dots),
-    show: (count) =>
-      dots.forEach((dot, i) => {
-        dot.style.visibility = i < count ? "visible" : "hidden";
-      }),
-  };
 }
 
 export function uploadStatus({ zone, button, onCancel }: UploadStatusOptions): UploadStatusHandle {
@@ -33,11 +19,8 @@ export function uploadStatus({ zone, button, onCancel }: UploadStatusOptions): U
   const idleZone = zone.label.textContent ?? "";
   const idleButton = buttonLabel.textContent ?? "";
 
-  const zoneDots = dotRun();
-  const buttonDots = dotRun();
-
   let filename: string | null = null;
-  let ticker = 0;
+  let percent = 0;
 
   const cancelLink = h(
     "button",
@@ -60,13 +43,20 @@ export function uploadStatus({ zone, button, onCancel }: UploadStatusOptions): U
       buttonLabel.replaceChildren(idleButton);
       return;
     }
-    const shown = truncateFilename(filename, isDesktop() ? 24 : 16, false);
-    zone.label.replaceChildren(`Uploading ${shown}`, zoneDots.el);
-    buttonLabel.replaceChildren(`Uploading ${shown}`, buttonDots.el);
+    const label = `File upload is at ${percent}%`;
+    zone.label.replaceChildren(label);
+    buttonLabel.replaceChildren(label);
+  }
+
+  function setPercent(next: number): void {
+    if (filename === null || next === percent) return;
+    percent = next;
+    relabel();
   }
 
   function set(next: string | null): void {
     filename = next;
+    percent = 0;
     const uploading = next !== null;
 
     zone.setUploading(uploading);
@@ -74,20 +64,8 @@ export function uploadStatus({ zone, button, onCancel }: UploadStatusOptions): U
     button.disabled = uploading;
     cancelLink.hidden = !uploading;
 
-    clearInterval(ticker);
     relabel();
-    if (!uploading) return;
-
-    let step = 0;
-    const tick = (): void => {
-      const count = (step % 3) + 1;
-      zoneDots.show(count);
-      buttonDots.show(count);
-      step += 1;
-    };
-    tick();
-    ticker = window.setInterval(tick, DOT_INTERVAL_MS);
   }
 
-  return { cancelLink, set, relabel };
+  return { cancelLink, set, setPercent, relabel };
 }

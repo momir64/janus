@@ -94,7 +94,7 @@ export async function homePage(): Promise<Node> {
     uploading = new AbortController();
     upload.set(file.name);
     try {
-      await api.files.upload(file, uploading.signal);
+      await api.files.upload(file, uploading.signal, upload.setPercent);
       await loadFiles();
     } catch (error) {
       const { dom, status } = failure(error);

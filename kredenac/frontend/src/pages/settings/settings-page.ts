@@ -121,7 +121,7 @@ export async function settingsPage(): Promise<Node> {
           addButton.disabled = false;
         }
 
-        alertDialog("Now you can register a new passkey.", async () => {
+        alertDialog(["Now you can register", "a new passkey."], async () => {
           addButton.disabled = true;
           try {
             await addPasskey(registration, "Kredenac account");
@@ -132,7 +132,7 @@ export async function settingsPage(): Promise<Node> {
           } finally {
             addButton.disabled = false;
           }
-        }, { dismissible: true });
+        }, { dismissible: true, frame: "compact" });
       },
       { dismissible: true, frame: "wide" }
     );

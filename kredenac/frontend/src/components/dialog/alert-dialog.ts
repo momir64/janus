@@ -2,7 +2,7 @@ import { openMessageDialog } from "./dialog-message";
 import { button } from "../button/button";
 
 interface AlertOptions {
-  frame?: "narrow" | "session" | "wide";
+  frame?: "narrow" | "compact" | "session" | "wide";
   dismissible?: boolean;
 }
 

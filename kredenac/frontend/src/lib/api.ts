@@ -58,6 +58,37 @@ function refreshSession(): Promise<boolean> {
   return refreshing;
 }
 
+function sendWithProgress(
+  path: string,
+  body: FormData,
+  signal: AbortSignal | undefined,
+  onProgress: (percent: number) => void
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", `/api${path}`);
+    xhr.withCredentials = true;
+
+    const csrf = getCsrfToken();
+    if (csrf) xhr.setRequestHeader("X-CSRF-Token", csrf);
+
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onProgress(Math.min(99, Math.floor((e.loaded / e.total) * 100)));
+    };
+
+    xhr.onload = () => resolve(new Response(xhr.response as BodyInit, { status: xhr.status, statusText: xhr.statusText }));
+    xhr.onerror = () => reject(new TypeError("Network request failed"));
+    xhr.onabort = () => reject(new DOMException("Upload was cancelled", "AbortError"));
+
+    signal?.addEventListener("abort", () => xhr.abort(), { once: true });
+    if (signal?.aborted) {
+      xhr.abort();
+      return;
+    }
+    xhr.send(body);
+  });
+}
+
 async function request(path: string, init: RequestInit = {}): Promise<Response> {
   const method = (init.method ?? "GET").toUpperCase();
 
@@ -160,11 +191,14 @@ export const api = {
   files: {
     list: () => json<FileDto[]>("/files"),
 
-    upload: (file: File, signal?: AbortSignal) => {
+    upload: async (file: File, signal?: AbortSignal, onProgress: (percent: number) => void = () => {
+    }) => {
       const form = new FormData();
       form.set("size", String(file.size));
       form.set("file", file);
-      return request("/files", { method: "POST", body: form, signal }).then(() => undefined);
+
+      const response = await sendWithProgress("/files", form, signal, onProgress);
+      if (!response.ok) throw await failure(response);
     },
 
     download: async (id: string, filename: string) => {

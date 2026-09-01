@@ -46,6 +46,12 @@
   }
 }
 
+.dialog--alert-compact {
+  @include desktop {
+    max-width: 500px;
+  }
+}
+
 .dialog--alert-narrow {
   @include desktop {
     max-width: 560px;

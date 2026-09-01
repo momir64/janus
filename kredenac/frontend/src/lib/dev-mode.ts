@@ -6,6 +6,7 @@
 //  login-email-field.ts.
 import type { FileDto, NoteDto, PasskeyDto } from "../types";
 import { clearSession } from "./session";
+import { sleep } from "./timing";
 import { api } from "./api";
 
 const LOREM =
@@ -60,7 +61,13 @@ export function enableDevMode(): void {
   let seq = 0;
 
   api.files.list = async () => files;
-  api.files.upload = async (file: File) => {
+  api.files.upload = async (file: File, signal?: AbortSignal, onProgress?: (percent: number) => void) => {
+    for (const percent of [8, 27, 51, 76, 99]) {
+      if (signal?.aborted) throw new DOMException("Upload was cancelled", "AbortError");
+      onProgress?.(percent);
+      await sleep(400);
+    }
+
     files = [
       ...files,
       {
