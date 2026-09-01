@@ -29,7 +29,8 @@ data class ChallengeResponse(
     val excludeCredentials: List<String>,
     val challenge: String,
     val rpId: String,
-    val email: String? = null
+    val email: String,
+    val userHandle: String
 )
 
 @Serializable

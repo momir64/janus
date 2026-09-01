@@ -148,7 +148,7 @@ export async function settingsPage(): Promise<Node> {
         alertDialog(["Now you can register", "a new passkey."], async () => {
           addButton.disabled = true;
           try {
-            await addPasskey(registration, "Kredenac account");
+            await addPasskey(registration);
             await loadPasskeys();
           } catch (error) {
             if (failure(error).dom !== "NotAllowedError")

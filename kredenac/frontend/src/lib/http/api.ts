@@ -13,6 +13,14 @@ export class ApiError extends Error {
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+interface ChallengeResponse {
+  excludeCredentials: string[];
+  challenge: string;
+  rpId: string;
+  email: string;
+  userHandle: string;
+}
+
 interface Session {
   csrfToken: string;
   expiresIn?: number;
@@ -132,10 +140,7 @@ export const api = {
       request("/auth/register/verify", withJsonBody({ email })).then(() => undefined),
 
     registerStart: (token: string) =>
-      json<{ excludeCredentials: string[]; challenge: string; rpId: string; email: string }>(
-        "/auth/register/start",
-        withJsonBody({ token })
-      ),
+      json<ChallengeResponse>("/auth/register/start", withJsonBody({ token })),
 
     registerFinish: (body: { clientDataJSON: string; attestationObject: string }) =>
       request("/auth/register/finish", withJsonBody(body)).then(() => undefined),
@@ -165,10 +170,7 @@ export const api = {
       authenticatorData: string;
       signature: string;
     }) =>
-      json<{ excludeCredentials: string[]; challenge: string; rpId: string; }>(
-        "/auth/credentials/add/verify",
-        withJsonBody(body)
-      ),
+      json<ChallengeResponse>("/auth/credentials/add/verify", withJsonBody(body)),
 
     addPasskeyFinish: (body: { clientDataJSON: string; attestationObject: string }) =>
       request("/auth/credentials/add/finish", withJsonBody(body)).then(() => undefined),

@@ -84,10 +84,19 @@ class UserService(
         )
     }
 
-    suspend fun credentialIdsFor(email: String): List<String> {
-        val userId = userRepository.findIdByEmail(email) ?: return emptyList()
-        return context(Owner(userId)) { credentialIds() }
+    private fun Uuid.toHandle() = Base64.UrlSafe.withPadding(ABSENT).encode(toByteArray())
+
+    suspend fun prepareRegistration(email: String): Pair<String, List<String>> {
+        val userId = userRepository.findIdByEmail(email) ?: userRepository.insert(email)
+        return userId.toHandle() to context(Owner(userId)) { credentialIds() }
     }
+
+    context(owner: Owner)
+    fun userHandle(): String = owner.userId.toHandle()
+
+    context(owner: Owner)
+    suspend fun email(): String = userRepository.findEmailById(owner.userId)
+        ?: throw NotFoundException("User not found")
 
     context(owner: Owner)
     suspend fun credentialIds(): List<String> = credentialRepository.findAll().map {

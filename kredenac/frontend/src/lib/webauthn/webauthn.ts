@@ -10,14 +10,15 @@ const PUB_KEY_CRED_PARAMS: PublicKeyCredentialParameters[] = [
 async function createCredential(
   challenge: string,
   rpId: string,
-  userName: string,
+  email: string,
+  userHandle: string,
   excludeCredentials: string[]
 ): Promise<PublicKeyCredential> {
   const credential = await navigator.credentials.create({
     publicKey: {
       challenge: fromBase64Url(challenge),
       rp: { id: rpId, name: "Kredenac" },
-      user: { id: crypto.getRandomValues(new Uint8Array(16)), name: userName, displayName: userName },
+      user: { id: fromBase64Url(userHandle), name: email, displayName: email },
       pubKeyCredParams: PUB_KEY_CRED_PARAMS,
       authenticatorSelection: { residentKey: "required", userVerification: "required" },
       attestation: "none",
@@ -32,12 +33,12 @@ async function createCredential(
 }
 
 export async function startRegistration(token: string): Promise<RegistrationHandle> {
-  const { challenge, rpId, email, excludeCredentials } = await api.auth.registerStart(token);
+  const { challenge, rpId, email, userHandle, excludeCredentials } = await api.auth.registerStart(token);
 
   return {
     email,
     complete: async () => {
-      const credential = await createCredential(challenge, rpId, email, excludeCredentials);
+      const credential = await createCredential(challenge, rpId, email, userHandle, excludeCredentials);
       const response = credential.response as AuthenticatorAttestationResponse;
 
       await api.auth.registerFinish({
@@ -84,6 +85,8 @@ export interface NewPasskeyChallenge {
   excludeCredentials: string[];
   challenge: string;
   rpId: string;
+  email: string;
+  userHandle: string;
 }
 
 export async function verifyForNewPasskey(): Promise<NewPasskeyChallenge> {
@@ -98,10 +101,9 @@ export async function reauthenticate(): Promise<string> {
 }
 
 export async function addPasskey(
-  { excludeCredentials, challenge, rpId }: NewPasskeyChallenge,
-  userName: string
+  { excludeCredentials, challenge, rpId, email, userHandle }: NewPasskeyChallenge
 ): Promise<void> {
-  const credential = await createCredential(challenge, rpId, userName, excludeCredentials);
+  const credential = await createCredential(challenge, rpId, email, userHandle, excludeCredentials);
   const response = credential.response as AuthenticatorAttestationResponse;
 
   await api.auth.addPasskeyFinish({

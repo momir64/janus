@@ -97,10 +97,10 @@ fun Route.authRoutes() {
                 val token = call.receive<TokenDto>().token
                 val session = webAuthnService.start(token)
                 val email = magicLinkService.getEmail(token)
-                val credentialIds = userService.credentialIdsFor(email)
+                val (userHandle, credentialIds) = userService.prepareRegistration(email)
 
                 call.setCookie("challenge_session", session.cookie, AUTH_PATH)
-                call.respond(ChallengeResponse(credentialIds, session.challenge, rpId, email))
+                call.respond(ChallengeResponse(credentialIds, session.challenge, rpId, email, userHandle))
             }
 
             post("/register/finish") {
@@ -157,7 +157,12 @@ fun Route.authRoutes() {
                 val session = webAuthnService.start(userService.issueReauthToken())
 
                 call.setCookie("challenge_session", session.cookie, AUTH_PATH)
-                call.respond(ChallengeResponse(userService.credentialIds(), session.challenge, rpId))
+                call.respond(
+                    ChallengeResponse(
+                        userService.credentialIds(), session.challenge, rpId,
+                        userService.email(), userService.userHandle()
+                    )
+                )
             }
 
             authenticatedPost("/credentials/add/finish") {
