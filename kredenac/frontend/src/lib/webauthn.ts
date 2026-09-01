@@ -91,6 +91,12 @@ export async function verifyForNewPasskey(): Promise<NewPasskeyChallenge> {
   return api.auth.addPasskeyVerify(await assertCredential(challenge, rpId));
 }
 
+export async function reauthenticate(): Promise<string> {
+  const { challenge, rpId } = await api.auth.reauthStart();
+  const { token } = await api.auth.reauthFinish(await assertCredential(challenge, rpId));
+  return token;
+}
+
 export async function addPasskey(
   { excludeCredentials, challenge, rpId }: NewPasskeyChallenge,
   userName: string

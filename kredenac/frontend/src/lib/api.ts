@@ -182,8 +182,21 @@ export const api = {
 
     deleteCredential: (id: string) => request(`/auth/credentials/${id}`, { method: "DELETE" }).then(() => undefined),
 
-    deleteAccount: async () => {
-      await request("/auth/account", { method: "DELETE" });
+    reauthStart: () => json<{ challenge: string; rpId: string }>("/auth/reauth/start", { method: "POST" }),
+
+    reauthFinish: (body: {
+      credentialId: string;
+      clientDataJSON: string;
+      authenticatorData: string;
+      signature: string;
+    }) => json<{ token: string }>("/auth/reauth/finish", withJsonBody(body)),
+
+    deleteAccount: async (token: string) => {
+      await request("/auth/account", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
       clearSession();
     },
   },

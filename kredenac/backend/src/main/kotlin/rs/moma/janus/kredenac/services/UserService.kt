@@ -5,6 +5,7 @@ import rs.moma.janus.kredenac.repositories.FileContentRepository
 import rs.moma.janus.kredenac.crypto.webauthn.ParsedAttestation
 import rs.moma.janus.kredenac.repositories.CredentialRepository
 import rs.moma.janus.kredenac.repositories.StoredCredential
+import rs.moma.janus.kredenac.common.UnauthorizedException
 import rs.moma.janus.kredenac.repositories.FilesRepository
 import rs.moma.janus.kredenac.repositories.NotesRepository
 import rs.moma.janus.kredenac.repositories.TokenRepository
@@ -61,13 +62,7 @@ class UserService(
     context(owner: Owner)
     private suspend fun notifyPasskeyChange(action: String, client: ClientInfo) {
         val email = userRepository.findEmailById(owner.userId) ?: return
-        val rows = listOf(
-            "Device" to client.device,
-            "Browser" to client.browser,
-            "IP address" to client.ip,
-            "Location" to client.location,
-            "Time" to Clock.System.now().toString()
-        ).filter { !it.second.isNullOrBlank() }
+        val rows = clientRows(client)
 
         emailService.notify(
             to = email,
@@ -136,7 +131,22 @@ class UserService(
     }
 
     context(owner: Owner)
-    suspend fun deleteAccount() {
+    suspend fun consumeReauthToken(token: String) {
+        if (tokenRepository.consume(token) != owner.userId.toString())
+            throw UnauthorizedException("Reauth token does not belong to this session")
+    }
+
+    private fun clientRows(client: ClientInfo) = listOf(
+        "Device" to client.device,
+        "Browser" to client.browser,
+        "IP address" to client.ip,
+        "Location" to client.location,
+        "Time" to Clock.System.now().toString()
+    ).filter { !it.second.isNullOrBlank() }
+
+    context(owner: Owner)
+    suspend fun deleteAccount(client: ClientInfo) {
+        val email = userRepository.findEmailById(owner.userId)
         refreshTokenRepository.deleteAllForUser()
         credentialRepository.deleteAll()
 
@@ -145,6 +155,18 @@ class UserService(
 
         notesRepository.deleteAll()
         userRepository.delete(owner.userId)
+
+        email?.let {
+            emailService.notify(
+                to = it,
+                subject = "Your Kredenac account was deleted",
+                html = """
+                    <p>Your Kredenac account and everything stored in it were permanently deleted.</p>
+                    <ul>${clientRows(client).joinToString("") { row -> "<li><b>${row.first}:</b> ${row.second}</li>" }}</ul>
+                    <p>If this wasn't you, the account cannot be recovered - register again to start over.</p>
+                """.trimIndent() // todo: move to email service, and use a better email resource template
+            )
+        }
     }
 
     context(owner: Owner)

@@ -28,13 +28,10 @@ class TokenRepository(
         redis.setex(key, duration.inWholeSeconds, stored)
     }
 
+    private suspend fun consumeKey(key: String): String = decrypt(key, redis.getdel(key))
+    suspend fun consume(token: String): String = consumeKey(keyOf(token))
     suspend fun consumePresence(token: String): Boolean = redis.getdel(keyOf(token)) != null
-
-    suspend fun consumeBond(challenge: String): String {
-        val key = keyOf(challenge)
-        val intermediate = decrypt(key, redis.getdel(key))
-        return decrypt(intermediate, redis.getdel(intermediate))
-    }
+    suspend fun consumeWithBond(challenge: String): String = consumeKey(consumeKey(keyOf(challenge)))
 
     suspend fun peek(token: String): String {
         val key = keyOf(token)
