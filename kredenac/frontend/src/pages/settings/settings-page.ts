@@ -1,4 +1,5 @@
 import { addPasskey, reauthenticate, verifyForNewPasskey, type NewPasskeyChallenge } from "../../lib/webauthn/webauthn";
+import { signalAcceptedCredentials, signalUserDetails } from "../../lib/webauthn/signal";
 import { setContentTab, type ContentTab } from "../../lib/state/tab-state";
 import { attachScrollbar } from "../../components/scroll-list/scrollbar";
 import { closeCutEdge } from "../../components/scroll-list/closing-edge";
@@ -22,22 +23,33 @@ const build = template(markup);
 export async function settingsPage(): Promise<Node> {
   const message = messageHint({ className: "settings-page__message", fitPadding: 32 });
 
-  let passkeyCount = 0;
+  let passkeys: PasskeyDto[] = [];
+  let account: { rpId: string; userHandle: string; email: string } | undefined;
 
   async function loadPasskeys(): Promise<void> {
     try {
-      const passkeys = await api.auth.listCredentials();
-      passkeyCount = passkeys.length;
-      renderPasskeys(passkeys);
+      const { rpId, userHandle, email, credentials } = await api.auth.listCredentials();
+      account = { rpId, userHandle, email };
+      passkeys = credentials;
+      renderPasskeys(credentials);
     } catch {
       message.show(SETTINGS_MESSAGES.listFailed);
+      return;
     }
+    await syncSignals(passkeys);
   }
 
-  function renderPasskeys(passkeys: PasskeyDto[]): void {
+  async function syncSignals(remaining: PasskeyDto[]): Promise<void> {
+    if (!account) return;
+    const { rpId, userHandle, email } = account;
+    await signalAcceptedCredentials(rpId, userHandle, remaining.map((passkey) => passkey.credentialId));
+    if (remaining.length) await signalUserDetails(rpId, userHandle, email);
+  }
+
+  function renderPasskeys(current: PasskeyDto[]): void {
     const ordered = [
-      ...passkeys.filter((passkey) => passkey.currentSession),
-      ...passkeys.filter((passkey) => !passkey.currentSession),
+      ...current.filter((passkey) => passkey.currentSession),
+      ...current.filter((passkey) => !passkey.currentSession),
     ];
 
     mount(
@@ -46,7 +58,7 @@ export async function settingsPage(): Promise<Node> {
         passkeyCard({
           passkey,
           onDelete: () => {
-            const last = passkeyCount === 1;
+            const last = passkeys.length === 1;
             const current = passkey.currentSession === true;
             const question = ["Are you sure you want to delete", "this passkey?"];
             const lastQuestion = [
@@ -67,6 +79,7 @@ export async function settingsPage(): Promise<Node> {
                   return;
                 }
                 if (last || current) {
+                  await syncSignals(passkeys.filter((it) => it.id !== passkey.id));
                   const session = isDesktop()
                     ? SETTINGS_MESSAGES.sessionPasskeyRemoved
                     : SETTINGS_MESSAGES.sessionPasskeyRemovedNarrow;
@@ -116,6 +129,7 @@ export async function settingsPage(): Promise<Node> {
               message.show(SETTINGS_MESSAGES.accountDeleteFailed);
               return;
             }
+            await syncSignals([]);
             navigate("/");
           },
           { frame: "wide" }

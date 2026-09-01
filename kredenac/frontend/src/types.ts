@@ -14,6 +14,7 @@ export interface NoteDto {
 
 export interface PasskeyDto {
   id: string;
+  credentialId: string;
   deviceName?: string;
   lastUsedIp?: string;
   lastUsedLocation?: string;

@@ -142,7 +142,7 @@ class CeremonyTest {
         val clientData = device.clientData("webauthn.get", session.challenge)
         val authData = device.authenticatorData(1)
 
-        assertFailsWith<UnauthorizedException> {
+        val error = assertFailsWith<UnauthorizedException> {
             webAuthn.verifyLogin(
                 Base64Url(device.encode(ByteArray(32) { 99 })),
                 Base64Url(device.encode(clientData)),
@@ -151,6 +151,8 @@ class CeremonyTest {
                 session.cookie, null, null
             )
         }
+
+        assertEquals("passkey_unknown", error.code)
     }
 
     @Test

@@ -28,7 +28,7 @@ suspend fun WebAuthnService.verifyLogin(
     verifyChallengeSession(clientData.challenge, cookie)
 
     val credential = credentialRepository.findByCredentialId(credentialId.decode())
-        ?: throw UnauthorizedException("Unknown credential")
+        ?: throw UnauthorizedException("Unknown credential", "passkey_unknown")
 
     val authenticatorDataBytes = authenticatorData.decode()
     verifyRpIdHash(authenticatorDataBytes)

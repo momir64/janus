@@ -48,8 +48,17 @@ data class AssertionRequest(
 )
 
 @Serializable
+data class CredentialsResponse(
+    val rpId: String,
+    val userHandle: String,
+    val email: String,
+    val credentials: List<CredentialDto>
+)
+
+@Serializable
 data class CredentialDto(
     val id: String,
+    val credentialId: String,
     val deviceName: String?,
     val currentSession: Boolean,
     val createdAt: String,

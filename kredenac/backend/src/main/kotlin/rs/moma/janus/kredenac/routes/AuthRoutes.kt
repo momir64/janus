@@ -17,6 +17,7 @@ import rs.moma.janus.kredenac.plugins.sessionCredentialId
 import rs.moma.janus.kredenac.dtos.RegisterVerifyRequest
 import rs.moma.janus.kredenac.plugins.magicLinkRateLimit
 import rs.moma.janus.kredenac.plugins.authenticatedPost
+import rs.moma.janus.kredenac.dtos.CredentialsResponse
 import rs.moma.janus.kredenac.plugins.authenticatedGet
 import rs.moma.janus.kredenac.dtos.AttestationRequest
 import rs.moma.janus.kredenac.dtos.ChallengeResponse
@@ -178,7 +179,12 @@ fun Route.authRoutes() {
         }
 
         authenticatedGet("/credentials") {
-            call.respond(userService.listCredentials(sessionCredentialId))
+            call.respond(
+                CredentialsResponse(
+                    rpId, userService.userHandle(), userService.email(),
+                    userService.listCredentials(sessionCredentialId)
+                )
+            )
         }
 
         authenticatedDelete("/credentials/{id}") {

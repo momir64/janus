@@ -184,6 +184,7 @@ class UserService(
 
     private fun StoredCredential.toDto(currentCredentialId: Uuid) = CredentialDto(
         id = id.toString(),
+        credentialId = Base64.UrlSafe.withPadding(ABSENT).encode(credentialId),
         deviceName = aaguid?.let(aaguidNames::get),
         currentSession = id == currentCredentialId,
         createdAt = createdAt.toString(),

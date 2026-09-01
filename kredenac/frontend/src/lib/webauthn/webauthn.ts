@@ -1,4 +1,6 @@
 import { fromBase64Url, toBase64Url } from "./base64url";
+import { signalUnknownCredential } from "./signal";
+import { failure } from "../http/failure";
 import { api } from "../http/api";
 
 const PUB_KEY_CRED_PARAMS: PublicKeyCredentialParameters[] = [
@@ -76,9 +78,33 @@ async function assertCredential(challenge: string, rpId: string) {
   };
 }
 
+interface Assertion {
+  credentialId: string;
+  clientDataJSON: string;
+  authenticatorData: string;
+  signature: string;
+}
+
+const REVOKED = ["passkey_unknown", "passkey_cloned"];
+
+async function submitAssertion<T>(
+  rpId: string,
+  assertion: Assertion,
+  send: (assertion: Assertion) => Promise<T>
+): Promise<T> {
+  try {
+    return await send(assertion);
+  } catch (error) {
+    const { code } = failure(error);
+    if (code && REVOKED.includes(code)) await signalUnknownCredential(rpId, assertion.credentialId);
+    throw error;
+  }
+}
+
 export async function login(): Promise<void> {
   const { challenge, rpId } = await api.auth.loginStart();
-  await api.auth.loginFinish(await assertCredential(challenge, rpId));
+  const assertion = await assertCredential(challenge, rpId);
+  await submitAssertion(rpId, assertion, (it) => api.auth.loginFinish(it));
 }
 
 export interface NewPasskeyChallenge {
@@ -91,12 +117,14 @@ export interface NewPasskeyChallenge {
 
 export async function verifyForNewPasskey(): Promise<NewPasskeyChallenge> {
   const { challenge, rpId } = await api.auth.addPasskeyStart();
-  return api.auth.addPasskeyVerify(await assertCredential(challenge, rpId));
+  const assertion = await assertCredential(challenge, rpId);
+  return submitAssertion(rpId, assertion, (it) => api.auth.addPasskeyVerify(it));
 }
 
 export async function reauthenticate(): Promise<string> {
   const { challenge, rpId } = await api.auth.reauthStart();
-  const { token } = await api.auth.reauthFinish(await assertCredential(challenge, rpId));
+  const assertion = await assertCredential(challenge, rpId);
+  const { token } = await submitAssertion(rpId, assertion, (it) => api.auth.reauthFinish(it));
   return token;
 }
 

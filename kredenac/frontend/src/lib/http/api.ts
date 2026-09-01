@@ -13,6 +13,13 @@ export class ApiError extends Error {
 
 const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 
+interface PasskeysResponse {
+  rpId: string;
+  userHandle: string;
+  email: string;
+  credentials: PasskeyDto[];
+}
+
 interface ChallengeResponse {
   excludeCredentials: string[];
   challenge: string;
@@ -180,7 +187,7 @@ export const api = {
       clearSession();
     },
 
-    listCredentials: () => json<PasskeyDto[]>("/auth/credentials"),
+    listCredentials: () => json<PasskeysResponse>("/auth/credentials"),
 
     deleteCredential: (id: string) => request(`/auth/credentials/${id}`, { method: "DELETE" }).then(() => undefined),
 
