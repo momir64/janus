@@ -182,8 +182,23 @@ fun Route.authRoutes() {
             call.respond(HttpStatusCode.NoContent)
         }
 
+        rateLimit(authChallengeRateLimit) {
+            authenticatedPost("/reauth/start") { startChallenge(call) }
+            authenticatedPost("/reauth/finish") {
+                val outcome = verifyAssertion(call)
+
+                if (outcome is LoginOutcome.CloneDetected) revokeClone(call, outcome)
+                if (outcome !is LoginOutcome.Success || outcome.userId != ownerId)
+                    throw UnauthorizedException("Passkey does not belong to this account")
+
+                call.clearChallengeSessionCookie()
+                call.respond(TokenDto(userService.issueReauthToken()))
+            }
+        }
+
         authenticatedDelete("/account") {
-            userService.deleteAccount()
+            userService.consumeReauthToken(call.receive<TokenDto>().token)
+            userService.deleteAccount(call.clientInfo())
             call.clearAuthCookies()
             call.respond(HttpStatusCode.NoContent)
         }

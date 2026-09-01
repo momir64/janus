@@ -45,7 +45,7 @@ class WebAuthnService(
 
     suspend fun consumeChallengeBond(challenge: String, cookie: String?): String {
         verifyChallengeCookie(challenge, cookie)
-        return tokenRepository.consumeBond(challenge)
+        return tokenRepository.consumeWithBond(challenge)
     }
 
     private fun verifyChallengeCookie(challenge: String, cookie: String?) {

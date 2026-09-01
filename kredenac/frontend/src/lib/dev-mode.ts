@@ -100,5 +100,7 @@ export function enableDevMode(): void {
   };
   api.auth.refresh = async () => undefined;
   api.auth.logout = async () => clearSession();
+  api.auth.reauthStart = async () => ({ challenge: "dev", rpId: "localhost" });
+  api.auth.reauthFinish = async () => ({ token: "dev-reauth" });
   api.auth.deleteAccount = async () => clearSession();
 }

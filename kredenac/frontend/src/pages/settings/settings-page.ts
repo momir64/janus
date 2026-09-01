@@ -1,4 +1,4 @@
-import { addPasskey, verifyForNewPasskey, type NewPasskeyChallenge } from "../../lib/webauthn";
+import { addPasskey, reauthenticate, verifyForNewPasskey, type NewPasskeyChallenge } from "../../lib/webauthn";
 import { attachScrollbar } from "../../components/scroll-list/scrollbar";
 import { closeCutEdge } from "../../components/scroll-list/closing-edge";
 import { messageHint } from "../../components/message-hint/message-hint";
@@ -35,9 +35,14 @@ export async function settingsPage(): Promise<Node> {
   }
 
   function renderPasskeys(passkeys: PasskeyDto[]): void {
+    const ordered = [
+      ...passkeys.filter((passkey) => passkey.currentSession),
+      ...passkeys.filter((passkey) => !passkey.currentSession),
+    ];
+
     mount(
       list,
-      ...passkeys.map((passkey) =>
+      ...ordered.map((passkey) =>
         passkeyCard({
           passkey,
           onDelete: () => {
@@ -82,22 +87,41 @@ export async function settingsPage(): Promise<Node> {
   }
 
   function deleteAccount(): void {
-    confirmDialog(
+    alertDialog(
       [
-        "This action will permanently and irreversibly",
-        "delete all data associated with this account.",
-        "Are you sure you want to proceed?",
+        "Before deleting your account, please",
+        "use one of your registered passkeys",
+        "to verify that it's really you.",
       ],
       async () => {
+        let token: string;
         try {
-          await api.auth.deleteAccount();
-        } catch {
-          message.show(SETTINGS_MESSAGES.accountDeleteFailed);
+          token = await reauthenticate();
+        } catch (error) {
+          if (failure(error).dom !== "NotAllowedError")
+            message.show(SETTINGS_MESSAGES.passkeyVerifyFailed);
           return;
         }
-        navigate("/");
+
+        confirmDialog(
+          [
+            "This action will permanently and irreversibly",
+            "delete all data associated with this account.",
+            "Are you sure you want to proceed?",
+          ],
+          async () => {
+            try {
+              await api.auth.deleteAccount(token);
+            } catch {
+              message.show(SETTINGS_MESSAGES.accountDeleteFailed);
+              return;
+            }
+            navigate("/");
+          },
+          { frame: "wide" }
+        );
       },
-      { frame: "wide" }
+      { dismissible: true, frame: "wide" }
     );
   }
 
