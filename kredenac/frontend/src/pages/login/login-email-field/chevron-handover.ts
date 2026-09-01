@@ -1,4 +1,4 @@
-import { sleep } from "../../../lib/timing";
+import { sleep } from "../../../lib/render/timing";
 
 const CHEVRON_STAGGER_MS = 70;
 const CORNER_SETTLE_MS = 340;

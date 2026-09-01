@@ -1,6 +1,6 @@
-import { formatSize, formatTimestamp } from "../../../lib/format";
+import { formatSize, formatTimestamp } from "../../../lib/strings/format";
 import { iconButton } from "../../../components/icon/icon";
-import { ref, template } from "../../../lib/dom";
+import { ref, template } from "../../../lib/render/dom";
 import type { FileDto } from "../../../types";
 import markup from "./file-card.html?raw";
 

@@ -1,5 +1,5 @@
+import { ref, template } from "../../../lib/render/dom";
 import { icon } from "../../../components/icon/icon";
-import { ref, template } from "../../../lib/dom";
 import markup from "./dropzone.html?raw";
 
 interface DropzoneOptions {

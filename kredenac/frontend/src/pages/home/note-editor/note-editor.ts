@@ -1,7 +1,7 @@
+import { NOTE_MESSAGES, type NoteMessage } from "../../../lib/strings/messages";
 import { messageHint } from "../../../components/message-hint/message-hint";
-import { NOTE_MESSAGES, type NoteMessage } from "../../../lib/messages";
 import { button } from "../../../components/button/button";
-import { ref, template } from "../../../lib/dom";
+import { ref, template } from "../../../lib/render/dom";
 import type { NoteDto } from "../../../types";
 import markup from "./note-editor.html?raw";
 

@@ -1,4 +1,4 @@
-import { mount } from "./dom";
+import { mount } from "../render/dom";
 
 type Route = {
   path: string;

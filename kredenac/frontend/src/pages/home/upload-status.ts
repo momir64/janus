@@ -1,5 +1,5 @@
 import type { DropzoneHandle } from "./dropzone/dropzone";
-import { h } from "../../lib/dom";
+import { h } from "../../lib/render/dom";
 
 interface UploadStatusOptions {
   zone: DropzoneHandle;

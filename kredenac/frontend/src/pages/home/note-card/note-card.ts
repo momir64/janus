@@ -1,7 +1,7 @@
 import { cornerHatch } from "../../../components/decorations/decorations";
+import { formatTimestamp } from "../../../lib/strings/format";
 import { iconButton } from "../../../components/icon/icon";
-import { formatTimestamp } from "../../../lib/format";
-import { ref, template } from "../../../lib/dom";
+import { ref, template } from "../../../lib/render/dom";
 import type { NoteDto } from "../../../types";
 import markup from "./note-card.html?raw";
 

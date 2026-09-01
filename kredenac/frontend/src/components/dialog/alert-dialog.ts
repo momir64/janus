@@ -6,7 +6,6 @@ interface AlertOptions {
   dismissible?: boolean;
 }
 
-// "wide" is the shared frame the confirm dialogs use, the rest are alert-only.
 const frameVariant = (frame: AlertOptions["frame"]): string =>
   frame === "wide" ? "wide" : frame ? `alert-${frame}` : "alert";
 

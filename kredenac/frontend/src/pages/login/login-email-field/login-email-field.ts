@@ -1,12 +1,12 @@
 import { chevronTrail, closeGlyph } from "../../../components/decorations/decorations";
-import { retypePlaceholder } from "../../../lib/typewriter";
-import type { LoginMessage } from "../../../lib/messages";
+import { retypePlaceholder } from "../../../lib/render/typewriter";
+import type { LoginMessage } from "../../../lib/strings/messages";
+import { isDesktop } from "../../../lib/render/breakpoint";
+import { interceptBack } from "../../../lib/state/router";
 import { collapseChevrons } from "./chevron-handover";
-import { interceptBack } from "../../../lib/router";
-import { isDesktop } from "../../../lib/breakpoint";
-import { failure } from "../../../lib/failure";
-import { api } from "../../../lib/api";
-import { h } from "../../../lib/dom";
+import { failure } from "../../../lib/http/failure";
+import { api } from "../../../lib/http/api";
+import { h } from "../../../lib/render/dom";
 
 const EMAIL_PLACEHOLDER = "john.smith@example.com";
 const PLACEHOLDER_SPEED_MS = 55;

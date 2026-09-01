@@ -1,4 +1,4 @@
-import { ref, template } from "../../lib/dom";
+import { ref, template } from "../../lib/render/dom";
 import { iconButton } from "../icon/icon";
 import markup from "./dialog.html?raw";
 

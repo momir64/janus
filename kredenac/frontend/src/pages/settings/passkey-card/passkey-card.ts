@@ -1,6 +1,6 @@
+import { formatTimestamp } from "../../../lib/strings/format";
+import { h, ref, template } from "../../../lib/render/dom";
 import { iconButton } from "../../../components/icon/icon";
-import { formatTimestamp } from "../../../lib/format";
-import { h, ref, template } from "../../../lib/dom";
 import type { PasskeyDto } from "../../../types";
 import markup from "./passkey-card.html?raw";
 

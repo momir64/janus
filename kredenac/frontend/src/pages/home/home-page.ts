@@ -1,26 +1,26 @@
-import { contentTab, setContentTab, type ContentTab } from "../../lib/tab-state";
+import { contentTab, setContentTab, type ContentTab } from "../../lib/state/tab-state";
 import { closeAllDialogs, openDialog } from "../../components/dialog/dialog";
+import { FILE_MESSAGES, NOTE_MESSAGES } from "../../lib/strings/messages";
 import { attachScrollbar } from "../../components/scroll-list/scrollbar";
 import { closeCutEdge } from "../../components/scroll-list/closing-edge";
+import { h, mount, onResize, ref, template } from "../../lib/render/dom";
 import { messageHint } from "../../components/message-hint/message-hint";
 import { confirmDialog } from "../../components/dialog/confirm-dialog";
-import { FILE_MESSAGES, NOTE_MESSAGES } from "../../lib/messages";
-import { h, mount, onResize, ref, template } from "../../lib/dom";
+import { optionalBreaks } from "../../lib/render/optional-breaks";
 import { appNav, type AppTab } from "../../components/nav/nav";
-import { optionalBreaks } from "../../lib/optional-breaks";
+import { truncateFilename } from "../../lib/strings/format";
 import { button } from "../../components/button/button";
+import { isDesktop } from "../../lib/render/breakpoint";
 import { noteEditor } from "./note-editor/note-editor";
 import type { FileDto, NoteDto } from "../../types";
-import { truncateFilename } from "../../lib/format";
+import { navigate } from "../../lib/state/router";
+import { failure } from "../../lib/http/failure";
 import { fileCard } from "./file-card/file-card";
-import { isDesktop } from "../../lib/breakpoint";
 import { noteCard } from "./note-card/note-card";
 import { dropzone } from "./dropzone/dropzone";
 import { uploadStatus } from "./upload-status";
-import { failure } from "../../lib/failure";
-import { navigate } from "../../lib/router";
 import markup from "./home-page.html?raw";
-import { api } from "../../lib/api";
+import { api } from "../../lib/http/api";
 
 const build = template(markup);
 

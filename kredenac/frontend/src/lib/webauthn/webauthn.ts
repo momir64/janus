@@ -1,5 +1,5 @@
 import { fromBase64Url, toBase64Url } from "./base64url";
-import { api } from "./api";
+import { api } from "../http/api";
 
 const PUB_KEY_CRED_PARAMS: PublicKeyCredentialParameters[] = [
   { type: "public-key", alg: -7 },

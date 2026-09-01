@@ -1,4 +1,4 @@
-import { h } from "../../lib/dom";
+import { h } from "../../lib/render/dom";
 
 import stickyNote from "../../assets/icons/sticky-note.svg";
 import deleteIcon from "../../assets/icons/delete.svg";

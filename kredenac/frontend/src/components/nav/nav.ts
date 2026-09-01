@@ -1,9 +1,9 @@
+import { contentTab } from "../../lib/state/tab-state";
 import { closeAllDialogs } from "../dialog/dialog";
 import { icon, type IconName } from "../icon/icon";
-import { contentTab } from "../../lib/tab-state";
-import { navigate } from "../../lib/router";
-import { api } from "../../lib/api";
-import { h } from "../../lib/dom";
+import { navigate } from "../../lib/state/router";
+import { api } from "../../lib/http/api";
+import { h } from "../../lib/render/dom";
 
 export type AppTab = "files" | "notes" | "settings";
 

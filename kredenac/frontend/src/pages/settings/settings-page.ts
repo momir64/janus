@@ -1,21 +1,21 @@
-import { addPasskey, reauthenticate, verifyForNewPasskey, type NewPasskeyChallenge } from "../../lib/webauthn";
+import { addPasskey, reauthenticate, verifyForNewPasskey, type NewPasskeyChallenge } from "../../lib/webauthn/webauthn";
+import { setContentTab, type ContentTab } from "../../lib/state/tab-state";
 import { attachScrollbar } from "../../components/scroll-list/scrollbar";
 import { closeCutEdge } from "../../components/scroll-list/closing-edge";
 import { messageHint } from "../../components/message-hint/message-hint";
 import { confirmDialog } from "../../components/dialog/confirm-dialog";
-import { setContentTab, type ContentTab } from "../../lib/tab-state";
+import { mount, onResize, ref, template } from "../../lib/render/dom";
 import { alertDialog } from "../../components/dialog/alert-dialog";
-import { mount, onResize, ref, template } from "../../lib/dom";
+import { SETTINGS_MESSAGES } from "../../lib/strings/messages";
 import { appNav, logout } from "../../components/nav/nav";
 import { passkeyCard } from "./passkey-card/passkey-card";
 import { button } from "../../components/button/button";
-import { SETTINGS_MESSAGES } from "../../lib/messages";
-import { isDesktop } from "../../lib/breakpoint";
+import { isDesktop } from "../../lib/render/breakpoint";
+import { navigate } from "../../lib/state/router";
+import { failure } from "../../lib/http/failure";
 import markup from "./settings-page.html?raw";
 import type { PasskeyDto } from "../../types";
-import { failure } from "../../lib/failure";
-import { navigate } from "../../lib/router";
-import { api } from "../../lib/api";
+import { api } from "../../lib/http/api";
 
 const build = template(markup);
 

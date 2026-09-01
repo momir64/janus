@@ -1,5 +1,5 @@
 import { clearSession, getCsrfToken, setCsrfToken } from "./session";
-import type { FileDto, NoteDto, PasskeyDto } from "../types";
+import type { FileDto, NoteDto, PasskeyDto } from "../../types";
 
 export class ApiError extends Error {
   constructor(

@@ -1,15 +1,15 @@
+import { LOGIN_MESSAGES, type LoginMessage } from "../../lib/strings/messages";
 import { messageHint } from "../../components/message-hint/message-hint";
 import { loginEmailField } from "./login-email-field/login-email-field";
-import { LOGIN_MESSAGES, type LoginMessage } from "../../lib/messages";
 import { hatchMarks } from "../../components/decorations/decorations";
-import { h, onResize, ref, template } from "../../lib/dom";
+import { h, onResize, ref, template } from "../../lib/render/dom";
+import { retype, typeInto } from "../../lib/render/typewriter";
 import { button } from "../../components/button/button";
-import { retype, typeInto } from "../../lib/typewriter";
+import { login } from "../../lib/webauthn/webauthn";
+import { navigate } from "../../lib/state/router";
+import { failure } from "../../lib/http/failure";
 import cabinet from "../../assets/cabinet.webp";
-import { failure } from "../../lib/failure";
-import { navigate } from "../../lib/router";
 import markup from "./login-page.html?raw";
-import { login } from "../../lib/webauthn";
 
 const build = template(markup);
 

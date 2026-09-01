@@ -1,4 +1,4 @@
-import { svg } from "../../lib/dom";
+import { svg } from "../../lib/render/dom";
 
 const TRAIL_WIDTH = 131;
 const TRAIL_HEIGHT = 22;

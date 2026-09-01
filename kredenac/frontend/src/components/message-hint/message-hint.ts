@@ -1,6 +1,6 @@
-import { WORD_JOINER } from "../../lib/typewriter";
-import { h, onResize } from "../../lib/dom";
-import { sleep } from "../../lib/timing";
+import { WORD_JOINER } from "../../lib/render/typewriter";
+import { h, onResize } from "../../lib/render/dom";
+import { sleep } from "../../lib/render/timing";
 
 const TYPE_MS = 22;
 const DELETE_MS = 12;
