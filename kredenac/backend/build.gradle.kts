@@ -41,3 +41,21 @@ dependencies {
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
 }
+
+// todo: will need change when secrets manager is implemented
+tasks.test {
+    val envFile = rootProject.file("../.env")
+    if (envFile.exists()) {
+        envFile.readLines()
+            .map { it.trim() }
+            .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+            .forEach { line ->
+                val value = line.substringAfter("=").trim()
+                environment(
+                    line.substringBefore("=").trim(),
+                    if (value.length >= 2 && value.first() in "\"'" && value.first() == value.last())
+                        value.substring(1, value.length - 1) else value
+                )
+            }
+    }
+}

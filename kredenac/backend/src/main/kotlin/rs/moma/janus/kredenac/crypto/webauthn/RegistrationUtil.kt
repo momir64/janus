@@ -42,7 +42,7 @@ private fun WebAuthnService.parseAttestation(attestationObject: Base64Url): Pars
     return parseAuthData(authData)
 }
 
-private fun parseAuthData(authData: ByteArray): ParsedAttestation {
+internal fun parseAuthData(authData: ByteArray): ParsedAttestation {
     if (authData.size < 37) throw BadRequestException("authData too short")
 
     val flags = authData[32]

@@ -12,7 +12,6 @@ object NotesTable : Table("notes") {
     val encryptedTitleIv = binary("encrypted_title_iv")
     val encryptedContent = binary("encrypted_content")
     val encryptedContentIv = binary("encrypted_content_iv")
-    val createdAt = timestamp("created_at").clientDefault { Clock.System.now() }
     val updatedAt = timestamp("updated_at").clientDefault { Clock.System.now() }
     override val primaryKey = PrimaryKey(id)
 }

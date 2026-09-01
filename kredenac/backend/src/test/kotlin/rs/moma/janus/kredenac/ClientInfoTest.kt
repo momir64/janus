@@ -4,12 +4,6 @@ import rs.moma.janus.kredenac.common.clientInfo
 import kotlin.test.assertEquals
 import kotlin.test.Test
 
-// TODO: this is the only test. The things worth covering, roughly in order of what
-//  would hurt most if it broke: a challenge being usable only once and only with its
-//  cookie, a sibling challenge dying once its token is spent, the credential integrity
-//  hash rejecting a tampered row, one user never reaching another's rows through the
-//  Owner scope, and the status/code shape of the error responses.
-
 class ClientInfoTest {
     private fun check(agent: String, browser: String?, device: String?) {
         val info = clientInfo(agent, null, null)

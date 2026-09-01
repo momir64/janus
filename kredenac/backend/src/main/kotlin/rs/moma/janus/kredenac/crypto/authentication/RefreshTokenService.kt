@@ -9,6 +9,7 @@ import kotlin.time.Duration.Companion.days
 import org.slf4j.LoggerFactory.getLogger
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
+import kotlin.time.Duration
 import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
@@ -16,10 +17,10 @@ data class IssuedRefreshToken(val refreshToken: String, val chainId: Uuid, val c
 
 class RefreshTokenService(
     private val repository: RefreshTokenRepository,
-    private val hmacSecret: ByteArray
+    private val hmacSecret: ByteArray,
+    private val rotationGracePeriod: Duration = 5.seconds
 ) {
     private val secureRandom = SecureRandom()
-    private val rotationGracePeriod = 5.seconds
     private val log = getLogger(RefreshTokenService::class.java)
 
     suspend fun issue(userId: Uuid, credentialId: Uuid, chainId: Uuid = Uuid.random()): IssuedRefreshToken {
