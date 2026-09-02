@@ -6,16 +6,13 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import rs.moma.janus.kredenac.common.Env
 import io.ktor.server.netty.Netty
-import java.io.FileInputStream
 import java.security.KeyStore
 import java.io.File
 
 fun main() {
+    val keyStoreFile = File(Env.get("BACKEND_TLS_KEYSTORE_PATH"))
     val keyStore = KeyStore.getInstance("PKCS12").apply {
-        load(
-            FileInputStream(Env.get("BACKEND_TLS_KEYSTORE_PATH")),
-            Env.get("BACKEND_TLS_KEYSTORE_PASSWORD").toCharArray()
-        )
+        load(keyStoreFile.inputStream(), Env.get("BACKEND_TLS_KEYSTORE_PASSWORD").toCharArray())
     }
 
     embeddedServer(
@@ -29,7 +26,7 @@ fun main() {
                 privateKeyPassword = { Env.get("BACKEND_TLS_KEYSTORE_PASSWORD").toCharArray() }
             ) {
                 port = Env.get("KTOR_PORT").toInt()
-                keyStorePath = File(Env.get("BACKEND_TLS_KEYSTORE_PATH"))
+                keyStorePath = keyStoreFile
             }
         },
         module = Application::module

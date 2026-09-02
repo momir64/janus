@@ -3,7 +3,6 @@ package rs.moma.janus.kredenac
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
 import javax.crypto.AEADBadTagException
 import kotlin.test.assertContentEquals
-import java.io.ByteArrayInputStream
 import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertEquals
@@ -71,11 +70,11 @@ class AesUtilTest {
         val content = ByteArray(4096) { (it % 251).toByte() }
         val aad = "file-id".toByteArray()
 
-        val encrypted = AesUtil.encrypt(key, ByteArrayInputStream(content), aad)
+        val encrypted = AesUtil.encrypt(key, content.inputStream(), aad)
         val ciphertext = encrypted.stream.use { it.readBytes() }
         assertEquals(content.size + AesUtil.GCM_TAG_LENGTH_BYTES, ciphertext.size)
 
-        val decrypted = AesUtil.decrypt(key, ByteArrayInputStream(ciphertext), encrypted.iv, aad)
+        val decrypted = AesUtil.decrypt(key, ciphertext.inputStream(), encrypted.iv, aad)
         assertContentEquals(content, decrypted.use { it.readBytes() })
     }
 }
