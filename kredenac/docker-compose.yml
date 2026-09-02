@@ -1,6 +1,14 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+    compress: "true"
+
 services:
   postgres:
     container_name: postgres
+    logging: *logging
     image: postgres:17
     restart: unless-stopped
     environment:
@@ -13,6 +21,7 @@ services:
 
   redis:
     container_name: redis
+    logging: *logging
     image: redis:8-alpine
     restart: unless-stopped
     volumes:
@@ -31,6 +40,7 @@ services:
 
   minio:
     container_name: minio
+    logging: *logging
     image: minio/minio
     restart: unless-stopped
     command: server /data --address ":${MINIO_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
@@ -42,6 +52,7 @@ services:
 
   backend:
     container_name: backend
+    logging: *logging
     build: .
     restart: unless-stopped
     env_file: .env
@@ -62,6 +73,7 @@ services:
 
   cloudflared:
     container_name: cloudflared
+    logging: *logging
     image: cloudflare/cloudflared:latest
     command: tunnel run
     environment:
