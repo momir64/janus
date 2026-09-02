@@ -105,7 +105,7 @@ class UserService(
         deleteCredential(credentialId)
     }
 
-    suspend fun revokeCompromisedCredential(userId: Uuid, credentialId: Uuid) {
+    suspend fun revokeCompromisedCredential(userId: Uuid, credentialId: Uuid, client: ClientInfo) {
         try {
             context(Owner(userId)) {
                 deleteCredential(credentialId)
@@ -114,7 +114,7 @@ class UserService(
         }
 
         val email = userRepository.findEmailById(userId) ?: return
-        emailService.notifyPasskeyDisabled(email)
+        emailService.notifyPasskeyDisabled(email, client)
     }
 
     context(owner: Owner)
@@ -124,7 +124,7 @@ class UserService(
     }
 
     context(owner: Owner)
-    suspend fun deleteAccount(client: ClientInfo) {
+    suspend fun deleteAccount() {
         val email = userRepository.findEmailById(owner.userId)
         refreshTokenRepository.deleteAllForUser()
         credentialRepository.deleteAll()
@@ -135,7 +135,7 @@ class UserService(
         notesRepository.deleteAll()
         userRepository.delete(owner.userId)
 
-        email?.let { emailService.notifyAccountDeleted(it, client) }
+        email?.let { emailService.notifyAccountDeleted(it) }
     }
 
     context(owner: Owner)

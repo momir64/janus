@@ -77,7 +77,7 @@ fun Route.authRoutes() {
 
     suspend fun revokeClone(call: ApplicationCall, outcome: LoginOutcome.CloneDetected): Nothing {
         try {
-            userService.revokeCompromisedCredential(outcome.userId, outcome.credentialId)
+            userService.revokeCompromisedCredential(outcome.userId, outcome.credentialId, call.clientInfo())
         } catch (e: Exception) {
             call.application.log.error("Failed to notify compromised credentialId=${outcome.credentialId}", e)
         }
@@ -209,7 +209,7 @@ fun Route.authRoutes() {
 
         authenticatedDelete("/account") {
             userService.consumeReauthToken(call.receive<TokenDto>().token)
-            userService.deleteAccount(call.clientInfo())
+            userService.deleteAccount()
             call.clearAuthCookies()
             call.respond(HttpStatusCode.NoContent)
         }

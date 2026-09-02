@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="color-scheme" content="light dark"/>
+  <meta name="supported-color-schemes" content="light dark"/>
+  <title>{{heading}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500&family=Spline+Sans+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      color-scheme: light dark;
+      supported-color-schemes: light dark;
+    }
+
+    .button:hover {
+      border-color: #313131 !important;
+    }
+
+    .button:hover .button__mark {
+      border-color: #6e6e6e !important;
+    }
+
+    .button:hover .button__label {
+      color: #000000 !important;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .email__card {
+        background-color: #121211 !important;
+        border-color: #6e6e6e !important;
+      }
+
+      .email__heading,
+      .details__value {
+        color: #cecece !important;
+      }
+
+      .email__text {
+        color: #cecece !important;
+      }
+
+      .email__brand,
+      .email__note,
+      .details__label {
+        color: #afafaf !important;
+      }
+
+      .button {
+        border-color: #909090 !important;
+      }
+
+      .button__mark {
+        border-color: #6e6e6e !important;
+      }
+
+      .button__label {
+        color: #cecece !important;
+        font-weight: 400 !important;
+      }
+
+      .button:hover {
+        border-color: #cecece !important;
+      }
+
+      .button:hover .button__mark {
+        border-color: #909090 !important;
+      }
+
+      .button:hover .button__label {
+        color: #ffffff !important;
+      }
+    }
+
+    @media (max-width: 420px) {
+      .email__body {
+        padding: 20px 20px 28px !important;
+      }
+
+      .email__break {
+        display: none !important;
+      }
+
+      .email__expiry--desktop {
+        display: none !important;
+      }
+
+      .email__expiry--mobile {
+        display: block !important;
+      }
+
+      .button__cell {
+        padding: 0 10px !important;
+      }
+
+      .button__label {
+        font-size: 15px !important;
+        letter-spacing: 1px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td align="center" style="padding: 32px 0">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" bgcolor="#f4f4f3" class="email__card" style="background-color: #f4f4f3; border: 1px solid #555555">
+        <tr>
+          <td class="email__body" style="padding: 32px; font-family: 'Spline Sans Mono', ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 14px; font-weight: 300; line-height: 1.6">
+            <div class="email__heading" style="padding-bottom: 24px; font-family: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif; font-size: 18px; font-weight: 500; letter-spacing: 2px; text-transform: uppercase; color: #121211">{{heading}}</div>
+            {{content}}
+          </td>
+        </tr>
+      </table>
+      <div style="padding-top: 16px"><a href="{{home}}" class="email__brand" style="font-family: 'Chakra Petch', ui-sans-serif, system-ui, sans-serif; font-size: 12px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; color: #121211; text-decoration: none">Kredenac</a></div>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

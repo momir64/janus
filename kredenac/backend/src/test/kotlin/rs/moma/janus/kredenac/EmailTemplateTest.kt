@@ -7,7 +7,7 @@ import kotlin.test.assertTrue
 import kotlin.test.Test
 
 class EmailTemplateTest {
-    private val emails = EmailService("test-key", "kredenac@moma.rs")
+    private val emails = EmailService("test-key", "kredenac@moma.rs", "https://kredenac.moma.rs")
 
     private fun assertNoPlaceholdersLeft(html: String) =
         assertFalse(html.contains("{{"), "an unfilled placeholder survived rendering")
@@ -29,18 +29,21 @@ class EmailTemplateTest {
         val rows = listOf("Device" to "Windows", "Time" to "21:33 2.9.2026.")
 
         assertNoPlaceholdersLeft(emails.render("passkey-change", "subject", mapOf("action" to "added to"), rows))
-        assertNoPlaceholdersLeft(emails.render("passkey-disabled", "subject"))
-        assertNoPlaceholdersLeft(emails.render("account-deleted", "subject", rows = rows))
+        assertNoPlaceholdersLeft(emails.render("passkey-disabled", "subject", rows = rows))
+        assertNoPlaceholdersLeft(emails.render("account-deleted", "subject"))
     }
 
     @Test
     fun testEachClientDetailBecomesItsOwnRow() {
+        fun rowCount(html: String) = Regex("<tr[ >]").findAll(html).count()
+
+        val bare = emails.render("passkey-change", "subject", mapOf("action" to "added to"))
         val html = emails.render(
-            "account-deleted", "subject",
+            "passkey-change", "subject", mapOf("action" to "added to"),
             rows = listOf("Device" to "Windows", "Browser" to "Firefox", "IP address" to "203.0.113.7")
         )
 
-        assertEquals(3, Regex("padding: 6px 16px").findAll(html).count())
+        assertEquals(3, rowCount(html) - rowCount(bare))
         assertTrue(html.contains("203.0.113.7"), "a detail value is missing")
         assertTrue(html.contains("Browser"), "a detail label is missing")
     }
@@ -49,7 +52,7 @@ class EmailTemplateTest {
     @Test
     fun testValuesCannotSmuggleMarkupIntoTheEmail() {
         val html = emails.render(
-            "account-deleted", "subject",
+            "passkey-change", "subject", mapOf("action" to "added to"),
             rows = listOf("Location" to "<script>alert(1)</script>")
         )
 

@@ -70,7 +70,7 @@ fun Application.configureDependencies() {
 
             single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get()) }
 
-            single { EmailService(Env.get("RESEND_API_KEY"), Env.get("RESEND_FROM_EMAIL")) }
+            single { EmailService(Env.get("RESEND_API_KEY"), Env.get("RESEND_FROM_EMAIL"), get(named("rpOrigin"))) }
             single { MagicLinkService(get(), get(), get(), get(named("rpOrigin"))) }
 
             single {
