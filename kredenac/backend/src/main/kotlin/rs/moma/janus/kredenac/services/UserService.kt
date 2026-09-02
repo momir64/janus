@@ -126,13 +126,13 @@ class UserService(
     context(owner: Owner)
     suspend fun deleteAccount() {
         val email = userRepository.findEmailById(owner.userId)
-        refreshTokenRepository.deleteAllForUser()
-        credentialRepository.deleteAll()
 
         filesRepository.findAll().forEach { fileContentRepository.delete(it.id) }
         filesRepository.deleteAll()
-
         notesRepository.deleteAll()
+
+        refreshTokenRepository.deleteAllForUser()
+        credentialRepository.deleteAll()
         userRepository.delete(owner.userId)
 
         email?.let { emailService.notifyAccountDeleted(it) }
