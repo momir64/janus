@@ -43,6 +43,14 @@ rm backend.csr
 openssl pkcs12 -export -in backend.crt -inkey backend.key \
   -out backend.p12 -name backend -passout env:KREDENAC_KEYSTORE_PW
 
+# The containers do not run as root: redis reads its key as uid 999, the backend as its own
+# user. Only meaningful when generating on the deployment host, hence the root check.
+if [ "$(id -u)" = 0 ]; then
+  chmod 644 backend.p12 redis-truststore.jks
+  chown 999:1000 redis.key
+  chmod 640 redis.key
+fi
+
 echo "Done. Generated in ./certs:"
 echo "  ca.crt / ca.key            — the local CA"
 echo "  redis.crt / redis.key      — Redis's TLS cert, for the container"
