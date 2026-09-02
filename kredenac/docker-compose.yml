@@ -2,13 +2,12 @@ services:
   postgres:
     container_name: postgres
     image: postgres:17
+    restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     command: -p ${POSTGRES_PORT}
-    ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     volumes:
       - pgdata:/var/lib/postgresql/data
 
@@ -16,8 +15,6 @@ services:
     container_name: redis
     image: redis:8-alpine
     restart: unless-stopped
-    ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
     volumes:
       - ./certs/redis.crt:/tls/redis.crt:ro
       - ./certs/redis.key:/tls/redis.key:ro
@@ -35,15 +32,33 @@ services:
   minio:
     container_name: minio
     image: minio/minio
-    command: server /data --address ":${MINIO_API_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
+    restart: unless-stopped
+    command: server /data --address ":${MINIO_PORT}" --console-address ":${MINIO_CONSOLE_PORT}"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-    ports:
-      - "${MINIO_API_PORT}:${MINIO_API_PORT}"
-      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"
     volumes:
       - miniodata:/data
+
+  backend:
+    container_name: backend
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      MINIO_HOST: minio
+      BACKEND_TLS_KEYSTORE_PATH: /certs/backend.p12
+      REDIS_TLS_TRUSTSTORE_PATH: /certs/redis-truststore.jks
+      FRONTEND_DIST_PATH: /app/static
+    volumes:
+      - ./certs/backend.p12:/certs/backend.p12:ro
+      - ./certs/redis-truststore.jks:/certs/redis-truststore.jks:ro
+    depends_on:
+      - postgres
+      - redis
+      - minio
 
   cloudflared:
     container_name: cloudflared
@@ -53,6 +68,8 @@ services:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
     volumes:
       - ./certs/ca.crt:/certs/ca.crt:ro
+    depends_on:
+      - backend
     restart: unless-stopped
 
 volumes:

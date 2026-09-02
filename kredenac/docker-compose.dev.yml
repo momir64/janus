@@ -1,0 +1,19 @@
+# Publishes the data services to localhost so the backend can be run from the IDE.
+# Deliberately not named docker-compose.override.yml: that name is applied automatically,
+# which would reopen these ports on the deployed box too.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres redis minio
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT}:${POSTGRES_PORT}"
+
+  redis:
+    ports:
+      - "127.0.0.1:${REDIS_PORT}:${REDIS_PORT}"
+
+  minio:
+    ports:
+      - "127.0.0.1:${MINIO_PORT}:${MINIO_PORT}"
+      - "127.0.0.1:${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_PORT}"

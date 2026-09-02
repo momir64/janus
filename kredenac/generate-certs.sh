@@ -22,7 +22,7 @@ openssl req -x509 -new -nodes -key ca.key -sha256 -days 3650 \
 # Redis leaf cert
 openssl genrsa -out redis.key 2048
 openssl req -new -key redis.key -out redis.csr -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost,IP:127.0.0.1"
+  -addext "subjectAltName=DNS:localhost,DNS:redis,IP:127.0.0.1"
 openssl x509 -req -in redis.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
   -out redis.crt -days 3650 -sha256 -copy_extensions copyall
 rm redis.csr
@@ -35,7 +35,7 @@ keytool -import -trustcacerts -noprompt \
 # Backend leaf cert + PKCS12 keystore for Ktor's Netty listener
 openssl genrsa -out backend.key 2048
 openssl req -new -key backend.key -out backend.csr -subj "/CN=localhost" \
-  -addext "subjectAltName=DNS:localhost,DNS:host.docker.internal,IP:127.0.0.1"
+  -addext "subjectAltName=DNS:localhost,DNS:backend,DNS:host.docker.internal,IP:127.0.0.1"
 openssl x509 -req -in backend.csr -CA ca.crt -CAkey ca.key -CAcreateserial \
   -out backend.crt -days 3650 -sha256 -copy_extensions copyall
 rm backend.csr
