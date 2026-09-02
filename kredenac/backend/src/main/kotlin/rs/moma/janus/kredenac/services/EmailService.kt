@@ -85,7 +85,7 @@ class EmailService(
     private fun time(timezone: String?): String {
         val zone = timezone?.let { runCatching { TimeZone.of(it) }.getOrNull() }
         val formatted = Clock.System.now().toLocalDateTime(zone ?: TimeZone.UTC).format(timeFormat)
-        return if (zone != null) formatted else " UTC"
+        return if (zone != null) formatted else "$formatted UTC"
     }
 
     internal fun render(
