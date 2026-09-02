@@ -26,7 +26,7 @@ class EmailTemplateTest {
 
     @Test
     fun testEveryTemplateRendersWithoutLeftovers() {
-        val rows = listOf("Device" to "Windows", "Time" to "2026-09-02 21:33 UTC")
+        val rows = listOf("Device" to "Windows", "Time" to "21:33 2.9.2026.")
 
         assertNoPlaceholdersLeft(emails.render("passkey-change", "subject", mapOf("action" to "added to"), rows))
         assertNoPlaceholdersLeft(emails.render("passkey-disabled", "subject"))

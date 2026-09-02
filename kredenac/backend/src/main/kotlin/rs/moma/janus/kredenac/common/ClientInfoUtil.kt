@@ -4,7 +4,8 @@ class ClientInfo(
     val ip: String?,
     val location: String?,
     val browser: String?,
-    val device: String?
+    val device: String?,
+    val timezone: String?
 )
 
 private val BROWSERS = linkedMapOf(
@@ -26,9 +27,9 @@ private val DEVICES = linkedMapOf(
     "Linux" to null
 )
 
-fun clientInfo(userAgent: String?, ip: String?, location: String?): ClientInfo {
+fun clientInfo(userAgent: String?, ip: String?, location: String?, timezone: String?): ClientInfo {
     val agent = userAgent.orEmpty()
-    return ClientInfo(ip, location, agent.match(BROWSERS), agent.match(DEVICES))
+    return ClientInfo(ip, location, agent.match(BROWSERS), agent.match(DEVICES), timezone)
 }
 
 private fun String.match(tokens: Map<String, String?>): String? =

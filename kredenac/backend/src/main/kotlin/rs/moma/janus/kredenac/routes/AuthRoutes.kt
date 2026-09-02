@@ -225,7 +225,7 @@ private fun ApplicationCall.clientOrigin(): Pair<String?, String?> {
 
 private fun ApplicationCall.clientInfo(): ClientInfo {
     val (ip, location) = clientOrigin()
-    return clientInfo(request.headers["User-Agent"], ip, location)
+    return clientInfo(request.headers["User-Agent"], ip, location, request.headers["CF-Timezone"])
 }
 
 private fun ApplicationCall.setCookie(name: String, value: String, path: String, expires: GMTDate? = null) {

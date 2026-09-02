@@ -6,7 +6,7 @@ import kotlin.test.Test
 
 class ClientInfoTest {
     private fun check(agent: String, browser: String?, device: String?) {
-        val info = clientInfo(agent, null, null)
+        val info = clientInfo(agent, null, null, null)
         assertEquals(browser, info.browser, "browser for: $agent")
         assertEquals(device, info.device, "device for: $agent")
     }
