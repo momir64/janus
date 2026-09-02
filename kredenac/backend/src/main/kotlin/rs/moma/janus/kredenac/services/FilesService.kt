@@ -6,7 +6,9 @@ import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.common.BadRequestException
 import rs.moma.janus.kredenac.common.MAX_FILENAME_LENGTH
 import rs.moma.janus.kredenac.common.MAX_FILE_SIZE_BYTES
+import rs.moma.janus.kredenac.common.MAX_FILES_PER_USER
 import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
+import rs.moma.janus.kredenac.common.ConflictException
 import rs.moma.janus.kredenac.common.NotFoundException
 import rs.moma.janus.kredenac.common.MAX_FILE_SIZE_MB
 import rs.moma.janus.kredenac.repositories.StoredFile
@@ -36,6 +38,8 @@ class FilesService(
             throw BadRequestException("File is larger than the $MAX_FILE_SIZE_MB MB limit")
         if (filename.length > MAX_FILENAME_LENGTH)
             throw BadRequestException("Filename is longer than $MAX_FILENAME_LENGTH characters")
+        if (filesRepository.count() >= MAX_FILES_PER_USER)
+            throw ConflictException("Account is limited to $MAX_FILES_PER_USER files", "file_limit")
 
         val encryptionKey = userService.getEncryptionKey()
         val id = Uuid.random()

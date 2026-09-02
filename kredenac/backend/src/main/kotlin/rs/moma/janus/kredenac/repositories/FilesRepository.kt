@@ -43,6 +43,13 @@ class FilesRepository {
     }
 
     context(owner: Owner)
+    suspend fun count(): Long = withContext(Dispatchers.IO) {
+        transaction {
+            FilesTable.selectAll().where { FilesTable.userId eq owner.userId }.count()
+        }
+    }
+
+    context(owner: Owner)
     suspend fun findAll(): List<StoredFile> = withContext(Dispatchers.IO) {
         transaction {
             FilesTable.selectAll()

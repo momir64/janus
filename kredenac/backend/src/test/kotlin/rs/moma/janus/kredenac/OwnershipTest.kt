@@ -45,12 +45,14 @@ class OwnershipTest {
 
         context(mallory) {
             assertEquals(emptyList(), notes.findAll())
+            assertEquals(0, notes.count(), "another account was counted against this quota")
             assertFalse(notes.update(noteId, bytes(9), bytes(9), bytes(9), bytes(9)), "update reached another account")
             assertFalse(notes.delete(noteId), "delete reached another account")
         }
 
         context(alice) {
             assertEquals(1, notes.findAll().size, "the owner lost their own note")
+            assertEquals(1, notes.count(), "the owner lost their own note")
             assertContentEquals(bytes(1), notes.findAll().single().encryptedTitle, "another account overwrote it")
         }
     }
@@ -62,11 +64,15 @@ class OwnershipTest {
 
         context(mallory) {
             assertEquals(emptyList(), files.findAll())
+            assertEquals(0, files.count(), "another account was counted against this quota")
             assertNull(files.findById(fileId), "another account could read the row")
             assertFalse(files.delete(fileId), "another account could delete it")
         }
 
-        context(alice) { assertEquals(1, files.findAll().size, "the owner lost their own file") }
+        context(alice) {
+            assertEquals(1, files.findAll().size, "the owner lost their own file")
+            assertEquals(1, files.count(), "the owner lost their own file")
+        }
     }
 
     @Test

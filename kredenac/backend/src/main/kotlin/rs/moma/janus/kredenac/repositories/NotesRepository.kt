@@ -44,6 +44,13 @@ class NotesRepository {
     }
 
     context(owner: Owner)
+    suspend fun count(): Long = withContext(Dispatchers.IO) {
+        transaction {
+            NotesTable.selectAll().where { NotesTable.userId eq owner.userId }.count()
+        }
+    }
+
+    context(owner: Owner)
     suspend fun findAll(): List<StoredNote> = withContext(Dispatchers.IO) {
         transaction {
             NotesTable.selectAll()

@@ -2,6 +2,7 @@ import { NOTE_MESSAGES, type NoteMessage } from "../../../lib/strings/messages";
 import { messageHint } from "../../../components/message-hint/message-hint";
 import { button } from "../../../components/button/button";
 import { ref, template } from "../../../lib/render/dom";
+import { failure } from "../../../lib/http/failure";
 import type { NoteDto } from "../../../types";
 import markup from "./note-editor.html?raw";
 
@@ -62,8 +63,8 @@ export function noteEditor({ note, onSave, onCancel }: NoteEditorOptions): HTMLE
     }
     try {
       await onSave(title, content);
-    } catch {
-      showMessage("saveFailed");
+    } catch (error) {
+      showMessage(failure(error).code === "note_limit" ? "noteLimitReached" : "saveFailed");
     }
   };
 
