@@ -7,7 +7,7 @@ import kotlin.uuid.Uuid
 
 object NotesTable : Table("notes") {
     val id = uuid("id").clientDefault { Uuid.random() }
-    val userId = uuid("user_id").references(UserTable.id)
+    val userId = uuid("user_id").references(UserTable.id).index()
     val encryptedTitle = binary("encrypted_title")
     val encryptedTitleIv = binary("encrypted_title_iv")
     val encryptedContent = binary("encrypted_content")

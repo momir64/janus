@@ -5,7 +5,7 @@ import org.jetbrains.exposed.v1.core.Table
 
 object CredentialTable : Table("credentials") {
     val id = uuid("id")
-    val userId = uuid("user_id").references(UserTable.id)
+    val userId = uuid("user_id").references(UserTable.id).index()
     val credentialId = binary("credential_id").uniqueIndex()
     val algorithm = varchar("algorithm", 16)
     val publicKey = binary("public_key")
