@@ -16,13 +16,13 @@ import kotlin.uuid.Uuid
 
 class UserRepository(
     private val hmacSecret: ByteArray,
-    private val emailEncryptionKey: ByteArray,
+    private val piiEncryptionKey: ByteArray,
     private val masterKey: ByteArray
 ) {
     suspend fun insert(email: String): Uuid = withContext(Dispatchers.IO) {
         val id = Uuid.random()
         val aad = id.toByteArray()
-        val encryptedEmail = AesUtil.encrypt(emailEncryptionKey, email.toByteArray(), aad)
+        val encryptedEmail = AesUtil.encrypt(piiEncryptionKey, email.toByteArray(), aad)
         val encryptedUserKey = AesUtil.encrypt(masterKey, AesUtil.generateKey(), aad)
 
         transaction {
@@ -69,7 +69,7 @@ class UserRepository(
         val ciphertext = row[UserTable.encryptedEmail]
         val iv = row[UserTable.encryptedEmailIv]
         try {
-            String(AesUtil.decrypt(emailEncryptionKey, ciphertext, iv, id.toByteArray()))
+            String(AesUtil.decrypt(piiEncryptionKey, ciphertext, iv, id.toByteArray()))
         } catch (_: AEADBadTagException) {
             throw CompromisedException("Email for user=$id failed integrity check")
         }

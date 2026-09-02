@@ -30,7 +30,7 @@ object TestInfra {
 
     val hmacSecret: ByteArray by lazy { Env.getBytes("DB_HMAC_SECRET") }
     val masterKey: ByteArray by lazy { decode("MASTER_KEY_BASE64") }
-    val emailEncryptionKey: ByteArray by lazy { decode("EMAIL_ENCRYPTION_KEY_BASE64") }
+    val piiEncryptionKey: ByteArray by lazy { decode("PII_ENCRYPTION_KEY_BASE64") }
     val tokenEncryptionKey: ByteArray by lazy { decode("TOKEN_ENCRYPTION_KEY_BASE64") }
 
     private fun decode(key: String) = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get(key))

@@ -3,6 +3,7 @@ package rs.moma.janus.kredenac.repositories
 import org.jetbrains.exposed.v1.jdbc.transactions.transaction
 import rs.moma.janus.kredenac.common.CompromisedException
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
+import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
 import rs.moma.janus.kredenac.tables.CredentialTable
 import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import rs.moma.janus.kredenac.common.toByteArray
@@ -38,7 +39,10 @@ class StoredCredential(
     )
 }
 
-class CredentialRepository(private val hmacSecret: ByteArray) {
+class CredentialRepository(
+    private val hmacSecret: ByteArray,
+    private val piiEncryptionKey: ByteArray
+) {
     suspend fun insert(
         userId: Uuid, credentialId: ByteArray,
         algorithm: String, publicKey: ByteArray, aaguid: Uuid?
@@ -85,12 +89,18 @@ class CredentialRepository(private val hmacSecret: ByteArray) {
     suspend fun recordUse(credential: StoredCredential, newSignCount: Long, ip: String?, location: String?) =
         withContext(Dispatchers.IO) {
             val used = credential.withUse(newSignCount, Clock.System.now(), ip, location)
+            val aad = used.id.toByteArray()
+            val encryptedIp = ip?.let { AesUtil.encrypt(piiEncryptionKey, it.toByteArray(), aad) }
+            val encryptedLocation = location?.let { AesUtil.encrypt(piiEncryptionKey, it.toByteArray(), aad) }
+
             transaction {
                 CredentialTable.update({ (CredentialTable.id eq used.id) and (CredentialTable.userId eq used.userId) }) {
                     it[signCount] = used.signCount
                     it[lastUsedAt] = used.lastUsedAt
-                    it[lastUsedIp] = used.lastUsedIp
-                    it[lastUsedLocation] = used.lastUsedLocation
+                    it[encryptedLastUsedIp] = encryptedIp?.ciphertext
+                    it[encryptedLastUsedIpIv] = encryptedIp?.iv
+                    it[encryptedLastUsedLocation] = encryptedLocation?.ciphertext
+                    it[encryptedLastUsedLocationIv] = encryptedLocation?.iv
                     it[integrityHash] = used.hash()
                 }
             }
@@ -131,6 +141,7 @@ class CredentialRepository(private val hmacSecret: ByteArray) {
     }
 
     private fun ResultRow.toStoredCredential(): StoredCredential {
+        val aad = this[CredentialTable.id].toByteArray()
         val credential = StoredCredential(
             id = this[CredentialTable.id],
             userId = this[CredentialTable.userId],
@@ -141,8 +152,12 @@ class CredentialRepository(private val hmacSecret: ByteArray) {
             aaguid = this[CredentialTable.aaguid],
             createdAt = this[CredentialTable.createdAt],
             lastUsedAt = this[CredentialTable.lastUsedAt],
-            lastUsedIp = this[CredentialTable.lastUsedIp],
-            lastUsedLocation = this[CredentialTable.lastUsedLocation]
+            lastUsedIp = this[CredentialTable.encryptedLastUsedIp]?.let {
+                String(AesUtil.decrypt(piiEncryptionKey, it, this[CredentialTable.encryptedLastUsedIpIv]!!, aad))
+            },
+            lastUsedLocation = this[CredentialTable.encryptedLastUsedLocation]?.let {
+                String(AesUtil.decrypt(piiEncryptionKey, it, this[CredentialTable.encryptedLastUsedLocationIv]!!, aad))
+            }
         )
 
         if (credential.hash() != this[CredentialTable.integrityHash])

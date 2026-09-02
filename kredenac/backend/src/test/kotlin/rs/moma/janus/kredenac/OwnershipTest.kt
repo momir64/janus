@@ -21,8 +21,8 @@ import kotlin.uuid.Uuid
 // Every repository method takes an Owner, but the context only makes the value
 // available - nothing checks that the query used it. These are the tests that do.
 class OwnershipTest {
-    private val users = UserRepository(TestInfra.hmacSecret, TestInfra.emailEncryptionKey, TestInfra.masterKey)
-    private val credentials = CredentialRepository(TestInfra.hmacSecret)
+    private val users = UserRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey, TestInfra.masterKey)
+    private val credentials = CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey)
     private val refreshTokens = RefreshTokenRepository(TestInfra.hmacSecret)
     private val notes = NotesRepository()
     private val files = FilesRepository()

@@ -27,7 +27,7 @@ class TokenLifecycleTest {
         "https://kredenac.moma.rs",
         TestInfra.hmacSecret,
         tokens,
-        CredentialRepository(TestInfra.hmacSecret)
+        CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey)
     )
 
     @BeforeTest

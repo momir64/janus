@@ -29,8 +29,8 @@ import kotlin.uuid.Uuid
 @OptIn(ExperimentalLettuceCoroutinesApi::class)
 class CeremonyTest {
     private val tokens = TokenRepository(TestInfra.redis, TestInfra.tokenEncryptionKey, TestInfra.hmacSecret)
-    private val credentials = CredentialRepository(TestInfra.hmacSecret)
-    private val users = UserRepository(TestInfra.hmacSecret, TestInfra.emailEncryptionKey, TestInfra.masterKey)
+    private val credentials = CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey)
+    private val users = UserRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey, TestInfra.masterKey)
     private val webAuthn = WebAuthnService(
         "kredenac.moma.rs", "https://kredenac.moma.rs", TestInfra.hmacSecret, tokens, credentials
     )

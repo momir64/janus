@@ -23,8 +23,8 @@ import kotlin.uuid.Uuid
 // Rotation is what makes a stolen refresh token detectable: presenting one twice
 // must take down the whole chain rather than mint another session.
 class RefreshTokenTest {
-    private val users = UserRepository(TestInfra.hmacSecret, TestInfra.emailEncryptionKey, TestInfra.masterKey)
-    private val credentials = CredentialRepository(TestInfra.hmacSecret)
+    private val users = UserRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey, TestInfra.masterKey)
+    private val credentials = CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey)
     private val repository = RefreshTokenRepository(TestInfra.hmacSecret)
     private val service = RefreshTokenService(repository, TestInfra.hmacSecret)
 

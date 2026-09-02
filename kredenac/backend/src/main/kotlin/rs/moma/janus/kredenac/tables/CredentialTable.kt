@@ -13,8 +13,10 @@ object CredentialTable : Table("credentials") {
     val aaguid = uuid("aaguid").nullable()
     val createdAt = timestamp("created_at")
     val lastUsedAt = timestamp("last_used_at").nullable()
-    val lastUsedIp = varchar("last_used_ip", 45).nullable()
-    val lastUsedLocation = varchar("last_used_location", 128).nullable()
+    val encryptedLastUsedIp = binary("encrypted_last_used_ip").nullable()
+    val encryptedLastUsedIpIv = binary("encrypted_last_used_ip_iv").nullable()
+    val encryptedLastUsedLocation = binary("encrypted_last_used_location").nullable()
+    val encryptedLastUsedLocationIv = binary("encrypted_last_used_location_iv").nullable()
     val integrityHash = varchar("integrity_hash", 64)
     override val primaryKey = PrimaryKey(id)
 }

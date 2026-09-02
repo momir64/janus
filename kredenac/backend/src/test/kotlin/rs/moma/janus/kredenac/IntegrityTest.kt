@@ -20,8 +20,8 @@ import kotlin.uuid.Uuid
 // Each case edits one column behind the repository's back, the way anyone with
 // database access could, and expects the read to fail rather than return it.
 class IntegrityTest {
-    private val users = UserRepository(TestInfra.hmacSecret, TestInfra.emailEncryptionKey, TestInfra.masterKey)
-    private val credentials = CredentialRepository(TestInfra.hmacSecret)
+    private val users = UserRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey, TestInfra.masterKey)
+    private val credentials = CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey)
 
     private var owner = Owner(Uuid.NIL)
     private var credentialId = Uuid.NIL

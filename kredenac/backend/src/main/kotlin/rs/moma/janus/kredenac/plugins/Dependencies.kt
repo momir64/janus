@@ -42,7 +42,7 @@ fun Application.configureDependencies() {
 
             val hmacSecret = Env.getBytes("DB_HMAC_SECRET")
             val masterKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("MASTER_KEY_BASE64"))
-            val emailEncryptionKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("EMAIL_ENCRYPTION_KEY_BASE64"))
+            val piiEncryptionKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("PII_ENCRYPTION_KEY_BASE64"))
             val tokenEncryptionKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("TOKEN_ENCRYPTION_KEY_BASE64"))
 
             single { RefreshTokenRepository(hmacSecret) }
@@ -65,8 +65,8 @@ fun Application.configureDependencies() {
             single { CsrfService(Env.getBytes("CSRF_SECRET")) }
             single { RefreshTokenService(get(), hmacSecret) }
 
-            single { UserRepository(hmacSecret, emailEncryptionKey, masterKey) }
-            single { CredentialRepository(hmacSecret) }
+            single { UserRepository(hmacSecret, piiEncryptionKey, masterKey) }
+            single { CredentialRepository(hmacSecret, piiEncryptionKey) }
 
             single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get()) }
 
