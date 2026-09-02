@@ -19,7 +19,6 @@ import rs.moma.janus.kredenac.common.Owner
 import kotlinx.serialization.json.Json
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
-import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 private val REAUTH_TTL = 2.minutes
@@ -60,24 +59,9 @@ class UserService(
     }
 
     context(owner: Owner)
-    private suspend fun notifyPasskeyChange(action: String, client: ClientInfo) {
-        val email = userRepository.findEmailById(owner.userId) ?: return
-        val rows = clientRows(client)
-
-        emailService.notify(
-            to = email,
-            subject = "A passkey was $action your account",
-            html = """
-                <p>A passkey was just $action your Kredenac account.</p>
-                <ul>${rows.joinToString("") { "<li><b>${it.first}:</b> ${it.second}</li>" }}</ul>
-                <p>If this wasn't you, review your passkeys in settings and add a new one from a device you trust.</p>
-            """.trimIndent()
-        )  // todo: move later to email service and make a better email template in resources instead
-    }
-
-    context(owner: Owner)
     suspend fun addCredential(parsedAttestation: ParsedAttestation, client: ClientInfo) {
-        notifyPasskeyChange("added to", client)
+        val email = userRepository.findEmailById(owner.userId) ?: return
+        emailService.notifyPasskeyAdded(email, client)
         credentialRepository.insert(
             owner.userId, parsedAttestation.credentialId, parsedAttestation.algorithm,
             parsedAttestation.publicKey, parsedAttestation.aaguid
@@ -116,7 +100,8 @@ class UserService(
 
     context(owner: Owner)
     suspend fun deleteCredential(credentialId: Uuid, client: ClientInfo) {
-        notifyPasskeyChange("removed from", client)
+        val email = userRepository.findEmailById(owner.userId) ?: return
+        emailService.notifyPasskeyRemoved(email, client)
         deleteCredential(credentialId)
     }
 
@@ -129,14 +114,7 @@ class UserService(
         }
 
         val email = userRepository.findEmailById(userId) ?: return
-        emailService.notify(
-            to = email,
-            subject = "Security alert: a passkey was disabled",
-            html = """
-                <p>We detected unusual activity from one of your passkeys and disabled it as a precaution.</p>
-                <p>If you don't recognize this activity, we recommend reviewing your remaining passkeys and adding a new one from a trusted device.</p>
-            """.trimIndent()
-        )
+        emailService.notifyPasskeyDisabled(email)
     }
 
     context(owner: Owner)
@@ -144,14 +122,6 @@ class UserService(
         if (tokenRepository.consume(token) != owner.userId.toString())
             throw UnauthorizedException("Reauth token does not belong to this session")
     }
-
-    private fun clientRows(client: ClientInfo) = listOf(
-        "Device" to client.device,
-        "Browser" to client.browser,
-        "IP address" to client.ip,
-        "Location" to client.location,
-        "Time" to Clock.System.now().toString()
-    ).filter { !it.second.isNullOrBlank() }
 
     context(owner: Owner)
     suspend fun deleteAccount(client: ClientInfo) {
@@ -165,17 +135,7 @@ class UserService(
         notesRepository.deleteAll()
         userRepository.delete(owner.userId)
 
-        email?.let {
-            emailService.notify(
-                to = it,
-                subject = "Your Kredenac account was deleted",
-                html = """
-                    <p>Your Kredenac account and everything stored in it were permanently deleted.</p>
-                    <ul>${clientRows(client).joinToString("") { row -> "<li><b>${row.first}:</b> ${row.second}</li>" }}</ul>
-                    <p>If this wasn't you, the account cannot be recovered - register again to start over.</p>
-                """.trimIndent() // todo: move to email service, and use a better email resource template
-            )
-        }
+        email?.let { emailService.notifyAccountDeleted(it, client) }
     }
 
     context(owner: Owner)

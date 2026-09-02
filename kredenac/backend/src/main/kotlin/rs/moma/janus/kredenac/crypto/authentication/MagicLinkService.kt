@@ -23,23 +23,11 @@ class MagicLinkService(
         tokenRepository.insert(token, 15.minutes, email)
 
         val link = "$frontendOrigin/verify/$token"
-        val hasAccount = userRepository.findIdByEmail(email) != null
 
-        val subject = if (hasAccount) "Add a new passkey to Kredenac" else "Finish signing up for Kredenac"
-        val intro = if (hasAccount)
-            "Click the link below to add a new passkey to your existing account."
+        if (userRepository.findIdByEmail(email) != null)
+            emailService.sendRecoveryMagicLink(email, link)
         else
-            "Click the link below to finish creating your account."
-
-        emailService.send(
-            to = email,
-            subject = subject,
-            html = """
-                <p>$intro <br />This link expires in 15 minutes.</p>
-                <p><a href="$link">$link</a></p>
-                <p>If you didn't request this, you can safely ignore this email.</p>
-            """.trimIndent() // todo better-looking email extracted into resources
-        )
+            emailService.sendRegisterMagicLink(email, link)
     }
 
     suspend fun getEmail(token: String) = tokenRepository.peek(token)

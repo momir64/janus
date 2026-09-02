@@ -60,7 +60,7 @@ export async function verifyPage(params: URLSearchParams): Promise<Node> {
   const message = messageHint();
 
   const registerButton = button({
-    label: "REGISTER NEW PASSKEY",
+    label: "REGISTER YOUR PASSKEY",
     variant: "framed",
     onClick: async () => {
       registerButton.disabled = true;
