@@ -1,47 +1,27 @@
 package rs.moma.privezak
 
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.foundation.layout.padding
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import rs.moma.privezak.ui.components.Navigation
 import rs.moma.privezak.ui.theme.PrivezakTheme
 import androidx.activity.compose.setContent
 import androidx.activity.ComponentActivity
-import androidx.compose.material3.Scaffold
-import androidx.compose.runtime.Composable
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
+import androidx.activity.SystemBarStyle
+import android.graphics.Color
 import android.os.Bundle
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        installSplashScreen()
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        enableEdgeToEdge(
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
+        )
         setContent {
             PrivezakTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                Navigation()
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    PrivezakTheme {
-        Greeting("Android")
     }
 }
