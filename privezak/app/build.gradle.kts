@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "rs.moma.privezak"
-        minSdk = 24
+        minSdk = 30  // StrandHogg Attack mitigation: https://developer.android.com/privacy-and-security/risks/strandhogg
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
