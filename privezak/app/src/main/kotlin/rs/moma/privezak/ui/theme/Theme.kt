@@ -3,13 +3,22 @@ package rs.moma.privezak.ui.theme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 
 private val DarkColorScheme = darkColorScheme(
     background = Background,
     surface = Background,
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    onBackground = Heading,
+    onSurface = Heading,
+    onSurfaceVariant = Muted,
+    primary = DarkGrey,
+    onPrimary = Color.White,
+    secondary = DarkGrey,
+    onSecondary = Color.White,
+    tertiary = Muted,
+    onTertiary = Background,
+    outline = DarkGrey,
+    error = Error
 )
 
 @Composable

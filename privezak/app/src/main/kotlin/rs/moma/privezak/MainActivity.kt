@@ -1,8 +1,8 @@
 package rs.moma.privezak
 
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import rs.moma.privezak.viewmodels.MainViewModel
 import rs.moma.privezak.ui.components.Navigation
+import rs.moma.privezak.viewmodels.MainViewModel
 import rs.moma.privezak.ui.theme.PrivezakTheme
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent

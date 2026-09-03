@@ -11,7 +11,9 @@ android {
 
     defaultConfig {
         applicationId = "rs.moma.privezak"
-        minSdk = 30  // StrandHogg Attack mitigation: https://developer.android.com/privacy-and-security/risks/strandhogg
+        // CredentialProviderService needs minSdk 34; mitigating StrandHogg attack needs 30:
+        // https://developer.android.com/privacy-and-security/risks/strandhogg
+        minSdk = 30
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -47,6 +49,9 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.core.ktx)
+
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
 
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     debugImplementation(libs.androidx.compose.ui.tooling)

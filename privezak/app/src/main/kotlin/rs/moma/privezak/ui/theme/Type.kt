@@ -3,32 +3,35 @@ package rs.moma.privezak.ui.theme
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.unit.sp
+import rs.moma.privezak.R
 
-// Set of Material typography styles to start with
+val ChakraPetch = FontFamily(Font(R.font.chakra_petch_medium, FontWeight.Medium))
+val SplineSansMono = FontFamily(Font(R.font.spline_sans_mono))
+
+private val Default = Typography()
+
 val Typography = Typography(
-    bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
-    )
-    /* Other default text styles to override
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Normal,
-        fontSize = 22.sp,
-        lineHeight = 28.sp,
-        letterSpacing = 0.sp
+    displayMedium = Default.bodyLarge.copy(
+        fontFamily = ChakraPetch,
+        fontSize = 42.sp
     ),
-    labelSmall = TextStyle(
-        fontFamily = FontFamily.Default,
-        fontWeight = FontWeight.Medium,
-        fontSize = 11.sp,
-        lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+    displaySmall = Default.bodyLarge.copy(
+        fontFamily = ChakraPetch,
+        fontSize = 32.sp
+    ),
+    headlineMedium = Default.bodyLarge.copy(
+        fontFamily = ChakraPetch,
+        fontSize = 28.sp
+    ),
+    bodyMedium = Default.bodyMedium.copy(
+        fontFamily = SplineSansMono,
+        fontSize = 12.sp,
+        lineHeight = 20.sp
+    ),
+    labelLarge = Default.labelLarge.copy(
+        fontSize = 16.sp,
+        fontWeight = FontWeight.Normal
     )
-    */
 )
