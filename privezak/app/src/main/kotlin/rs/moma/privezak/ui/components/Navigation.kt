@@ -12,8 +12,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 
 @Composable
-fun Navigation() {
-    val vm: MainViewModel = viewModel()
+fun Navigation(vm: MainViewModel) {
+    val activity = LocalActivity.current as FragmentActivity
     val isLoggedIn by vm.isLoggedIn.collectAsState()
 
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->

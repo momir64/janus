@@ -1,16 +1,20 @@
 package rs.moma.privezak
 
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import rs.moma.privezak.viewmodels.MainViewModel
 import rs.moma.privezak.ui.components.Navigation
 import rs.moma.privezak.ui.theme.PrivezakTheme
+import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.ComponentActivity
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.SystemBarStyle
+import androidx.activity.viewModels
 import android.graphics.Color
 import android.os.Bundle
 
-class MainActivity : ComponentActivity() {
+class MainActivity : FragmentActivity() {
+    private val vm: MainViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -20,8 +24,13 @@ class MainActivity : ComponentActivity() {
         )
         setContent {
             PrivezakTheme {
-                Navigation()
+                Navigation(vm)
             }
         }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        if (!isChangingConfigurations) vm.logout()
     }
 }
