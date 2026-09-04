@@ -34,6 +34,7 @@ fun Navigation(vm: MainViewModel) {
     val activity = LocalActivity.current as FragmentActivity
     val biometricEnabled by vm.isBiometricEnabled.collectAsState()
     var welcomed by rememberSaveable { mutableStateOf(false) }
+    val sessionTimeout by vm.sessionTimeout.collectAsState()
     val pager = rememberPagerState { Page.entries.size }
     val isUnlocked by vm.isUnlocked.collectAsState()
     val passkeys by vm.passkeys.collectAsState()
@@ -73,6 +74,8 @@ fun Navigation(vm: MainViewModel) {
                         biometricIssue = biometricIssue,
                         onEnableBiometric = { enableBiometric(vm, activity) },
                         onDisableBiometric = vm::disableBiometric,
+                        sessionTimeout = sessionTimeout,
+                        onSessionTimeout = vm::setSessionTimeout,
                         onChangePin = vm::changePin
                     )
                 }
@@ -102,7 +105,7 @@ private suspend fun enableBiometric(vm: MainViewModel, activity: FragmentActivit
     }
 }
 
-private suspend fun unlockWithBiometric(vm: MainViewModel, activity: FragmentActivity): String? {
+internal suspend fun unlockWithBiometric(vm: MainViewModel, activity: FragmentActivity): String? {
     val failedMessage = "Biometric unlock failed"
     val cipher = vm.unlockBiometricCipher() ?: run {
         vm.disableBiometric()

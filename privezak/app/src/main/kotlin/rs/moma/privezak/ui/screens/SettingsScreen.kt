@@ -24,8 +24,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.input.ImeAction
 import rs.moma.privezak.security.MIN_PIN_LENGTH
+import rs.moma.privezak.security.SessionTimeout
 import rs.moma.privezak.ui.theme.CardBackground
 import androidx.compose.ui.res.painterResource
+import rs.moma.privezak.ui.components.Dropdown
 import rs.moma.privezak.ui.components.PinField
 import rs.moma.privezak.ui.theme.PrivezakTheme
 import androidx.compose.foundation.layout.Box
@@ -49,6 +51,8 @@ fun SettingsScreen(
     biometricIssue: String?,
     onEnableBiometric: suspend () -> String?,
     onDisableBiometric: () -> Unit,
+    sessionTimeout: SessionTimeout,
+    onSessionTimeout: (SessionTimeout) -> Unit,
     onChangePin: suspend (String) -> Boolean
 ) {
     var busy by remember { mutableStateOf(false) }
@@ -150,6 +154,20 @@ fun SettingsScreen(
             Spacer(Modifier.height(16.dp))
 
             SettingsCard {
+                Spacer(Modifier.height(2.dp))
+                Text("List passkeys unlock timeout", style = typography.bodyLarge, color = Heading)
+                Spacer(Modifier.height(6.dp))
+                Dropdown(
+                    modifier = Modifier.fillMaxWidth(),
+                    values = SessionTimeout.entries,
+                    onSelect = onSessionTimeout,
+                    selected = sessionTimeout
+                )
+                Spacer(Modifier.height(6.dp))
+            }
+            Spacer(Modifier.height(16.dp))
+
+            SettingsCard {
                 Spacer(Modifier.height(6.dp))
                 Text("Change PIN", style = typography.bodyLarge, color = Heading)
                 Spacer(Modifier.height(12.dp))
@@ -197,6 +215,8 @@ private fun SettingsScreenPreview() {
                 biometricIssue = null,
                 onEnableBiometric = { null },
                 onDisableBiometric = {},
+                sessionTimeout = SessionTimeout.Immediately,
+                onSessionTimeout = {},
                 onChangePin = { true }
             )
         }

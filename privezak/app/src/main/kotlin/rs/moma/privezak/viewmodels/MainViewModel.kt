@@ -1,11 +1,13 @@
 package rs.moma.privezak.viewmodels
 
 import kotlinx.coroutines.flow.MutableStateFlow
+import rs.moma.privezak.security.SessionTimeout
 import rs.moma.privezak.security.PasskeyStore
 import androidx.lifecycle.AndroidViewModel
 import kotlinx.coroutines.flow.asStateFlow
 import rs.moma.privezak.security.PinVault
 import rs.moma.privezak.security.Passkey
+import rs.moma.privezak.security.Session
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.app.Application
@@ -25,6 +27,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSetUp = MutableStateFlow(vault.isSetUp)
     val isSetUp = _isSetUp.asStateFlow()
 
+    private val _sessionTimeout = MutableStateFlow(vault.sessionTimeout)
+    val sessionTimeout = _sessionTimeout.asStateFlow()
+
     private val _passkeys = MutableStateFlow(emptyList<Passkey>())
     val passkeys = _passkeys.asStateFlow()
 
@@ -43,11 +48,38 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         true
     }
 
+    fun setSessionTimeout(timeout: SessionTimeout) {
+        vault.sessionTimeout = timeout
+        _sessionTimeout.value = timeout
+        dataKey?.let { Session.start(it, timeout) } ?: Session.clear()
+    }
+
     fun lock() {
         _isUnlocked.value = false
         _passkeys.value = emptyList()
         dataKey = null
         store = null
+    }
+
+    suspend fun createPasskey(
+        rpId: String,
+        rpName: String,
+        userHandle: ByteArray,
+        userName: String,
+        displayName: String
+    ): Passkey? = withContext(Dispatchers.Default) {
+        val store = store ?: return@withContext null
+        store.create(rpId, rpName, userHandle, userName, displayName)
+            .also { _passkeys.value = store.load() }
+    }
+
+    fun publicKey(id: String) = store?.publicKey(id)
+
+    fun sign(id: String, data: ByteArray) = store?.sign(id, data)
+
+    suspend fun recordUse(id: String): Int? = withContext(Dispatchers.Default) {
+        val store = store ?: return@withContext null
+        store.recordUse(id).also { _passkeys.value = store.load() }
     }
 
     suspend fun deletePasskey(id: String) = withContext(Dispatchers.Default) {
@@ -58,6 +90,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     private fun open(key: ByteArray) {
         dataKey = key
+        Session.start(key, vault.sessionTimeout)
         store = PasskeyStore(getApplication(), key).also { _passkeys.value = it.load() }
         _isUnlocked.value = true
     }

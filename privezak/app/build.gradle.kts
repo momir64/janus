@@ -14,7 +14,7 @@ android {
         applicationId = "rs.moma.privezak"
         // CredentialProviderService needs minSdk 34; mitigating StrandHogg attack needs 30:
         // https://developer.android.com/privacy-and-security/risks/strandhogg
-        minSdk = 30
+        minSdk = 34
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -41,12 +41,14 @@ android {
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.credentials)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.biometric)
     implementation(libs.androidx.core.ktx)

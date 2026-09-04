@@ -16,14 +16,19 @@ import java.security.KeyStore
 import javax.crypto.SecretKey
 import javax.crypto.Cipher
 
+// Keystore key aliases
 private const val BIOMETRIC_KEYSTORE_ALIAS = "privezak_biometric"
 private const val BINDING_KEYSTORE_ALIAS = "privezak_pin"
+
+// Prefs keys
+private const val LIST_SESSION_TIMEOUT = "list_session_timeout"
 private const val BY_BIOMETRIC_IV = "key_by_biometric_iv"
 private const val BY_BIOMETRIC = "key_by_biometric"
 private const val BY_PIN = "key_by_pin"
 private const val PREFS = "privezak"
 private const val SALT = "pin_salt"
 
+// KDF number of iterations
 private const val ITERATIONS = 220_000
 
 const val MIN_PIN_LENGTH = 6
@@ -33,6 +38,12 @@ class PinVault(context: Context) {
 
     val isBiometricEnabled: Boolean get() = prefs.contains(BY_BIOMETRIC)
     val isSetUp: Boolean get() = prefs.contains(BY_PIN)
+
+    var sessionTimeout: SessionTimeout
+        get() = prefs.getString(LIST_SESSION_TIMEOUT, null)
+            ?.let { stored -> SessionTimeout.entries.find { it.name == stored } }
+            ?: SessionTimeout.Immediately
+        set(value) = prefs.edit(commit = true) { putString(LIST_SESSION_TIMEOUT, value.name) }
 
     fun setUp(pin: String): ByteArray {
         val dataKey = randomBytes(KEY_BITS / 8)
