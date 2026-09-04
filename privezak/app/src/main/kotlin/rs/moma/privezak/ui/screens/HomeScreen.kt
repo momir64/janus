@@ -56,12 +56,12 @@ fun HomeScreen(onSettings: () -> Unit, onScan: () -> Unit) {
             onClick = onScan,
             modifier = Modifier.align(Alignment.BottomEnd)
                 .padding(end = 24.dp, bottom = 32.dp)
-                .size(64.dp)
+                .size(70.dp)
         ) {
             Icon(
                 painterResource(R.drawable.ic_qr),
                 contentDescription = "Scan a QR code",
-                modifier = Modifier.size(36.dp)
+                modifier = Modifier.size(46.dp)
             )
         }
     }

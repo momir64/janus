@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.imeAnimationSource
 import androidx.compose.foundation.layout.imeAnimationTarget
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Arrangement
@@ -24,15 +23,19 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.input.ImeAction
+import androidx.activity.compose.LocalActivity
 import rs.moma.privezak.ui.components.PinField
 import rs.moma.privezak.ui.theme.PrivezakTheme
 import androidx.compose.foundation.layout.ime
 import rs.moma.privezak.ui.utils.SingleToast
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.activity.ComponentActivity
 import androidx.compose.ui.unit.IntOffset
 import rs.moma.privezak.ui.theme.Heading
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
 import androidx.compose.material3.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
@@ -45,18 +48,21 @@ fun LoginScreen(
     onLogin: suspend (String) -> Boolean,
     onUnlockWithBiometric: suspend () -> String?
 ) {
-    var prompted by rememberSaveable { mutableStateOf(false) }
-    var busy by rememberSaveable { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val pin = rememberTextFieldState()
 
+    val lifecycle = (LocalActivity.current as ComponentActivity).lifecycle
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
 
     suspend fun unlockWithBiometric() {
         busy = true
-        onUnlockWithBiometric()?.let { SingleToast.show(context, it) }
-        busy = false
+        try {
+            onUnlockWithBiometric()?.let { SingleToast.show(context, it) }
+        } finally {
+            busy = false
+        }
     }
 
     fun login() {
@@ -78,10 +84,8 @@ fun LoginScreen(
     }
 
     LaunchedEffect(biometricEnabled) {
-        if (biometricEnabled && !prompted) {
-            prompted = true
-            unlockWithBiometric()
-        }
+        if (!biometricEnabled) return@LaunchedEffect
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { unlockWithBiometric() }
     }
 
     Column(

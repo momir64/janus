@@ -5,7 +5,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
@@ -36,7 +35,7 @@ import rs.moma.privezak.R
 
 @Composable
 fun RegisterScreen(onBack: () -> Unit, onConfirm: suspend (String) -> Unit) {
-    var busy by rememberSaveable { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
     val verify = rememberTextFieldState()
     val scope = rememberCoroutineScope()
     val pin = rememberTextFieldState()

@@ -5,7 +5,6 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme.typography
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.input.pointer.pointerInput
@@ -46,7 +45,7 @@ fun SettingsScreen(
     onDisableBiometric: () -> Unit,
     onChangePin: suspend (String) -> Boolean
 ) {
-    var busy by rememberSaveable { mutableStateOf(false) }
+    var busy by remember { mutableStateOf(false) }
     val verify = rememberTextFieldState()
     val scope = rememberCoroutineScope()
     val new = rememberTextFieldState()
@@ -63,8 +62,11 @@ fun SettingsScreen(
         }
         busy = true
         scope.launch {
-            onEnableBiometric()?.let { SingleToast.show(context, it) }
-            busy = false
+            try {
+                onEnableBiometric()?.let { SingleToast.show(context, it) }
+            } finally {
+                busy = false
+            }
         }
     }
 
