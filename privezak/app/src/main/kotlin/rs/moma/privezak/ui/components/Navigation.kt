@@ -1,7 +1,10 @@
 package rs.moma.privezak.ui.components
 
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.layout.padding
 import rs.moma.privezak.ui.screens.SettingsScreen
 import rs.moma.privezak.ui.screens.WelcomeScreen
@@ -14,25 +17,38 @@ import androidx.compose.foundation.layout.Box
 import androidx.fragment.app.FragmentActivity
 import rs.moma.privezak.security.authenticate
 import rs.moma.privezak.ui.screens.HomeScreen
+import androidx.activity.compose.BackHandler
 import androidx.lifecycle.repeatOnLifecycle
 import rs.moma.privezak.security.AuthResult
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 
-private enum class Screen { Home, Settings }
+private enum class Page { Home, Settings }
 
 @Composable
 fun Navigation(vm: MainViewModel) {
+    val scope = rememberCoroutineScope()
     val activity = LocalActivity.current as FragmentActivity
-    var welcomed by rememberSaveable { mutableStateOf(false) }
-    var screen by rememberSaveable { mutableStateOf(Screen.Home) }
     val biometricEnabled by vm.isBiometricEnabled.collectAsState()
+    var welcomed by rememberSaveable { mutableStateOf(false) }
+    val pager = rememberPagerState { Page.entries.size }
     val isUnlocked by vm.isUnlocked.collectAsState()
+    val passkeys by vm.passkeys.collectAsState()
     val isSetUp by vm.isSetUp.collectAsState()
 
-    LaunchedEffect(isUnlocked) { if (isUnlocked != true) screen = Screen.Home }
+    LaunchedEffect(isUnlocked) { if (isUnlocked != true) pager.scrollToPage(Page.Home.ordinal) }
+
+    val focusManager = LocalFocusManager.current
+    LaunchedEffect(pager.currentPage) {
+        if (pager.currentPage == Page.Home.ordinal) focusManager.clearFocus()
+    }
+
+    BackHandler(enabled = pager.currentPage != Page.Home.ordinal) {
+        scope.launch { pager.scrollToPage(Page.Home.ordinal) }
+    }
 
     var biometricIssue by remember { mutableStateOf(activity.biometricIssue()) }
     LaunchedEffect(Unit) {
@@ -44,13 +60,15 @@ fun Navigation(vm: MainViewModel) {
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
         Box(Modifier.padding(top = innerPadding.calculateTopPadding())) {
             when {
-                isUnlocked == true -> when (screen) {
-                    Screen.Home -> HomeScreen(
-                        onSettings = { screen = Screen.Settings },
-                        onScan = { }
+                isUnlocked == true -> HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
+                    if (page == Page.Home.ordinal) HomeScreen(
+                        passkeys = passkeys,
+                        onSettings = { scope.launch { pager.scrollToPage(Page.Settings.ordinal) } },
+                        onScan = { },
+                        onDelete = vm::deletePasskey
                     )
-                    Screen.Settings -> SettingsScreen(
-                        onBack = { screen = Screen.Home },
+                    else SettingsScreen(
+                        onBack = { scope.launch { pager.scrollToPage(Page.Home.ordinal) } },
                         biometricEnabled = biometricEnabled,
                         biometricIssue = biometricIssue,
                         onEnableBiometric = { enableBiometric(vm, activity) },

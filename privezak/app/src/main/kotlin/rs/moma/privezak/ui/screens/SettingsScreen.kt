@@ -5,26 +5,32 @@ import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.input.ImeAction
 import rs.moma.privezak.security.MIN_PIN_LENGTH
+import rs.moma.privezak.ui.theme.CardBackground
 import androidx.compose.ui.res.painterResource
 import rs.moma.privezak.ui.components.PinField
 import rs.moma.privezak.ui.theme.PrivezakTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.clickable
 import rs.moma.privezak.ui.utils.SingleToast
 import rs.moma.privezak.ui.theme.Heading
@@ -50,10 +56,16 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
     val new = rememberTextFieldState()
 
+    val scroll = rememberScrollState()
+    val density = LocalDensity.current
+    val ime = WindowInsets.ime
+    LaunchedEffect(Unit) {
+        snapshotFlow { ime.getBottom(density) to scroll.maxValue }
+            .collect { (imeHeight, bottom) -> if (imeHeight > 0) scroll.scrollTo(bottom) }
+    }
+
     val focusManager = LocalFocusManager.current
     val context = LocalContext.current
-
-    BackHandler(onBack = onBack)
 
     fun toggleBiometric() {
         if (biometricEnabled) {
@@ -108,46 +120,69 @@ fun SettingsScreen(
             Text("Settings", style = typography.headlineMedium, color = Heading)
         }
 
-        Column(Modifier.fillMaxSize().padding(horizontal = 24.dp)) {
+        Column(
+            modifier = Modifier.weight(1f)
+                .verticalScroll(scroll)
+                .padding(horizontal = 16.dp)
+        ) {
             Spacer(Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Unlock with Biometrics", style = typography.bodyLarge)
-                Spacer(Modifier.weight(1f))
-                Box {
-                    Switch(
-                        checked = biometricEnabled,
-                        onCheckedChange = { toggleBiometric() },
-                        enabled = biometricIssue == null && !busy
-                    )
-                    if (biometricIssue != null) Box(
-                        Modifier.matchParentSize().clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { SingleToast.show(context, biometricIssue) }
-                    )
+            SettingsCard {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Unlock with Biometrics", style = typography.bodyLarge)
+                    Spacer(Modifier.weight(1f))
+                    Box {
+                        Switch(
+                            checked = biometricEnabled,
+                            onCheckedChange = { if (!busy) toggleBiometric() }
+                        )
+                        if (biometricIssue != null) Box(
+                            Modifier.matchParentSize().clickable(
+                                indication = null,
+                                interactionSource = remember { MutableInteractionSource() }
+                            ) { SingleToast.show(context, biometricIssue) }
+                        )
+                    }
                 }
             }
-
-            Spacer(Modifier.height(24.dp))
-            Text("Change PIN", style = typography.bodyLarge, color = Heading)
             Spacer(Modifier.height(16.dp))
-            PinField(new, "New PIN", ImeAction.Next)
-            Spacer(Modifier.height(8.dp))
-            PinField(verify, "Verify new PIN", ImeAction.Done) { changePin() }
 
-            Spacer(Modifier.height(24.dp))
-            Button(
-                modifier = Modifier.fillMaxWidth().height(48.dp),
-                shape = RoundedCornerShape(8.dp),
-                enabled = !busy && new.text.isNotEmpty() && verify.text.isNotEmpty(),
-                onClick = { changePin() }
-            ) {
-                Text("Save")
+            SettingsCard {
+                Spacer(Modifier.height(6.dp))
+                Text("Change PIN", style = typography.bodyLarge, color = Heading)
+                Spacer(Modifier.height(12.dp))
+                PinField(new, "New PIN", ImeAction.Next)
+                Spacer(Modifier.height(8.dp))
+                PinField(verify, "Verify new PIN", ImeAction.Done) { changePin() }
+
+                Spacer(Modifier.height(24.dp))
+                Button(
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(8.dp),
+                    enabled = !busy && new.text.isNotEmpty() && verify.text.isNotEmpty(),
+                    onClick = { changePin() }
+                ) {
+                    Text("Save")
+                }
+                Spacer(Modifier.height(10.dp))
             }
+            Spacer(Modifier.height(16.dp))
         }
+    }
+}
+
+@Composable
+private fun SettingsCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = CardBackground)
+    ) {
+        Column(
+            Modifier.fillMaxWidth().padding(vertical = 16.dp, horizontal = 22.dp),
+            content = content
+        )
     }
 }
 

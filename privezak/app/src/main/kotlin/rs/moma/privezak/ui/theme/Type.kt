@@ -25,6 +25,13 @@ val Typography = Typography(
         fontFamily = ChakraPetch,
         fontSize = 28.sp
     ),
+    titleMedium = Default.bodyLarge.copy(
+        fontWeight = FontWeight.Medium
+    ),
+    titleSmall = Default.bodyLarge.copy(
+        fontSize = 14.sp,
+        lineHeight = 22.sp
+    ),
     bodyMedium = Default.bodyMedium.copy(
         fontFamily = SplineSansMono,
         fontSize = 12.sp,
