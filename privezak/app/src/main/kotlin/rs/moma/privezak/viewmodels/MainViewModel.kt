@@ -13,8 +13,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val vault = PinVault(application)
     private var dataKey: ByteArray? = null
 
-    private val _isLoggedIn = MutableStateFlow<Boolean?>(null)
-    val isLoggedIn = _isLoggedIn.asStateFlow()
+    private val _isUnlocked = MutableStateFlow<Boolean?>(null)
+    val isUnlocked = _isUnlocked.asStateFlow()
 
     private val _isBiometricEnabled = MutableStateFlow(vault.isBiometricEnabled)
     val isBiometricEnabled = _isBiometricEnabled.asStateFlow()
@@ -25,25 +25,25 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     suspend fun setUp(pin: String) = withContext(Dispatchers.Default) {
         dataKey = vault.setUp(pin)
         _isSetUp.value = true
-        _isLoggedIn.value = true
+        _isUnlocked.value = true
     }
 
-    suspend fun login(pin: String): Boolean = withContext(Dispatchers.Default) {
+    suspend fun unlock(pin: String): Boolean = withContext(Dispatchers.Default) {
         val key = vault.unlock(pin) ?: return@withContext false
         dataKey = key
-        _isLoggedIn.value = true
+        _isUnlocked.value = true
         true
     }
 
-    fun loginWithBiometric(cipher: Cipher): Boolean {
+    fun unlockWithBiometric(cipher: Cipher): Boolean {
         val key = vault.unlockWithBiometric(cipher) ?: return false
         dataKey = key
-        _isLoggedIn.value = true
+        _isUnlocked.value = true
         return true
     }
 
-    fun logout() {
-        _isLoggedIn.value = false
+    fun lock() {
+        _isUnlocked.value = false
         dataKey = null
     }
 

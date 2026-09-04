@@ -4,12 +4,12 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import rs.moma.privezak.security.canUseBiometrics
-import rs.moma.privezak.ui.screens.RegisterScreen
 import rs.moma.privezak.ui.screens.SettingsScreen
 import rs.moma.privezak.ui.screens.WelcomeScreen
 import rs.moma.privezak.viewmodels.MainViewModel
+import rs.moma.privezak.ui.screens.UnlockScreen
 import androidx.activity.compose.LocalActivity
-import rs.moma.privezak.ui.screens.LoginScreen
+import rs.moma.privezak.ui.screens.SetupScreen
 import androidx.compose.foundation.layout.Box
 import androidx.fragment.app.FragmentActivity
 import rs.moma.privezak.security.authenticate
@@ -27,15 +27,15 @@ fun Navigation(vm: MainViewModel) {
     var welcomed by rememberSaveable { mutableStateOf(false) }
     var screen by rememberSaveable { mutableStateOf(Screen.Home) }
     val biometricEnabled by vm.isBiometricEnabled.collectAsState()
-    val isLoggedIn by vm.isLoggedIn.collectAsState()
+    val isUnlocked by vm.isUnlocked.collectAsState()
     val isSetUp by vm.isSetUp.collectAsState()
 
-    LaunchedEffect(isLoggedIn) { if (isLoggedIn != true) screen = Screen.Home }
+    LaunchedEffect(isUnlocked) { if (isUnlocked != true) screen = Screen.Home }
 
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
         Box(Modifier.padding(top = innerPadding.calculateTopPadding())) {
             when {
-                isLoggedIn == true -> when (screen) {
+                isUnlocked == true -> when (screen) {
                     Screen.Home -> HomeScreen(
                         onSettings = { screen = Screen.Settings },
                         onScan = { }
@@ -50,10 +50,10 @@ fun Navigation(vm: MainViewModel) {
                     )
                 }
                 !isSetUp && !welcomed -> WelcomeScreen { welcomed = true }
-                !isSetUp -> RegisterScreen(onBack = { welcomed = false }, onConfirm = vm::setUp)
-                else -> LoginScreen(
+                !isSetUp -> SetupScreen(onBack = { welcomed = false }, onConfirm = vm::setUp)
+                else -> UnlockScreen(
                     biometricEnabled = biometricEnabled,
-                    onLogin = vm::login,
+                    onUnlock = vm::unlock,
                     onUnlockWithBiometric = { unlockWithBiometric(vm, activity) }
                 )
             }
@@ -82,7 +82,7 @@ private suspend fun unlockWithBiometric(vm: MainViewModel, activity: FragmentAct
         return "Biometric unlock is no longer available"
     }
     return when (val result = activity.authenticate(cipher, "Unlock Privezak")) {
-        is AuthResult.Success -> if (vm.loginWithBiometric(result.cipher)) null else failedMessage
+        is AuthResult.Success -> if (vm.unlockWithBiometric(result.cipher)) null else failedMessage
         is AuthResult.Failed -> result.message
         AuthResult.Cancelled -> null
     }

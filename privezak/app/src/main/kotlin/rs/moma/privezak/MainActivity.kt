@@ -31,6 +31,6 @@ class MainActivity : FragmentActivity() {
 
     override fun onStop() {
         super.onStop()
-        if (!isChangingConfigurations) vm.logout()
+        if (!isChangingConfigurations) vm.lock()
     }
 }

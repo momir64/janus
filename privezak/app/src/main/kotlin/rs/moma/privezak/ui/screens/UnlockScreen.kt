@@ -43,9 +43,9 @@ import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun LoginScreen(
+fun UnlockScreen(
     biometricEnabled: Boolean,
-    onLogin: suspend (String) -> Boolean,
+    onUnlock: suspend (String) -> Boolean,
     onUnlockWithBiometric: suspend () -> String?
 ) {
     var busy by remember { mutableStateOf(false) }
@@ -65,10 +65,10 @@ fun LoginScreen(
         }
     }
 
-    fun login() {
+    fun unlock() {
         busy = true
         scope.launch {
-            if (!onLogin(pin.text.toString())) SingleToast.show(context, "Incorrect PIN")
+            if (!onUnlock(pin.text.toString())) SingleToast.show(context, "Incorrect PIN")
             busy = false
         }
     }
@@ -100,16 +100,16 @@ fun LoginScreen(
     ) {
         Text("PRIVEZAK", style = typography.displayMedium, color = Heading)
         Spacer(Modifier.height(32.dp))
-        PinField(pin, "PIN", ImeAction.Done) { login() }
+        PinField(pin, "PIN", ImeAction.Done) { unlock() }
         Spacer(Modifier.height(28.dp))
 
         Button(
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(12.dp),
             enabled = !busy && pin.text.isNotEmpty(),
-            onClick = { login() }
+            onClick = { unlock() }
         ) {
-            Text("Login")
+            Text("Unlock")
         }
 
         if (biometricEnabled) {
@@ -129,12 +129,12 @@ fun LoginScreen(
 
 @Preview(showSystemUi = true)
 @Composable
-private fun LoginScreenPreview() {
+private fun UnlockScreenPreview() {
     PrivezakTheme {
         Surface {
-            LoginScreen(
+            UnlockScreen(
                 biometricEnabled = true,
-                onLogin = { true },
+                onUnlock = { true },
                 onUnlockWithBiometric = { null })
         }
     }

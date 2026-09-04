@@ -34,7 +34,7 @@ import kotlinx.coroutines.launch
 import rs.moma.privezak.R
 
 @Composable
-fun RegisterScreen(onBack: () -> Unit, onConfirm: suspend (String) -> Unit) {
+fun SetupScreen(onBack: () -> Unit, onConfirm: suspend (String) -> Unit) {
     var busy by remember { mutableStateOf(false) }
     val verify = rememberTextFieldState()
     val scope = rememberCoroutineScope()
@@ -101,8 +101,8 @@ fun RegisterScreen(onBack: () -> Unit, onConfirm: suspend (String) -> Unit) {
 
 @Preview(showSystemUi = true)
 @Composable
-private fun RegisterScreenPreview() {
+private fun SetupScreenPreview() {
     PrivezakTheme {
-        Surface { RegisterScreen({}, {}) }
+        Surface { SetupScreen({}, {}) }
     }
 }
