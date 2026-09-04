@@ -30,6 +30,8 @@ fun Navigation(vm: MainViewModel) {
     val isLoggedIn by vm.isLoggedIn.collectAsState()
     val isSetUp by vm.isSetUp.collectAsState()
 
+    LaunchedEffect(isLoggedIn) { if (isLoggedIn != true) screen = Screen.Home }
+
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
         Box(Modifier.padding(top = innerPadding.calculateTopPadding())) {
             when {
