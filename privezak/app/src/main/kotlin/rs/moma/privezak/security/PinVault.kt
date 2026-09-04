@@ -48,7 +48,7 @@ class PinVault(context: Context) {
 
     fun changePin(dataKey: ByteArray, pin: String) {
         val salt = randomBytes(16)
-        prefs.edit {
+        prefs.edit(commit = true) {
             putString(BY_PIN, Base64.encode(bind(derive(pin, salt).encrypt(dataKey))))
             putString(SALT, Base64.encode(salt))
         }
@@ -85,7 +85,7 @@ class PinVault(context: Context) {
     }
 
     fun enableBiometric(dataKey: ByteArray, cipher: Cipher) {
-        prefs.edit {
+        prefs.edit(commit = true) {
             putString(BY_BIOMETRIC, Base64.encode(cipher.doFinal(dataKey)))
             putString(BY_BIOMETRIC_IV, Base64.encode(cipher.iv))
         }

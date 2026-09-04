@@ -38,9 +38,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         true
     }
 
-    fun unlockWithBiometric(cipher: Cipher): Boolean {
-        open(vault.unlockWithBiometric(cipher) ?: return false)
-        return true
+    suspend fun unlockWithBiometric(cipher: Cipher): Boolean = withContext(Dispatchers.Default) {
+        open(vault.unlockWithBiometric(cipher) ?: return@withContext false)
+        true
     }
 
     fun lock() {
@@ -71,8 +71,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun unlockBiometricCipher(): Cipher? = vault.unlockBiometricCipher()
     fun enrollBiometricCipher(): Cipher = vault.enrollBiometricCipher()
 
-    fun enableBiometric(cipher: Cipher) {
-        val key = dataKey ?: return
+    suspend fun enableBiometric(cipher: Cipher) = withContext(Dispatchers.Default) {
+        val key = dataKey ?: return@withContext
         vault.enableBiometric(key, cipher)
         _isBiometricEnabled.value = true
     }

@@ -3,10 +3,10 @@ package rs.moma.privezak.ui.components
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import rs.moma.privezak.security.canUseBiometrics
 import rs.moma.privezak.ui.screens.SettingsScreen
 import rs.moma.privezak.ui.screens.WelcomeScreen
 import rs.moma.privezak.viewmodels.MainViewModel
+import rs.moma.privezak.security.biometricIssue
 import rs.moma.privezak.ui.screens.UnlockScreen
 import androidx.activity.compose.LocalActivity
 import rs.moma.privezak.ui.screens.SetupScreen
@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.fragment.app.FragmentActivity
 import rs.moma.privezak.security.authenticate
 import rs.moma.privezak.ui.screens.HomeScreen
+import androidx.lifecycle.repeatOnLifecycle
 import rs.moma.privezak.security.AuthResult
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 
@@ -32,6 +34,13 @@ fun Navigation(vm: MainViewModel) {
 
     LaunchedEffect(isUnlocked) { if (isUnlocked != true) screen = Screen.Home }
 
+    var biometricIssue by remember { mutableStateOf(activity.biometricIssue()) }
+    LaunchedEffect(Unit) {
+        activity.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            biometricIssue = activity.biometricIssue()
+        }
+    }
+
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
         Box(Modifier.padding(top = innerPadding.calculateTopPadding())) {
             when {
@@ -43,7 +52,7 @@ fun Navigation(vm: MainViewModel) {
                     Screen.Settings -> SettingsScreen(
                         onBack = { screen = Screen.Home },
                         biometricEnabled = biometricEnabled,
-                        biometricAvailable = activity.canUseBiometrics(),
+                        biometricIssue = biometricIssue,
                         onEnableBiometric = { enableBiometric(vm, activity) },
                         onDisableBiometric = vm::disableBiometric,
                         onChangePin = vm::changePin

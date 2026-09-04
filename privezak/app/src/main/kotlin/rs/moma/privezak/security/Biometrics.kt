@@ -21,8 +21,15 @@ private val DISMISSED = setOf(
     BiometricPrompt.ERROR_CANCELED
 )
 
-fun Context.canUseBiometrics(): Boolean = BiometricManager.from(this)
-    .canAuthenticate(BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
+fun Context.biometricIssue(): String? =
+    when (BiometricManager.from(this).canAuthenticate(BIOMETRIC_STRONG)) {
+        BiometricManager.BIOMETRIC_SUCCESS -> null
+        BiometricManager.BIOMETRIC_ERROR_NONE_ENROLLED -> "Register fingerprints in device settings"
+        BiometricManager.BIOMETRIC_ERROR_NO_HARDWARE -> "Unsupported device"
+        BiometricManager.BIOMETRIC_ERROR_HW_UNAVAILABLE -> "Sensor was busy, try again"
+        BiometricManager.BIOMETRIC_ERROR_SECURITY_UPDATE_REQUIRED -> "Security update required"
+        else -> "Biometrics unavailable"
+    }
 
 suspend fun FragmentActivity.authenticate(cipher: Cipher, title: String): AuthResult =
     suspendCancellableCoroutine { continuation ->

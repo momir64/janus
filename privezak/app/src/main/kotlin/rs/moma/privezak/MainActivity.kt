@@ -1,6 +1,7 @@
 package rs.moma.privezak
 
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import android.view.WindowManager.LayoutParams.FLAG_SECURE
 import rs.moma.privezak.ui.components.Navigation
 import rs.moma.privezak.viewmodels.MainViewModel
 import rs.moma.privezak.ui.theme.PrivezakTheme
@@ -22,6 +23,7 @@ class MainActivity : FragmentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
         )
+        window.setFlags(FLAG_SECURE, FLAG_SECURE)
         setContent {
             PrivezakTheme {
                 Navigation(vm)

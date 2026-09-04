@@ -40,7 +40,7 @@ import rs.moma.privezak.R
 fun SettingsScreen(
     onBack: () -> Unit,
     biometricEnabled: Boolean,
-    biometricAvailable: Boolean,
+    biometricIssue: String?,
     onEnableBiometric: suspend () -> String?,
     onDisableBiometric: () -> Unit,
     onChangePin: suspend (String) -> Boolean
@@ -120,13 +120,13 @@ fun SettingsScreen(
                     Switch(
                         checked = biometricEnabled,
                         onCheckedChange = { toggleBiometric() },
-                        enabled = biometricAvailable && !busy
+                        enabled = biometricIssue == null && !busy
                     )
-                    if (!biometricAvailable) Box(
+                    if (biometricIssue != null) Box(
                         Modifier.matchParentSize().clickable(
                             indication = null,
                             interactionSource = remember { MutableInteractionSource() }
-                        ) { SingleToast.show(context, "Biometric unlock not available") }
+                        ) { SingleToast.show(context, biometricIssue) }
                     )
                 }
             }
@@ -159,7 +159,7 @@ private fun SettingsScreenPreview() {
             SettingsScreen(
                 onBack = {},
                 biometricEnabled = false,
-                biometricAvailable = true,
+                biometricIssue = null,
                 onEnableBiometric = { null },
                 onDisableBiometric = {},
                 onChangePin = { true }
