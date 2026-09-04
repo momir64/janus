@@ -9,7 +9,6 @@ import javax.crypto.spec.SecretKeySpec
 import javax.crypto.SecretKeyFactory
 import javax.crypto.spec.PBEKeySpec
 import androidx.core.content.edit
-import java.security.SecureRandom
 import javax.crypto.KeyGenerator
 import kotlin.io.encoding.Base64
 import android.content.Context
@@ -26,25 +25,17 @@ private const val PREFS = "privezak"
 private const val SALT = "pin_salt"
 
 private const val ITERATIONS = 220_000
-private const val GCM_TAG_BITS = 128
-private const val KEY_BITS = 256
-private const val IV_BYTES = 12
 
 const val MIN_PIN_LENGTH = 6
 
 class PinVault(context: Context) {
-    private companion object {
-        const val TRANSFORMATION = "AES/GCM/NoPadding"
-    }
-
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-    private val random = SecureRandom()
 
     val isBiometricEnabled: Boolean get() = prefs.contains(BY_BIOMETRIC)
     val isSetUp: Boolean get() = prefs.contains(BY_PIN)
 
     fun setUp(pin: String): ByteArray {
-        val dataKey = ByteArray(KEY_BITS / 8).also(random::nextBytes)
+        val dataKey = randomBytes(KEY_BITS / 8)
         changePin(dataKey, pin)
         return dataKey
     }
@@ -52,13 +43,13 @@ class PinVault(context: Context) {
     fun unlock(pin: String): ByteArray? {
         val salt = prefs.getString(SALT, null)?.let(Base64::decode) ?: return null
         val wrapped = prefs.getString(BY_PIN, null)?.let(Base64::decode) ?: return null
-        return runCatching { decrypt(derive(pin, salt), unbind(wrapped)) }.getOrNull()
+        return runCatching { derive(pin, salt).decrypt(unbind(wrapped)) }.getOrNull()
     }
 
     fun changePin(dataKey: ByteArray, pin: String) {
-        val salt = ByteArray(16).also(random::nextBytes)
+        val salt = randomBytes(16)
         prefs.edit {
-            putString(BY_PIN, Base64.encode(bind(encrypt(derive(pin, salt), dataKey))))
+            putString(BY_PIN, Base64.encode(bind(derive(pin, salt).encrypt(dataKey))))
             putString(SALT, Base64.encode(salt))
         }
     }
@@ -116,19 +107,6 @@ class PinVault(context: Context) {
         return SecretKeySpec(factory.generateSecret(spec).encoded, "AES")
     }
 
-    private fun encrypt(key: SecretKeySpec, plaintext: ByteArray): ByteArray {
-        val iv = ByteArray(IV_BYTES).also(random::nextBytes)
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(ENCRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, iv))
-        return iv + cipher.doFinal(plaintext)
-    }
-
-    private fun decrypt(key: SecretKeySpec, stored: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_BITS, stored.copyOf(IV_BYTES)))
-        return cipher.doFinal(stored.copyOfRange(IV_BYTES, stored.size))
-    }
-
     // Binding the data key to this device so that it can't be brute forced offline
     private fun bindingKey(): SecretKey {
         keyStore().getKey(BINDING_KEYSTORE_ALIAS, null)?.let { return it as SecretKey }
@@ -142,16 +120,7 @@ class PinVault(context: Context) {
         return generator.generateKey()
     }
 
-    private fun bind(plaintext: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        cipher.init(ENCRYPT_MODE, bindingKey())
-        return cipher.iv + cipher.doFinal(plaintext)
-    }
+    private fun bind(plaintext: ByteArray): ByteArray = bindingKey().encrypt(plaintext, true)
 
-    private fun unbind(stored: ByteArray): ByteArray {
-        val cipher = Cipher.getInstance(TRANSFORMATION)
-        val params = GCMParameterSpec(GCM_TAG_BITS, stored.copyOf(IV_BYTES))
-        cipher.init(DECRYPT_MODE, bindingKey(), params)
-        return cipher.doFinal(stored.copyOfRange(IV_BYTES, stored.size))
-    }
+    private fun unbind(stored: ByteArray): ByteArray = bindingKey().decrypt(stored)
 }
