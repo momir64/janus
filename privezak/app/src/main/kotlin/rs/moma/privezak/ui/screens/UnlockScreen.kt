@@ -73,7 +73,7 @@ fun UnlockScreen(
         }
     }
 
-    val lift = with(LocalDensity.current) { 48.dp.roundToPx() }
+    val lift = with(LocalDensity.current) { 56.dp.roundToPx() }
     val imeFrom = WindowInsets.imeAnimationSource
     val imeTo = WindowInsets.imeAnimationTarget
     val ime = WindowInsets.ime
@@ -99,9 +99,9 @@ fun UnlockScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("PRIVEZAK", style = typography.displayMedium, color = Heading)
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(36.dp))
         PinField(pin, "PIN", ImeAction.Done) { unlock() }
-        Spacer(Modifier.height(28.dp))
+        Spacer(Modifier.height(32.dp))
 
         Button(
             modifier = Modifier.fillMaxWidth().height(52.dp),
