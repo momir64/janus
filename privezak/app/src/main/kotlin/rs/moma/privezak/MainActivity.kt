@@ -2,6 +2,8 @@ package rs.moma.privezak
 
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import android.view.WindowManager.LayoutParams.FLAG_SECURE
+import androidx.compose.ui.ExperimentalComposeUiApi
+import androidx.compose.ui.AndroidComposeUiFlags
 import rs.moma.privezak.ui.components.Navigation
 import rs.moma.privezak.viewmodels.MainViewModel
 import rs.moma.privezak.ui.theme.PrivezakTheme
@@ -16,6 +18,7 @@ import android.os.Bundle
 class MainActivity : FragmentActivity() {
     private val vm: MainViewModel by viewModels()
 
+    @OptIn(ExperimentalComposeUiApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
@@ -23,6 +26,8 @@ class MainActivity : FragmentActivity() {
             navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT)
         )
+        // todo: Works around the keyboard collapsing between text fields in 1.12.0, until next BOM.
+        AndroidComposeUiFlags.isOutOfFrameSchedulerForTextInputEventsEnabled = false
         window.setFlags(FLAG_SECURE, FLAG_SECURE)
         setContent {
             PrivezakTheme {
