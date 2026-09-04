@@ -45,6 +45,7 @@ fun HomeScreen(onSettings: () -> Unit, onScan: () -> Unit) {
             ) {
                 Text(
                     "No passkeys yet.",
+                    modifier = Modifier.padding(bottom = 32.dp),
                     style = typography.bodyLarge,
                     fontSize = 20.sp,
                     color = Muted
