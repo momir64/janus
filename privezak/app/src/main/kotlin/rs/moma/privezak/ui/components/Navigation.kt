@@ -4,6 +4,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import rs.moma.privezak.ui.screens.RegisterScreen
+import rs.moma.privezak.ui.screens.SettingsScreen
 import rs.moma.privezak.ui.screens.WelcomeScreen
 import rs.moma.privezak.viewmodels.MainViewModel
 import androidx.activity.compose.LocalActivity
@@ -17,10 +18,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 
+private enum class Screen { Home, Settings }
+
 @Composable
 fun Navigation(vm: MainViewModel) {
     val activity = LocalActivity.current as FragmentActivity
     var welcomed by rememberSaveable { mutableStateOf(false) }
+    var screen by rememberSaveable { mutableStateOf(Screen.Home) }
     val biometricEnabled by vm.isBiometricEnabled.collectAsState()
     val isLoggedIn by vm.isLoggedIn.collectAsState()
     val isSetUp by vm.isSetUp.collectAsState()
@@ -28,7 +32,13 @@ fun Navigation(vm: MainViewModel) {
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
         Box(Modifier.padding(top = innerPadding.calculateTopPadding())) {
             when {
-                isLoggedIn == true -> HomeScreen()
+                isLoggedIn == true -> when (screen) {
+                    Screen.Home -> HomeScreen(
+                        onSettings = { screen = Screen.Settings },
+                        onScan = { }
+                    )
+                    Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Home })
+                }
                 !isSetUp && !welcomed -> WelcomeScreen { welcomed = true }
                 !isSetUp -> RegisterScreen(onBack = { welcomed = false }, onConfirm = vm::setUp)
                 else -> LoginScreen(
