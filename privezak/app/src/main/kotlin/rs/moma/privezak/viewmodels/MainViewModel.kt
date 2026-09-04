@@ -47,8 +47,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         dataKey = null
     }
 
-    suspend fun changePin(current: String, new: String): Boolean =
-        withContext(Dispatchers.Default) { vault.changePin(current, new) }
+    suspend fun changePin(pin: String): Boolean = withContext(Dispatchers.Default) {
+        val key = dataKey ?: return@withContext false
+        vault.changePin(key, pin)
+        true
+    }
 
     fun unlockBiometricCipher(): Cipher? = vault.unlockBiometricCipher()
     fun enrollBiometricCipher(): Cipher = vault.enrollBiometricCipher()

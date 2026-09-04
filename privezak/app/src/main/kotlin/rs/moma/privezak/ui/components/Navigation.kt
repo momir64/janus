@@ -3,6 +3,7 @@ package rs.moma.privezak.ui.components
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import rs.moma.privezak.security.canUseBiometrics
 import rs.moma.privezak.ui.screens.RegisterScreen
 import rs.moma.privezak.ui.screens.SettingsScreen
 import rs.moma.privezak.ui.screens.WelcomeScreen
@@ -37,7 +38,14 @@ fun Navigation(vm: MainViewModel) {
                         onSettings = { screen = Screen.Settings },
                         onScan = { }
                     )
-                    Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Home })
+                    Screen.Settings -> SettingsScreen(
+                        onBack = { screen = Screen.Home },
+                        biometricEnabled = biometricEnabled,
+                        biometricAvailable = activity.canUseBiometrics(),
+                        onEnableBiometric = { enableBiometric(vm, activity) },
+                        onDisableBiometric = vm::disableBiometric,
+                        onChangePin = vm::changePin
+                    )
                 }
                 !isSetUp && !welcomed -> WelcomeScreen { welcomed = true }
                 !isSetUp -> RegisterScreen(onBack = { welcomed = false }, onConfirm = vm::setUp)
@@ -47,6 +55,20 @@ fun Navigation(vm: MainViewModel) {
                     onUnlockWithBiometric = { unlockWithBiometric(vm, activity) }
                 )
             }
+        }
+    }
+}
+
+private suspend fun enableBiometric(vm: MainViewModel, activity: FragmentActivity): String? {
+    val promptTitle = "Enable biometric unlock"
+    return when (val result = activity.authenticate(vm.enrollBiometricCipher(), promptTitle)) {
+        is AuthResult.Success -> {
+            vm.enableBiometric(result.cipher)
+            null
+        }
+        is AuthResult.Failed, AuthResult.Cancelled -> {
+            vm.disableBiometric()
+            (result as? AuthResult.Failed)?.message
         }
     }
 }

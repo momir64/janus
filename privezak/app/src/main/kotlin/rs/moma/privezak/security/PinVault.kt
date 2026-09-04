@@ -45,7 +45,7 @@ class PinVault(context: Context) {
 
     fun setUp(pin: String): ByteArray {
         val dataKey = ByteArray(KEY_BITS / 8).also(random::nextBytes)
-        wrapWithPin(dataKey, pin)
+        changePin(dataKey, pin)
         return dataKey
     }
 
@@ -55,13 +55,7 @@ class PinVault(context: Context) {
         return runCatching { decrypt(derive(pin, salt), unbind(wrapped)) }.getOrNull()
     }
 
-    fun changePin(current: String, new: String): Boolean {
-        val dataKey = unlock(current) ?: return false
-        wrapWithPin(dataKey, new)
-        return true
-    }
-
-    private fun wrapWithPin(dataKey: ByteArray, pin: String) {
+    fun changePin(dataKey: ByteArray, pin: String) {
         val salt = ByteArray(16).also(random::nextBytes)
         prefs.edit {
             putString(BY_PIN, Base64.encode(bind(encrypt(derive(pin, salt), dataKey))))

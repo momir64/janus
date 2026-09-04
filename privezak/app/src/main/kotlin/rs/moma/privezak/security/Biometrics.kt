@@ -3,8 +3,10 @@ package rs.moma.privezak.security
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import kotlinx.coroutines.suspendCancellableCoroutine
 import androidx.fragment.app.FragmentActivity
+import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricPrompt
 import kotlin.coroutines.resume
+import android.content.Context
 import javax.crypto.Cipher
 
 sealed interface AuthResult {
@@ -18,6 +20,9 @@ private val DISMISSED = setOf(
     BiometricPrompt.ERROR_USER_CANCELED,
     BiometricPrompt.ERROR_CANCELED
 )
+
+fun Context.canUseBiometrics(): Boolean = BiometricManager.from(this)
+    .canAuthenticate(BIOMETRIC_STRONG) == BiometricManager.BIOMETRIC_SUCCESS
 
 suspend fun FragmentActivity.authenticate(cipher: Cipher, title: String): AuthResult =
     suspendCancellableCoroutine { continuation ->
