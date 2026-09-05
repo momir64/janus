@@ -1,6 +1,7 @@
 package rs.moma.privezak
 
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import android.view.WindowManager.LayoutParams.FLAG_SECURE
@@ -10,6 +11,7 @@ import rs.moma.privezak.ui.components.unlockWithBiometric
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.systemBars
 import rs.moma.privezak.provider.EXTRA_CREDENTIAL_ID
@@ -96,7 +98,8 @@ class CredentialActivity : FragmentActivity() {
                         modifier = Modifier.fillMaxWidth()
                             .windowInsetsPadding(WindowInsets.systemBars)
                             .imePadding()
-                            .padding(24.dp),
+                            .padding(24.dp)
+                            .pointerInput(Unit) { detectTapGestures { } },
                         shape = RoundedCornerShape(22.dp),
                         colors = CardDefaults.cardColors(containerColor = CardBackground)
                     ) {
