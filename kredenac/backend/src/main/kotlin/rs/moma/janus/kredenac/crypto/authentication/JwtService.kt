@@ -12,17 +12,24 @@ import kotlin.time.Clock
 import javax.crypto.Mac
 import kotlin.uuid.Uuid
 
+// pzk = privezak attested
 @Serializable
-data class JwtClaims(val sub: String, val sid: String, val cid: String, val iat: Long, val exp: Long)
+data class JwtClaims(
+    val sub: String, val sid: String, val cid: String,
+    val iat: Long, val exp: Long, val pzk: Boolean = false
+)
 
 class JwtService(secret: ByteArray, val accessTokenTtl: Duration = 5.minutes) {
     private val base64 = Base64.UrlSafe.withPadding(ABSENT_OPTIONAL)
     private val key = SecretKeySpec(secret, "HmacSHA256")
     private val json = Json { ignoreUnknownKeys = true }
 
-    fun issue(userId: Uuid, sid: String, cid: Uuid, ttl: Duration = accessTokenTtl): String {
+    fun issue(userId: Uuid, sid: String, cid: Uuid, privezak: Boolean = false, ttl: Duration = accessTokenTtl): String {
         val now = Clock.System.now()
-        val claims = JwtClaims(userId.toString(), sid, cid.toString(), now.epochSeconds, (now + ttl).epochSeconds)
+        val claims = JwtClaims(
+            userId.toString(), sid, cid.toString(),
+            now.epochSeconds, (now + ttl).epochSeconds, privezak
+        )
         val headerEncoded = base64.encode("""{"alg":"HS256","typ":"JWT"}""".toByteArray())
         val payloadEncoded = base64.encode(json.encodeToString(claims).toByteArray())
         val signingInput = "$headerEncoded.$payloadEncoded"

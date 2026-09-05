@@ -9,6 +9,7 @@ import { confirmDialog } from "../../components/dialog/confirm-dialog";
 import { optionalBreaks } from "../../lib/render/optional-breaks";
 import { appNav, type AppTab } from "../../components/nav/nav";
 import { truncateFilename } from "../../lib/strings/format";
+import { isPrivezakSession } from "../../lib/http/session";
 import { button } from "../../components/button/button";
 import { isDesktop } from "../../lib/render/breakpoint";
 import { noteEditor } from "./note-editor/note-editor";
@@ -25,17 +26,19 @@ import { api } from "../../lib/http/api";
 const build = template(markup);
 
 const MAX_FILE_BYTES = 50 * 1024 * 1024;
-const NAME_IN_MESSAGE = 24;
 const MAX_FILENAME_LENGTH = 255;
+const NAME_IN_MESSAGE = 24;
 
 export async function homePage(): Promise<Node> {
-  let activeTab: AppTab = contentTab();
+  const files = isPrivezakSession();
+  let activeTab: AppTab = files ? contentTab() : "notes";
 
   const page = build();
   const filesList = ref(page, "files-list");
   const notesList = ref(page, "notes-list");
   const filesColumn = ref(page, "files-column");
   const notesColumn = ref(page, "notes-column");
+  const columns = ref(page, "columns");
   const navSlot = ref(page, "nav");
 
   const zone = dropzone({ onFile: (file) => void uploadFile(file) });
@@ -70,6 +73,7 @@ export async function homePage(): Promise<Node> {
     upload.relabel();
   });
 
+  if (!files) columns.classList.add("home-page__columns--solo");
   filesColumn.prepend(zone.el, uploadButton);
   placeMessage();
 
@@ -216,7 +220,7 @@ export async function homePage(): Promise<Node> {
   function setActiveTab(tab: AppTab): void {
     activeTab = tab;
     if (tab !== "settings") setContentTab(tab as ContentTab);
-    filesColumn.hidden = tab !== "files";
+    filesColumn.hidden = !files || tab !== "files";
     notesColumn.hidden = tab !== "notes";
     mount(navSlot, ...appNav({ active: activeTab, onTabChange: handleTabChange }));
   }
@@ -233,7 +237,7 @@ export async function homePage(): Promise<Node> {
   attachScrollbar(notesList);
 
   setActiveTab(activeTab);
-  void loadFiles();
+  if (files) void loadFiles();
   void loadNotes();
 
   return page;

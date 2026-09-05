@@ -81,6 +81,15 @@ class CredentialRepository(
         }
     }
 
+    suspend fun findById(id: Uuid): StoredCredential? = withContext(Dispatchers.IO) {
+        transaction {
+            CredentialTable.selectAll()
+                .where { CredentialTable.id eq id }
+                .map { it.toStoredCredential() }
+                .singleOrNull()
+        }
+    }
+
     context(owner: Owner)
     suspend fun findAll(): List<StoredCredential> = withContext(Dispatchers.IO) {
         transaction {

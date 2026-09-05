@@ -23,7 +23,7 @@ async function createCredential(
       user: { id: fromBase64Url(userHandle), name: email, displayName: email },
       pubKeyCredParams: PUB_KEY_CRED_PARAMS,
       authenticatorSelection: { residentKey: "required", userVerification: "required" },
-      attestation: "none",
+      attestation: "direct",
       excludeCredentials: excludeCredentials.map((id) => ({ type: "public-key", id: fromBase64Url(id) })),
       timeout: 60_000,
     },

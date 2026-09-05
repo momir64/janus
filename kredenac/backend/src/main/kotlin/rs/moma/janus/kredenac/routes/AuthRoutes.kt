@@ -118,11 +118,12 @@ fun Route.authRoutes() {
                     is LoginOutcome.Success -> {
                         val sid = Uuid.random().toString()
                         val csrf = csrfService.tokenFor(sid)
-                        val accessToken = jwtService.issue(outcome.userId, sid, outcome.credentialId)
+                        val privezak = userService.isPrivezak(outcome.credentialId)
+                        val accessToken = jwtService.issue(outcome.userId, sid, outcome.credentialId, privezak)
                         val refresh = refreshTokenService.issue(outcome.userId, outcome.credentialId)
                         call.clearChallengeSessionCookie()
                         call.setAuthCookies(accessToken, refresh.refreshToken)
-                        call.respond(SessionResponse(csrf, jwtService.accessTokenTtl.inWholeSeconds))
+                        call.respond(SessionResponse(csrf, jwtService.accessTokenTtl.inWholeSeconds, privezak))
                     }
                 }
             }
@@ -134,10 +135,11 @@ fun Route.authRoutes() {
                 val (userId, next) = refreshTokenService.rotate(refreshToken)
                 val sid = Uuid.random().toString()
                 val csrf = csrfService.tokenFor(sid)
-                val accessToken = jwtService.issue(userId, sid, next.credentialId)
+                val privezak = userService.isPrivezak(next.credentialId)
+                val accessToken = jwtService.issue(userId, sid, next.credentialId, privezak)
 
                 call.setAuthCookies(accessToken, next.refreshToken)
-                call.respond(SessionResponse(csrf, jwtService.accessTokenTtl.inWholeSeconds))
+                call.respond(SessionResponse(csrf, jwtService.accessTokenTtl.inWholeSeconds, privezak))
             }
 
             post("/logout") {

@@ -31,6 +31,20 @@
   }
 }
 
+.home-page__columns--solo {
+  @include desktop {
+    justify-content: center;
+
+    .home-page__column {
+      max-width: 720px;
+    }
+
+    .home-page__column[hidden] {
+      display: none;
+    }
+  }
+}
+
 .home-page__column {
   flex: 1;
   min-height: 0;

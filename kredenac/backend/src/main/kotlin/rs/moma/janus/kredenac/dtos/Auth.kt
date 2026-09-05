@@ -16,7 +16,7 @@ value class Base64Url(val value: String) {
 }
 
 @Serializable
-data class SessionResponse(val csrfToken: String, val expiresIn: Long)
+data class SessionResponse(val csrfToken: String, val expiresIn: Long, val privezak: Boolean)
 
 @Serializable
 data class RegisterVerifyRequest(val email: String)

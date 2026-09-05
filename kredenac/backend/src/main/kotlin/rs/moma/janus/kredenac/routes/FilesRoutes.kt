@@ -20,11 +20,11 @@ fun Route.filesRoutes() {
     val filesService: FilesService by inject()
 
     route("/files") {
-        authenticatedGet("") {
+        authenticatedGet("", privezakOnly = true) {
             call.respond(filesService.list())
         }
 
-        authenticatedPost("") {
+        authenticatedPost("", privezakOnly = true) {
             var declaredSize: Long? = null
             var uploaded = false
 
@@ -48,14 +48,14 @@ fun Route.filesRoutes() {
             call.respond(HttpStatusCode.Created)
         }
 
-        authenticatedGet("/{id}") {
+        authenticatedGet("/{id}", privezakOnly = true) {
             val fileId = call.uuidParam("id")
             val file = filesService.download(fileId)
             call.response.header(HttpHeaders.ContentDisposition, "attachment; filename=\"${file.filename}\"")
             call.respondBytes(file.bytes, OctetStream)
         }
 
-        authenticatedDelete("/{id}") {
+        authenticatedDelete("/{id}", privezakOnly = true) {
             val fileId = call.uuidParam("id")
             filesService.delete(fileId)
             call.respond(HttpStatusCode.NoContent)

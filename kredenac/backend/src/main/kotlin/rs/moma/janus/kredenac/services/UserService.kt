@@ -75,6 +75,8 @@ class UserService(
         return userId.toHandle() to context(Owner(userId)) { credentialIds() }
     }
 
+    suspend fun isPrivezak(credentialId: Uuid): Boolean = credentialRepository.findById(credentialId)?.privezak == true
+
     context(owner: Owner)
     fun userHandle(): String = owner.userId.toHandle()
 

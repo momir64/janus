@@ -1,4 +1,4 @@
-import { clearSession, getCsrfToken, setCsrfToken } from "./session";
+import { clearSession, getCsrfToken, setCsrfToken, setPrivezakSession } from "./session";
 import type { FileDto, NoteDto, PasskeyDto } from "../../types";
 
 export class ApiError extends Error {
@@ -31,13 +31,15 @@ interface ChallengeResponse {
 interface Session {
   csrfToken: string;
   expiresIn?: number;
+  privezak?: boolean;
 }
 
 const MAX_REFRESH_MARGIN_MS = 30_000;
 let renewal = 0;
 
-function startSession({ csrfToken, expiresIn }: Session): void {
+function startSession({ csrfToken, expiresIn, privezak }: Session): void {
   setCsrfToken(csrfToken);
+  setPrivezakSession(privezak === true);
   clearTimeout(renewal);
   if (!expiresIn) return;
   const lifetime = expiresIn * 1000;

@@ -1,3 +1,4 @@
+import { isPrivezakSession } from "../../lib/http/session";
 import { contentTab } from "../../lib/state/tab-state";
 import { closeAllDialogs } from "../dialog/dialog";
 import { icon, type IconName } from "../icon/icon";
@@ -52,7 +53,7 @@ export function appNav({ active, onTabChange }: AppNavOptions): [HTMLElement, HT
   const bottom = h(
     "nav",
     { class: "bottom-nav" },
-    navButton("folder", "Files", active === "files", () => onTabChange("files"), false),
+    isPrivezakSession() ? navButton("folder", "Files", active === "files", () => onTabChange("files"), false) : null,
     navButton("sticky-note", "Notes", active === "notes", () => onTabChange("notes"), false),
     navButton("settings", "Settings", active === "settings", () => onTabChange("settings"), false),
     navButton("logout", "Log out", false, logout, false)
