@@ -33,10 +33,11 @@ fun ConfirmDialog(
     dismissBackgroundColor: Color? = null,
     confirmColor: Color = Error,
     onConfirm: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onDismissRequest: () -> Unit = onDismiss
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = onDismissRequest,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 18.dp),
         properties = DialogProperties(usePlatformDefaultWidth = false),
         title = {

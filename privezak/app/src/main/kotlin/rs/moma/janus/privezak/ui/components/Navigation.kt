@@ -15,6 +15,8 @@ import rs.moma.janus.privezak.ui.theme.CardBackground
 import rs.moma.janus.privezak.ui.screens.SetupScreen
 import rs.moma.janus.privezak.security.authenticate
 import rs.moma.janus.privezak.ui.screens.HomeScreen
+import rs.moma.janus.privezak.ui.screens.ScanScreen
+import rs.moma.janus.privezak.ui.utils.SingleToast
 import androidx.compose.foundation.layout.padding
 import rs.moma.janus.privezak.security.AuthResult
 import androidx.activity.compose.LocalActivity
@@ -23,10 +25,12 @@ import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.BackHandler
 import rs.moma.janus.privezak.ui.theme.Muted
 import androidx.lifecycle.repeatOnLifecycle
+import android.content.Intent.ACTION_VIEW
 import android.annotation.SuppressLint
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.compose.material3.*
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
 import android.provider.Settings
 import kotlinx.coroutines.launch
@@ -41,14 +45,22 @@ fun Navigation(vm: MainViewModel) {
     val activity = LocalActivity.current as FragmentActivity
     val biometricEnabled by vm.isBiometricEnabled.collectAsState()
     var welcomed by rememberSaveable { mutableStateOf(false) }
+    var setupHintHidden by remember { mutableStateOf(false) }
     val sessionTimeout by vm.sessionTimeout.collectAsState()
     val needsSetupHint by vm.needsSetupHint.collectAsState()
     val pager = rememberPagerState { Page.entries.size }
+    var scanning by remember { mutableStateOf(false) }
     val isUnlocked by vm.isUnlocked.collectAsState()
     val passkeys by vm.passkeys.collectAsState()
     val isSetUp by vm.isSetUp.collectAsState()
 
-    LaunchedEffect(isUnlocked) { if (isUnlocked != true) pager.scrollToPage(Page.Home.ordinal) }
+    LaunchedEffect(isUnlocked) {
+        if (isUnlocked != true) {
+            pager.scrollToPage(Page.Home.ordinal)
+            setupHintHidden = false
+            scanning = false
+        }
+    }
 
     val focusManager = LocalFocusManager.current
     LaunchedEffect(pager.currentPage) {
@@ -67,13 +79,22 @@ fun Navigation(vm: MainViewModel) {
     }
 
     Scaffold(Modifier.fillMaxSize()) { innerPadding ->
-        Box(Modifier.padding(top = innerPadding.calculateTopPadding())) {
+        val top = if (scanning) 0.dp else innerPadding.calculateTopPadding()
+        Box(Modifier.padding(top = top)) {
             when {
+                isUnlocked == true && scanning -> ScanScreen(
+                    onBack = { scanning = false },
+                    onScanned = { link ->
+                        scanning = false
+                        runCatching { activity.startActivity(Intent(ACTION_VIEW, link.toUri())) }
+                            .onFailure { SingleToast.show(activity, "Could not open the code") }
+                    }
+                )
                 isUnlocked == true -> HorizontalPager(pager, Modifier.fillMaxSize()) { page ->
                     if (page == Page.Home.ordinal) HomeScreen(
                         passkeys = passkeys,
                         onSettings = { scope.launch { pager.scrollToPage(Page.Settings.ordinal) } },
-                        onScan = { },
+                        onScan = { scanning = true },
                         onDelete = vm::deletePasskey
                     )
                     else SettingsScreen(
@@ -96,7 +117,7 @@ fun Navigation(vm: MainViewModel) {
                 )
             }
 
-            if (isUnlocked == true && needsSetupHint) ConfirmDialog(
+            if (isUnlocked == true && needsSetupHint && !setupHintHidden) ConfirmDialog(
                 title = "Configuration",
                 text = "To use privezak you need to add it as a credential manager in the settings.",
                 confirmLabel = "OK",
@@ -108,7 +129,8 @@ fun Navigation(vm: MainViewModel) {
                     vm.dismissSetupHint()
                     runCatching { activity.startActivity(credentialSettings(activity)) }
                 },
-                onDismiss = vm::dismissSetupHint
+                onDismiss = vm::dismissSetupHint,
+                onDismissRequest = { setupHintHidden = true }
             )
         }
     }
