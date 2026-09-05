@@ -27,6 +27,7 @@ fun ConfirmDialog(
     title: String,
     text: String,
     confirmLabel: String,
+    confirmColor: Color = Error,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -60,7 +61,7 @@ fun ConfirmDialog(
         confirmButton = {
             Button(
                 modifier = Modifier.size(100.dp, 42.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Error),
+                colors = ButtonDefaults.buttonColors(containerColor = confirmColor),
                 shape = RoundedCornerShape(16),
                 onClick = onConfirm
             ) { Text(confirmLabel) }

@@ -23,6 +23,7 @@ private const val BINDING_KEYSTORE_ALIAS = "privezak_pin"
 // Prefs keys
 private const val LIST_SESSION_TIMEOUT = "list_session_timeout"
 private const val BY_BIOMETRIC_IV = "key_by_biometric_iv"
+private const val SETUP_HINT_SEEN = "setup_hint_seen"
 private const val BY_BIOMETRIC = "key_by_biometric"
 private const val BY_PIN = "key_by_pin"
 private const val PREFS = "privezak"
@@ -38,6 +39,10 @@ class PinVault(context: Context) {
 
     val isBiometricEnabled: Boolean get() = prefs.contains(BY_BIOMETRIC)
     val isSetUp: Boolean get() = prefs.contains(BY_PIN)
+
+    var isSetupHintSeen: Boolean
+        get() = prefs.getBoolean(SETUP_HINT_SEEN, false)
+        set(value) = prefs.edit(commit = true) { putBoolean(SETUP_HINT_SEEN, value) }
 
     var sessionTimeout: SessionTimeout
         get() = prefs.getString(LIST_SESSION_TIMEOUT, null)

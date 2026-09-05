@@ -27,6 +27,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isSetUp = MutableStateFlow(vault.isSetUp)
     val isSetUp = _isSetUp.asStateFlow()
 
+    private val _needsSetupHint = MutableStateFlow(!vault.isSetupHintSeen)
+    val needsSetupHint = _needsSetupHint.asStateFlow()
+
     private val _sessionTimeout = MutableStateFlow(vault.sessionTimeout)
     val sessionTimeout = _sessionTimeout.asStateFlow()
 
@@ -113,6 +116,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         val key = dataKey ?: return@withContext
         vault.enableBiometric(key, cipher)
         _isBiometricEnabled.value = true
+    }
+
+    fun dismissSetupHint() {
+        vault.isSetupHintSeen = true
+        _needsSetupHint.value = false
     }
 
     fun disableBiometric() {

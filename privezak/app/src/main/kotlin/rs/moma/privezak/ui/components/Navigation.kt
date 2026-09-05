@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.layout.padding
 import rs.moma.privezak.ui.screens.SettingsScreen
+import rs.moma.privezak.ui.dialogs.ConfirmDialog
 import rs.moma.privezak.ui.screens.WelcomeScreen
 import rs.moma.privezak.viewmodels.MainViewModel
 import rs.moma.privezak.security.biometricIssue
@@ -20,11 +21,15 @@ import rs.moma.privezak.ui.screens.HomeScreen
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.repeatOnLifecycle
 import rs.moma.privezak.security.AuthResult
+import android.annotation.SuppressLint
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import android.provider.Settings
 import kotlinx.coroutines.launch
+import androidx.core.net.toUri
+import android.content.Intent
 
 private enum class Page { Home, Settings }
 
@@ -35,6 +40,7 @@ fun Navigation(vm: MainViewModel) {
     val biometricEnabled by vm.isBiometricEnabled.collectAsState()
     var welcomed by rememberSaveable { mutableStateOf(false) }
     val sessionTimeout by vm.sessionTimeout.collectAsState()
+    val needsSetupHint by vm.needsSetupHint.collectAsState()
     val pager = rememberPagerState { Page.entries.size }
     val isUnlocked by vm.isUnlocked.collectAsState()
     val passkeys by vm.passkeys.collectAsState()
@@ -87,9 +93,25 @@ fun Navigation(vm: MainViewModel) {
                     onUnlockWithBiometric = { unlockWithBiometric(vm, activity) }
                 )
             }
+
+            if (isUnlocked == true && needsSetupHint) ConfirmDialog(
+                title = "Configuration",
+                text = "To use privezak you need to add it as a credential manager in the settings.",
+                confirmLabel = "OK",
+                confirmColor = MaterialTheme.colorScheme.primary,
+                onConfirm = {
+                    vm.dismissSetupHint()
+                    runCatching { activity.startActivity(credentialSettings(activity)) }
+                },
+                onDismiss = vm::dismissSetupHint
+            )
         }
     }
 }
+
+@SuppressLint("InlinedApi")
+private fun credentialSettings(activity: FragmentActivity) =
+    Intent(Settings.ACTION_CREDENTIAL_PROVIDER, "package:${activity.packageName}".toUri())
 
 private suspend fun enableBiometric(vm: MainViewModel, activity: FragmentActivity): String? {
     val promptTitle = "Enable biometric unlock"
