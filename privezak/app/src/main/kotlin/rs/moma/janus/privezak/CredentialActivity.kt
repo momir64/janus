@@ -1,5 +1,6 @@
 package rs.moma.janus.privezak
 
+import android.view.View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
 import rs.moma.janus.privezak.ui.components.unlockWithBiometric
 import android.view.WindowManager.LayoutParams.FLAG_SECURE
 import rs.moma.janus.privezak.provider.EXTRA_CREDENTIAL_ID
@@ -36,6 +37,7 @@ class CredentialActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.setFlags(FLAG_SECURE, FLAG_SECURE)
+        window.decorView.importantForAutofill = IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
 
         setContent {
             PrivezakTheme {

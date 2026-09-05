@@ -1,6 +1,7 @@
 package rs.moma.janus.privezak
 
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import android.view.View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
 import android.view.WindowManager.LayoutParams.FLAG_SECURE
 import rs.moma.janus.privezak.ui.components.Navigation
 import rs.moma.janus.privezak.viewmodels.MainViewModel
@@ -30,6 +31,7 @@ class MainActivity : FragmentActivity() {
         // todo: Works around the keyboard collapsing between text fields in 1.12.0, until next BOM.
         AndroidComposeUiFlags.isOutOfFrameSchedulerForTextInputEventsEnabled = false
         window.setFlags(FLAG_SECURE, FLAG_SECURE)
+        window.decorView.importantForAutofill = IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS
         setContent {
             PrivezakTheme {
                 Navigation(vm)

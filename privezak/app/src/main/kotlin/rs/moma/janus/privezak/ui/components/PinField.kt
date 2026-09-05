@@ -9,6 +9,7 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.OutlinedSecureTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.runtime.mutableStateOf
@@ -50,7 +51,11 @@ fun PinField(
                 )
             }
         },
-        keyboardOptions = KeyboardOptions(imeAction = imeAction ?: ImeAction.Unspecified),
+        keyboardOptions = KeyboardOptions(
+            keyboardType = KeyboardType.Password,
+            autoCorrectEnabled = false,
+            imeAction = imeAction ?: ImeAction.Unspecified
+        ),
         onKeyboardAction = onKeyboardAction?.let { action -> KeyboardActionHandler { action() } },
         colors = OutlinedTextFieldDefaults.colors(
             focusedBorderColor = Grey,
