@@ -61,12 +61,8 @@ class PasskeyStoreTest {
 
             val salt = ByteArray(32) { 7 }
             assertArrayEquals(
-                store.hmacSecret(passkey.id, salt, uv = true),
-                store.hmacSecret(passkey.id, salt, uv = true)
-            )
-            assertFalse(
-                store.hmacSecret(passkey.id, salt, uv = true)
-                    .contentEquals(store.hmacSecret(passkey.id, salt, uv = false))
+                store.hmacSecret(passkey.id, salt),
+                store.hmacSecret(passkey.id, salt)
             )
 
             assertEquals(1, store.recordUse(passkey.id))

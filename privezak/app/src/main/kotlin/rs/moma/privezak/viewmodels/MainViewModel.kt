@@ -80,6 +80,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun sign(id: String, data: ByteArray) = store?.sign(id, data)
 
+    fun hmacSecret(id: String, salt: ByteArray) = store?.hmacSecret(id, salt)
+
     suspend fun recordUse(id: String): Int? = withContext(Dispatchers.Default) {
         val store = store ?: return@withContext null
         store.recordUse(id).also { _passkeys.value = store.load() }

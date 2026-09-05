@@ -3,8 +3,12 @@ package rs.moma.privezak
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import rs.moma.privezak.provider.authenticatorData
+import rs.moma.privezak.provider.decodeBase64url
 import rs.moma.privezak.provider.noneAttestation
+import kotlinx.serialization.json.jsonPrimitive
 import rs.moma.privezak.security.PasskeyStore
+import rs.moma.privezak.provider.prfResults
+import rs.moma.privezak.provider.prfSalt
 import android.content.ContextWrapper
 import java.security.MessageDigest
 import org.junit.runner.RunWith
@@ -56,6 +60,34 @@ class WebAuthnTest {
             assertEquals(0x58.toByte(), cose[43])
             assertEquals(0x20.toByte(), cose[44])
             assertEquals("total COSE key size", 77, cose.size)
+        } finally {
+            store.delete(passkey.id)
+        }
+    }
+
+    @Test
+    fun derivesThePrfSaltUnderTheWebAuthnPrefix() {
+        val salt = prfSalt(ByteArray(32) { it.toByte() })
+        assertEquals(
+            "dc1f4f3b3d759586245d5de7e2e115d2a056a2df27109db7cef9b4b3a89bb106",
+            salt.joinToString("") { "%02x".format(it.toInt() and 0xff) }
+        )
+    }
+
+    @Test
+    fun evaluatesPrfInputsAgainstTheCredentialSecret() {
+        val store = PasskeyStore(context, dataKey)
+        val passkey = store.create(rpId, "Example", byteArrayOf(1), "test", "Test", challenge)
+        val request = """{"extensions":{"prf":{"eval":{"first":"AAEC","second":"AQID"}}}}"""
+        fun evaluate() = prfResults(request, passkey.id) { store.hmacSecret(passkey.id, it) }
+        try {
+            val results = checkNotNull(evaluate()) { "no prf results" }
+            val first = results["first"]!!.jsonPrimitive.content
+            val second = results["second"]!!.jsonPrimitive.content
+
+            assertEquals("an output is a full HMAC", 32, first.decodeBase64url().size)
+            assertNotEquals("both inputs derived the same output", first, second)
+            assertEquals("not deterministic", first, evaluate()!!["first"]!!.jsonPrimitive.content)
         } finally {
             store.delete(passkey.id)
         }

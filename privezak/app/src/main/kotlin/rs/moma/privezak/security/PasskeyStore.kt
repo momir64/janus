@@ -24,20 +24,20 @@ private const val FILE = "passkeys"
 
 class PasskeyStore(context: Context, dataKey: ByteArray) {
     private val strongBox = context.packageManager.hasSystemFeature(FEATURE_STRONGBOX_KEYSTORE)
+    private val json = Json { encodeDefaults = true }
     private val file = File(context.filesDir, FILE)
     private val key = SecretKeySpec(dataKey, "AES")
 
     private fun signingAlias(id: String) = "privezak_pk_$id"
-    private fun credRandomAlias(id: String, uv: Boolean) =
-        "privezak_pk_${id}_${if (uv) "uv" else "nouv"}"
+    private fun credRandomAlias(id: String) = "privezak_hmac_$id"
 
     fun load(): List<Passkey> =
         if (!file.exists()) emptyList()
-        else Json.decodeFromString(key.decrypt(file.readBytes()).decodeToString())
+        else json.decodeFromString(key.decrypt(file.readBytes()).decodeToString())
 
     private fun save(passkeys: List<Passkey>) {
         val temp = File(file.parentFile, "$FILE.tmp")
-        temp.writeBytes(key.encrypt(Json.encodeToString(passkeys).encodeToByteArray()))
+        temp.writeBytes(key.encrypt(json.encodeToString(passkeys).encodeToByteArray()))
         check(temp.renameTo(file)) { "Could not replace the passkey store" }
     }
 
@@ -51,8 +51,7 @@ class PasskeyStore(context: Context, dataKey: ByteArray) {
     ): Passkey {
         val id = Base64.UrlSafe.encode(randomBytes(CREDENTIAL_ID_BYTES))
         createSigningKey(signingAlias(id), attestationChallenge)
-        createCredRandom(credRandomAlias(id, uv = false))
-        createCredRandom(credRandomAlias(id, uv = true))
+        createCredRandom(credRandomAlias(id))
 
         val passkey = Passkey(
             id = id,
@@ -68,7 +67,7 @@ class PasskeyStore(context: Context, dataKey: ByteArray) {
 
     fun delete(id: String) {
         val keyStore = keyStore()
-        listOf(signingAlias(id), credRandomAlias(id, true), credRandomAlias(id, false))
+        listOf(signingAlias(id), credRandomAlias(id))
             .forEach { runCatching { keyStore.deleteEntry(it) } }
         save(load().filterNot { it.id == id })
     }
@@ -87,9 +86,9 @@ class PasskeyStore(context: Context, dataKey: ByteArray) {
         return used.signCount
     }
 
-    fun hmacSecret(id: String, salt: ByteArray, uv: Boolean): ByteArray =
+    fun hmacSecret(id: String, salt: ByteArray): ByteArray =
         Mac.getInstance(KEY_ALGORITHM_HMAC_SHA256).run {
-            init(keyStore().getKey(credRandomAlias(id, uv), null))
+            init(keyStore().getKey(credRandomAlias(id), null))
             doFinal(salt)
         }
 

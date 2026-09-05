@@ -57,7 +57,11 @@ internal suspend fun registrationResult(
         put("rawId", passkey.id.normalised())
         put("type", "public-key")
         put("authenticatorAttachment", "platform")
-        put("clientExtensionResults", buildJsonObject { })
+        put("clientExtensionResults", buildJsonObject {
+            if (prfRequested(calling.requestJson)) {
+                put("prf", buildJsonObject { put("enabled", true) })
+            }
+        })
         put("response", buildJsonObject {
             put("clientDataJSON", if (browserHash == null) clientData.base64url() else "")
             put("attestationObject", attestation.base64url())
@@ -101,13 +105,16 @@ internal suspend fun assertionResult(
     val authenticatorData = authenticatorData(passkey.rpId, signCount)
     val reported = if (option.clientDataHash == null) clientData.base64url() else ""
     val signature = vm.sign(credentialId, authenticatorData + clientDataHash) ?: return null
+    val prf = prfResults(option.requestJson, credentialId) { vm.hmacSecret(credentialId, it) }
 
     val assertion = buildJsonObject {
         put("id", credentialId.normalised())
         put("rawId", credentialId.normalised())
         put("type", "public-key")
         put("authenticatorAttachment", "platform")
-        put("clientExtensionResults", buildJsonObject { })
+        put("clientExtensionResults", buildJsonObject {
+            prf?.let { put("prf", buildJsonObject { put("results", it) }) }
+        })
         put("response", buildJsonObject {
             put("clientDataJSON", reported)
             put("authenticatorData", authenticatorData.base64url())
