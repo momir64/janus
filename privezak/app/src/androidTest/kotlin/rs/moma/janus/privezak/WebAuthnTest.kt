@@ -13,6 +13,7 @@ import android.content.ContextWrapper
 import java.security.MessageDigest
 import org.junit.runner.RunWith
 import org.junit.Assert.*
+import kotlin.uuid.Uuid
 import org.junit.Test
 import java.io.File
 
@@ -31,6 +32,7 @@ class WebAuthnTest {
 
     @Test
     fun buildsAttestedAuthenticatorData() {
+        val aaguid = "480642ef-fdd8-4fed-bbe8-e90aa0a782ff"
         val store = PasskeyStore(context, dataKey)
         val passkey = store.create(rpId, "Example", byteArrayOf(1, 2, 3), "test", "Test", challenge)
         try {
@@ -46,7 +48,7 @@ class WebAuthnTest {
             // user present, user verified, attested credential data
             assertEquals(0x45.toByte(), data[32])
             assertArrayEquals("sign count", ByteArray(4), data.copyOfRange(33, 37))
-            assertArrayEquals("aaguid is all zeroes", ByteArray(16), data.copyOfRange(37, 53))
+            assertEquals("aaguid", aaguid, Uuid.fromByteArray(data.copyOfRange(37, 53)).toString())
             assertEquals("credential id length", 16, (data[53].toInt() shl 8) or data[54].toInt())
             assertArrayEquals(credentialId, data.copyOfRange(55, 71))
 

@@ -8,13 +8,14 @@ import java.security.MessageDigest
 import kotlin.io.encoding.Base64
 import java.security.PublicKey
 import java.math.BigInteger
+import kotlin.uuid.Uuid
 
 // Authenticator flags
 private const val USER_VERIFIED = 0x04
 private const val USER_PRESENT = 0x01
 private const val ATTESTED = 0x40
 
-private val AAGUID = ByteArray(16) // todo: define aaguid for privezak and add it to kredenac
+internal val AAGUID = Uuid.parse("480642ef-fdd8-4fed-bbe8-e90aa0a782ff").toByteArray()
 
 internal fun ByteArray.sha256(): ByteArray = MessageDigest.getInstance("SHA-256").digest(this)
 
