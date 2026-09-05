@@ -28,6 +28,7 @@ internal fun ByteArray.base64url(): String = base64Url.encode(this)
 
 internal object Cbor {
     fun map(entries: Int) = header(0xA0, entries)
+    fun array(entries: Int) = header(0x80, entries)
     fun bytes(value: ByteArray) = header(0x40, value.size) + value
     fun text(value: String) = header(0x60, value.length) + value.toByteArray()
     fun int(value: Int) = if (value >= 0) header(0x00, value) else header(0x20, -1 - value)
@@ -71,10 +72,26 @@ internal fun authenticatorData(
     return header + AAGUID + credentialIdLength + credentialId + coseKey(publicKey)
 }
 
-internal fun attestationObject(authenticatorData: ByteArray): ByteArray =
+internal fun noneAttestation(authenticatorData: ByteArray): ByteArray =
+    attestationObject("none", Cbor.map(0), authenticatorData)
+
+internal fun androidKeyAttestation(
+    authenticatorData: ByteArray,
+    signature: ByteArray,
+    chain: List<ByteArray>
+): ByteArray {
+    val certificates = chain.fold(ByteArray(0)) { all, next -> all + Cbor.bytes(next) }
+    val attStmt = Cbor.map(3) +
+            Cbor.text("alg") + Cbor.int(-7) +
+            Cbor.text("sig") + Cbor.bytes(signature) +
+            Cbor.text("x5c") + Cbor.array(chain.size) + certificates
+    return attestationObject("android-key", attStmt, authenticatorData)
+}
+
+private fun attestationObject(fmt: String, attStmt: ByteArray, authenticatorData: ByteArray) =
     Cbor.map(3) +
-            Cbor.text("fmt") + Cbor.text("none") +
-            Cbor.text("attStmt") + Cbor.map(0) +
+            Cbor.text("fmt") + Cbor.text(fmt) +
+            Cbor.text("attStmt") + attStmt +
             Cbor.text("authData") + Cbor.bytes(authenticatorData)
 
 // When the request originated from arbitrary app instead of the browser

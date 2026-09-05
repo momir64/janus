@@ -4,6 +4,8 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import android.security.keystore.KeyProperties.*
 import rs.moma.privezak.security.PasskeyStore
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 import android.security.keystore.KeyInfo
 import rs.moma.privezak.security.decrypt
 import rs.moma.privezak.security.encrypt
@@ -29,6 +31,7 @@ class PasskeyStoreTest {
         override fun getFilesDir() = dir
     }
 
+    private val keyAttestationOid = "1.3.6.1.4.1.11129.2.1.17"
     private val dataKey = ByteArray(32) { it.toByte() }
 
     @Test
@@ -42,7 +45,10 @@ class PasskeyStoreTest {
     @Test
     fun signsAssertionsAndDerivesPerCredentialSecrets() {
         val store = PasskeyStore(context, dataKey)
-        val passkey = store.create("example.com", "Example", byteArrayOf(1, 2, 3), "test", "Test")
+        val passkey = store.create(
+            "example.com", "Example", byteArrayOf(1, 2, 3),
+            "test", "Test", ByteArray(32)
+        )
         try {
             assertEquals(listOf(passkey), PasskeyStore(context, dataKey).load())
 
@@ -72,6 +78,33 @@ class PasskeyStoreTest {
         }
         assertTrue(PasskeyStore(context, dataKey).load().isEmpty())
         assertFalse(keyStore().containsAlias("privezak_pk_${passkey.id}"))
+    }
+
+    @Test
+    fun attestsTheSigningKeyOverTheGivenChallenge() {
+        val store = PasskeyStore(context, dataKey)
+        val challenge = ByteArray(32) { (it * 7).toByte() }
+        val passkey =
+            store.create("example.com", "Example", byteArrayOf(1), "test", "Test", challenge)
+        try {
+            val chain = store.certificateChain(passkey.id)
+            if (chain.size < 2) {
+                report("no attestation available, statement falls back to none")
+                return
+            }
+
+            val leaf = CertificateFactory.getInstance("X.509")
+                .generateCertificate(chain.first().inputStream()) as X509Certificate
+            val description = leaf.getExtensionValue(keyAttestationOid)
+            assertNotNull("no key attestation extension", description)
+            assertTrue(
+                "challenge is not in the attestation",
+                description!!.toList().windowed(challenge.size).any { it == challenge.toList() }
+            )
+            report("attestation chain of ${chain.size}, subject ${leaf.subjectX500Principal}")
+        } finally {
+            store.delete(passkey.id)
+        }
     }
 
     private fun assertSecureHardware(id: String) {

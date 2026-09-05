@@ -2,8 +2,8 @@ package rs.moma.privezak
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import rs.moma.privezak.provider.attestationObject
 import rs.moma.privezak.provider.authenticatorData
+import rs.moma.privezak.provider.noneAttestation
 import rs.moma.privezak.security.PasskeyStore
 import android.content.ContextWrapper
 import java.security.MessageDigest
@@ -21,13 +21,14 @@ class WebAuthnTest {
         override fun getFilesDir() = dir
     }
 
+    private val challenge = ByteArray(32) { it.toByte() }
     private val dataKey = ByteArray(32) { it.toByte() }
     private val rpId = "example.com"
 
     @Test
     fun buildsAttestedAuthenticatorData() {
         val store = PasskeyStore(context, dataKey)
-        val passkey = store.create(rpId, "Example", byteArrayOf(1, 2, 3), "test", "Test")
+        val passkey = store.create(rpId, "Example", byteArrayOf(1, 2, 3), "test", "Test", challenge)
         try {
             val credentialId = ByteArray(16) { it.toByte() }
             val data = authenticatorData(rpId, 0, credentialId, store.publicKey(passkey.id))
@@ -63,7 +64,7 @@ class WebAuthnTest {
     @Test
     fun wrapsAuthenticatorDataInANoneAttestationObject() {
         val data = authenticatorData(rpId, 0)
-        val attestation = attestationObject(data)
+        val attestation = noneAttestation(data)
 
         // map(3), "fmt": "none", "attStmt": map(0), "authData": bytes(37)
         assertArrayEquals(

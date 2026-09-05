@@ -22,9 +22,6 @@ private const val CREDENTIAL_ID_BYTES = 16
 private const val CURVE = "secp256r1"
 private const val FILE = "passkeys"
 
-// A passkey is three Keystore entries and a record: the P-256 key that signs assertions, and one
-// HMAC key per hmac-secret variant. None of the three can be read back out, so the record holds
-// only what the extension and the UI need to know.
 class PasskeyStore(context: Context, dataKey: ByteArray) {
     private val strongBox = context.packageManager.hasSystemFeature(FEATURE_STRONGBOX_KEYSTORE)
     private val file = File(context.filesDir, FILE)
@@ -49,12 +46,13 @@ class PasskeyStore(context: Context, dataKey: ByteArray) {
         rpName: String,
         userHandle: ByteArray,
         userName: String,
-        displayName: String
+        displayName: String,
+        attestationChallenge: ByteArray
     ): Passkey {
         val id = Base64.UrlSafe.encode(randomBytes(CREDENTIAL_ID_BYTES))
-        createSigningKey(signingAlias(id))
-        createCredRandom(credRandomAlias(id, uv = true))
+        createSigningKey(signingAlias(id), attestationChallenge)
         createCredRandom(credRandomAlias(id, uv = false))
+        createCredRandom(credRandomAlias(id, uv = true))
 
         val passkey = Passkey(
             id = id,
@@ -97,20 +95,29 @@ class PasskeyStore(context: Context, dataKey: ByteArray) {
 
     fun publicKey(id: String): PublicKey = keyStore().getCertificate(signingAlias(id)).publicKey
 
+    fun certificateChain(id: String): List<ByteArray> =
+        keyStore().getCertificateChain(signingAlias(id)).orEmpty().map { it.encoded }
+
     private fun keyStore() = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
 
-    private fun createSigningKey(alias: String) = withStrongBoxFallback { strongBox ->
+    private fun createSigningKey(alias: String, attestationChallenge: ByteArray) =
+        withStrongBoxFallback { strongBox ->
+            runCatching { signingKey(alias, strongBox, attestationChallenge) }
+                .getOrElse { signingKey(alias, strongBox, null) }
+        }
+
+    private fun signingKey(alias: String, strongBox: Boolean, attestationChallenge: ByteArray?) =
         KeyPairGenerator.getInstance(KEY_ALGORITHM_EC, "AndroidKeyStore").run {
             initialize(
                 KeyGenParameterSpec.Builder(alias, PURPOSE_SIGN)
                     .setIsStrongBoxBacked(strongBox)
                     .setAlgorithmParameterSpec(ECGenParameterSpec(CURVE))
+                    .apply { attestationChallenge?.let { setAttestationChallenge(it) } }
                     .setDigests(DIGEST_SHA256)
                     .build()
             )
             generateKeyPair()
         }
-    }
 
     private fun createCredRandom(alias: String) = withStrongBoxFallback { strongBox ->
         KeyGenerator.getInstance(KEY_ALGORITHM_HMAC_SHA256, "AndroidKeyStore").run {

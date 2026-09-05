@@ -66,14 +66,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         rpName: String,
         userHandle: ByteArray,
         userName: String,
-        displayName: String
+        displayName: String,
+        attestationChallenge: ByteArray
     ): Passkey? = withContext(Dispatchers.Default) {
         val store = store ?: return@withContext null
-        store.create(rpId, rpName, userHandle, userName, displayName)
+        store.create(rpId, rpName, userHandle, userName, displayName, attestationChallenge)
             .also { _passkeys.value = store.load() }
     }
 
     fun publicKey(id: String) = store?.publicKey(id)
+
+    fun certificateChain(id: String) = store?.certificateChain(id).orEmpty()
 
     fun sign(id: String, data: ByteArray) = store?.sign(id, data)
 
