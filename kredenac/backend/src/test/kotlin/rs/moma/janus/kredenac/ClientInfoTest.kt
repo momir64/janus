@@ -12,7 +12,7 @@ class ClientInfoTest {
     }
 
     @Test
-    fun identifiesCommonClients() {
+    fun `a user agent is reduced to the browser and the device it names`() {
         check(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0 Safari/537.36",
             "Chrome", "Windows"

@@ -8,13 +8,15 @@ import rs.moma.janus.kredenac.common.readBigEndianLong
 import rs.moma.janus.kredenac.crypto.algorithms.EcUtil
 import rs.moma.janus.kredenac.crypto.algorithms.EdUtil
 import rs.moma.janus.kredenac.dtos.Base64Url
+import java.security.MessageDigest
 import kotlin.uuid.Uuid
 
 class ParsedAttestation(
     val credentialId: ByteArray,
     val publicKey: ByteArray,
     val algorithm: String,
-    val aaguid: Uuid?
+    val aaguid: Uuid?,
+    val privezak: Boolean = false
 )
 
 suspend fun WebAuthnService.verifyRegistration(
@@ -22,12 +24,16 @@ suspend fun WebAuthnService.verifyRegistration(
     attestationObject: Base64Url,
     cookie: String?
 ): Pair<ParsedAttestation, String> {
-    val challenge = decodeClientData(clientDataJSON.decode(), "webauthn.create").challenge
+    val clientData = clientDataJSON.decode()
+    val challenge = decodeClientData(clientData, "webauthn.create").challenge
     val bond = consumeChallengeBond(challenge, cookie)
-    return parseAttestation(attestationObject) to bond
+    val clientDataHash = MessageDigest.getInstance("SHA-256").digest(clientData)
+    return parseAttestation(attestationObject, clientDataHash) to bond
 }
 
-private fun WebAuthnService.parseAttestation(attestationObject: Base64Url): ParsedAttestation {
+private fun WebAuthnService.parseAttestation(
+    attestationObject: Base64Url, clientDataHash: ByteArray
+): ParsedAttestation {
     val attestationObject = attestationObject.decode()
     val attestationMap = CborValue.from(attestationObject) ?: throw BadRequestException("Invalid attestation object")
     val authData = attestationMap["authData"]?.asByteStr() ?: throw BadRequestException("Missing authData")
@@ -35,11 +41,9 @@ private fun WebAuthnService.parseAttestation(attestationObject: Base64Url): Pars
     verifyRpIdHash(authData)
     verifyUserVerified(authData)
 
-    // todo: attStmt (attestation statement) is never verified — fmt and attStmt from
-    //  attestationObject are currently ignored entirely, so hardware provenance
-    //  is not checked at registration time
-
-    return parseAuthData(authData)
+    val parsed = parseAuthData(authData)
+    val privezak = isPrivezakAttestation(attestationMap, authData, clientDataHash, parsed.publicKey, attestationRoot)
+    return ParsedAttestation(parsed.credentialId, parsed.publicKey, parsed.algorithm, parsed.aaguid, privezak)
 }
 
 internal fun parseAuthData(authData: ByteArray): ParsedAttestation {

@@ -1,7 +1,9 @@
 package rs.moma.janus.kredenac
 
+import rs.moma.janus.kredenac.crypto.webauthn.googleAttestationRoot
 import rs.moma.janus.kredenac.crypto.webauthn.parseAuthData
 import rs.moma.janus.kredenac.common.BadRequestException
+import java.security.interfaces.RSAPublicKey
 import java.security.spec.ECGenParameterSpec
 import java.security.interfaces.ECPublicKey
 import rs.moma.janus.kredenac.utils.Cbor
@@ -94,5 +96,12 @@ class AuthDataTest {
 
         val unknownKeyType = Cbor.map(Cbor.uint(1) to Cbor.uint(9), Cbor.uint(3) to Cbor.nint(-7))
         assertFailsWith<BadRequestException> { parseAuthData(authData(key = unknownKeyType)) }
+    }
+
+    @Test
+    fun `the trusted attestation root reads back as google's 4096 bit key`() {
+        val root = googleAttestationRoot()
+        assertEquals("RSA", root.algorithm)
+        assertEquals(4096, (root as RSAPublicKey).modulus.bitLength())
     }
 }

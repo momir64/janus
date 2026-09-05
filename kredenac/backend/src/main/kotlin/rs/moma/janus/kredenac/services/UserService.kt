@@ -53,8 +53,8 @@ class UserService(
     suspend fun register(email: String, parsedAttestation: ParsedAttestation, client: ClientInfo) {
         val userId = userRepository.findIdByEmail(email) ?: userRepository.insert(email)
         credentialRepository.insert(
-            userId, parsedAttestation.credentialId, parsedAttestation.algorithm,
-            parsedAttestation.publicKey, parsedAttestation.aaguid, client.ip, client.location
+            userId, parsedAttestation.credentialId, parsedAttestation.algorithm, parsedAttestation.publicKey,
+            parsedAttestation.aaguid, parsedAttestation.privezak, client.ip, client.location
         )
     }
 
@@ -63,8 +63,8 @@ class UserService(
         val email = userRepository.findEmailById(owner.userId) ?: return
         emailService.notifyPasskeyAdded(email, client)
         credentialRepository.insert(
-            owner.userId, parsedAttestation.credentialId, parsedAttestation.algorithm,
-            parsedAttestation.publicKey, parsedAttestation.aaguid, client.ip, client.location
+            owner.userId, parsedAttestation.credentialId, parsedAttestation.algorithm, parsedAttestation.publicKey,
+            parsedAttestation.aaguid, parsedAttestation.privezak, client.ip, client.location
         )
     }
 

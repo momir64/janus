@@ -1,6 +1,7 @@
 package rs.moma.janus.kredenac
 
 import rs.moma.janus.kredenac.crypto.webauthn.verifyRegistration
+import rs.moma.janus.kredenac.crypto.webauthn.ParsedAttestation
 import rs.moma.janus.kredenac.repositories.CredentialRepository
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
 import rs.moma.janus.kredenac.common.UnauthorizedException
@@ -10,6 +11,7 @@ import rs.moma.janus.kredenac.crypto.webauthn.verifyLogin
 import rs.moma.janus.kredenac.repositories.UserRepository
 import rs.moma.janus.kredenac.common.BadRequestException
 import io.lettuce.core.ExperimentalLettuceCoroutinesApi
+import rs.moma.janus.kredenac.utils.KeyAttestation
 import rs.moma.janus.kredenac.utils.Authenticator
 import kotlin.time.Duration.Companion.minutes
 import rs.moma.janus.kredenac.utils.TestInfra
@@ -18,8 +20,10 @@ import rs.moma.janus.kredenac.common.Owner
 import rs.moma.janus.kredenac.utils.Cbor
 import kotlin.test.assertContentEquals
 import kotlinx.coroutines.runBlocking
+import java.security.MessageDigest
 import kotlin.test.assertFailsWith
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.BeforeTest
 import kotlin.test.assertTrue
 import kotlin.test.assertIs
@@ -31,8 +35,10 @@ class CeremonyTest {
     private val tokens = TokenRepository(TestInfra.redis, TestInfra.tokenEncryptionKey, TestInfra.hmacSecret)
     private val credentials = CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey)
     private val users = UserRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey, TestInfra.masterKey)
+    private val privezak = KeyAttestation()
     private val webAuthn = WebAuthnService(
-        "kredenac.moma.rs", "https://kredenac.moma.rs", TestInfra.hmacSecret, tokens, credentials
+        "kredenac.moma.rs", "https://kredenac.moma.rs",
+        TestInfra.hmacSecret, tokens, credentials, privezak.root
     )
 
     private val device = Authenticator()
@@ -59,6 +65,21 @@ class CeremonyTest {
         return credentials.insert(owner.userId, parsed.credentialId, parsed.algorithm, parsed.publicKey, parsed.aaguid)
     }
 
+    private suspend fun registerAttested(attestation: KeyAttestation): ParsedAttestation {
+        tokens.insert("magic-link", 15.minutes, "alice@example.com")
+        val session = webAuthn.start("magic-link")
+
+        val clientData = device.clientData("webauthn.create", session.challenge)
+        val challenge = MessageDigest.getInstance("SHA-256").digest(clientData)
+        val chain = attestation.chain(device.publicKey, challenge)
+
+        return webAuthn.verifyRegistration(
+            Base64Url(device.encode(clientData)),
+            Base64Url(device.encode(device.androidKeyAttestationObject(chain, clientData))),
+            session.cookie
+        ).first
+    }
+
     private suspend fun login(count: Long, origin: String = "https://kredenac.moma.rs"): LoginOutcome {
         val session = webAuthn.start()
         val clientData = device.clientData("webauthn.get", session.challenge, origin)
@@ -75,7 +96,7 @@ class CeremonyTest {
     }
 
     @Test
-    fun testRegistrationStoresKeyAndReportedModel(): Unit = runBlocking {
+    fun `registering stores the key and the model the authenticator reports`(): Unit = runBlocking {
         val id = register()
         val stored = credentials.findByCredentialId(device.credentialId)!!
 
@@ -86,7 +107,7 @@ class CeremonyTest {
     }
 
     @Test
-    fun testValidSignatureSignsInAndRecordsTheUse(): Unit = runBlocking {
+    fun `a valid signature signs in and records the use`(): Unit = runBlocking {
         register()
         val outcome = login(count = 1)
 
@@ -101,7 +122,7 @@ class CeremonyTest {
     }
 
     @Test
-    fun testSignCountThatDoesNotAdvanceIsTreatedAsAClone(): Unit = runBlocking {
+    fun `a sign count that does not advance is treated as a clone`(): Unit = runBlocking {
         register()
         assertIs<LoginOutcome.Success>(login(count = 9))
 
@@ -111,7 +132,7 @@ class CeremonyTest {
     }
 
     @Test
-    fun testSignatureFromADifferentKeyIsRefused(): Unit = runBlocking {
+    fun `a signature from a different key is refused`(): Unit = runBlocking {
         register()
 
         val impostor = Authenticator(credentialId = device.credentialId)
@@ -131,13 +152,13 @@ class CeremonyTest {
     }
 
     @Test
-    fun testAssertionFromAnotherOriginIsRefused(): Unit = runBlocking {
+    fun `an assertion from another origin is refused`(): Unit = runBlocking {
         register()
         assertFailsWith<BadRequestException> { login(count = 2, origin = "https://evil.example.com") }
     }
 
     @Test
-    fun testUnknownCredentialIsRefused(): Unit = runBlocking {
+    fun `an unknown credential is refused`(): Unit = runBlocking {
         val session = webAuthn.start()
         val clientData = device.clientData("webauthn.get", session.challenge)
         val authData = device.authenticatorData(1)
@@ -156,7 +177,7 @@ class CeremonyTest {
     }
 
     @Test
-    fun testReplayedChallengeIsRefusedEvenWithAValidSignature(): Unit = runBlocking {
+    fun `a replayed challenge is refused even with a valid signature`(): Unit = runBlocking {
         register()
         val session = webAuthn.start()
         val clientData = device.clientData("webauthn.get", session.challenge)
@@ -176,7 +197,7 @@ class CeremonyTest {
     }
 
     @Test
-    fun testRegistrationWithoutUserVerificationIsRefused(): Unit = runBlocking {
+    fun `a registration without user verification is refused`(): Unit = runBlocking {
         tokens.insert("magic-link", 15.minutes, "alice@example.com")
         val session = webAuthn.start("magic-link")
         val unverified = Authenticator()
@@ -193,5 +214,46 @@ class CeremonyTest {
                 session.cookie
             )
         }
+    }
+
+    @Test
+    fun `a passkey attested by privezak is stored as one`(): Unit = runBlocking {
+        val parsed = registerAttested(privezak)
+        assertTrue(parsed.privezak)
+
+        credentials.insert(
+            owner.userId, parsed.credentialId, parsed.algorithm,
+            parsed.publicKey, parsed.aaguid, true
+        )
+        assertTrue(credentials.findByCredentialId(device.credentialId)!!.privezak)
+    }
+
+    @Test
+    fun `a passkey that attests to nothing is not privezak`(): Unit = runBlocking {
+        tokens.insert("magic-link", 15.minutes, "alice@example.com")
+        val session = webAuthn.start("magic-link")
+        val clientData = device.clientData("webauthn.create", session.challenge)
+
+        val (parsed, _) = webAuthn.verifyRegistration(
+            Base64Url(device.encode(clientData)),
+            Base64Url(device.encode(device.attestationObject())),
+            session.cookie
+        )
+        assertFalse(parsed.privezak)
+    }
+
+    @Test
+    fun `an attestation naming another app is not privezak`(): Unit = runBlocking {
+        assertFalse(registerAttested(KeyAttestation(packageName = "rs.moma.janus.privezak.clone")).privezak)
+    }
+
+    @Test
+    fun `an attestation carrying another signing key is not privezak`(): Unit = runBlocking {
+        assertFalse(registerAttested(KeyAttestation(signer = "aa".repeat(32))).privezak)
+    }
+
+    @Test
+    fun `an attestation rooted anywhere else is not privezak`(): Unit = runBlocking {
+        assertFalse(registerAttested(KeyAttestation()).privezak)
     }
 }

@@ -55,6 +55,12 @@ class IntegrityTest {
     }
 
     @Test
+    fun `a row edited into claiming privezak is refused`() {
+        tamper { statement -> statement[privezak] = true }
+        assertRefused()
+    }
+
+    @Test
     fun `a swapped public key is refused`() {
         tamper { statement -> statement[publicKey] = ByteArray(64) { 0 } }
         assertRefused()

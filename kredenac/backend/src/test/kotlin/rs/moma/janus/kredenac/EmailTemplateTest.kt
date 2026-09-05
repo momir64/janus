@@ -13,7 +13,7 @@ class EmailTemplateTest {
         assertFalse(html.contains("{{"), "an unfilled placeholder survived rendering")
 
     @Test
-    fun testMagicLinkCarriesTheLinkAndTheHeading() {
+    fun `the magic link carries the link and the heading`() {
         val html = emails.render(
             "magic-link", "Finish signing up for Kredenac",
             mapOf("intro" to "Click the link below.", "link" to "https://kredenac.moma.rs/verify/abc")
@@ -25,7 +25,7 @@ class EmailTemplateTest {
     }
 
     @Test
-    fun testEveryTemplateRendersWithoutLeftovers() {
+    fun `every template renders without leftovers`() {
         val rows = listOf("Device" to "Windows", "Time" to "21:33 2.9.2026.")
 
         assertNoPlaceholdersLeft(emails.render("passkey-change", "subject", mapOf("action" to "added to"), rows))
@@ -34,7 +34,7 @@ class EmailTemplateTest {
     }
 
     @Test
-    fun testEachClientDetailBecomesItsOwnRow() {
+    fun `each client detail becomes its own row`() {
         fun rowCount(html: String) = Regex("<tr[ >]").findAll(html).count()
 
         val bare = emails.render("passkey-change", "subject", mapOf("action" to "added to"))
@@ -50,7 +50,7 @@ class EmailTemplateTest {
 
     // The IP and location come from proxy headers, so they would be attacker-controlled if host is directly reachable.
     @Test
-    fun testValuesCannotSmuggleMarkupIntoTheEmail() {
+    fun `values cannot smuggle markup into the email`() {
         val html = emails.render(
             "passkey-change", "subject", mapOf("action" to "added to"),
             rows = listOf("Location" to "<script>alert(1)</script>")

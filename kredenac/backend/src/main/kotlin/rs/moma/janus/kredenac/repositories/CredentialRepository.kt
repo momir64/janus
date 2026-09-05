@@ -30,13 +30,15 @@ class StoredCredential(
     val publicKey: ByteArray,
     val signCount: Long,
     val aaguid: Uuid?,
+    val privezak: Boolean,
     val createdAt: Instant,
     val lastUsedAt: Instant?,
     val lastUsedIp: String?,
     val lastUsedLocation: String?
 ) {
     fun withUse(signCount: Long, at: Instant, ip: String?, location: String?) = StoredCredential(
-        id, userId, credentialId, algorithm, publicKey, signCount, aaguid, createdAt, at, ip, location
+        id, userId, credentialId, algorithm, publicKey, signCount,
+        aaguid, privezak, createdAt, at, ip, location
     )
 }
 
@@ -46,12 +48,12 @@ class CredentialRepository(
 ) {
     suspend fun insert(
         userId: Uuid, credentialId: ByteArray, algorithm: String, publicKey: ByteArray,
-        aaguid: Uuid?, ip: String? = null, location: String? = null
+        aaguid: Uuid?, privezak: Boolean = false, ip: String? = null, location: String? = null
     ): Uuid = withContext(Dispatchers.IO) {
         val now = Clock.System.now()
         val credential = StoredCredential(
             Uuid.random(), userId, credentialId, algorithm,
-            publicKey, 0, aaguid, now, now, ip, location
+            publicKey, 0, aaguid, privezak, now, now, ip, location
         )
 
         transaction {
@@ -62,6 +64,7 @@ class CredentialRepository(
                 it[CredentialTable.algorithm] = credential.algorithm
                 it[CredentialTable.publicKey] = credential.publicKey
                 it[CredentialTable.aaguid] = credential.aaguid
+                it[CredentialTable.privezak] = credential.privezak
                 it[createdAt] = credential.createdAt
                 it.setUse(credential)
             }
@@ -138,6 +141,7 @@ class CredentialRepository(
         put(publicKey)
         put(signCount.toByteArray())
         put(aaguid?.toByteArray())
+        put(byteArrayOf(if (privezak) 1 else 0))
         put(createdAt.epochSeconds.toByteArray())
         put(lastUsedAt?.epochSeconds?.toByteArray())
         put(lastUsedIp?.toByteArray())
@@ -155,6 +159,7 @@ class CredentialRepository(
             publicKey = this[CredentialTable.publicKey],
             signCount = this[CredentialTable.signCount],
             aaguid = this[CredentialTable.aaguid],
+            privezak = this[CredentialTable.privezak],
             createdAt = this[CredentialTable.createdAt],
             lastUsedAt = this[CredentialTable.lastUsedAt],
             lastUsedIp = this[CredentialTable.encryptedLastUsedIp]?.let {

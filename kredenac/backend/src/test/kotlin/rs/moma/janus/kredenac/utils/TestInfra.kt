@@ -48,7 +48,11 @@ object TestInfra {
             user = user,
             password = password
         )
-        transaction(db) { SchemaUtils.create(UserTable, CredentialTable, RefreshTokenTable, NotesTable, FilesTable) }
+        transaction(db) {
+            val tables = arrayOf(UserTable, CredentialTable, RefreshTokenTable, NotesTable, FilesTable)
+            SchemaUtils.create(tables = tables)
+            SchemaUtils.addMissingColumnsStatements(tables = tables).forEach { exec(it) }
+        }
         db
     }
 

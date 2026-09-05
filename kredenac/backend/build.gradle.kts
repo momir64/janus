@@ -40,6 +40,8 @@ dependencies {
 
     testImplementation(kotlin("test"))
     testImplementation(ktorLibs.server.testHost)
+
+    testImplementation(libs.bouncycastle.pkix)
 }
 
 // todo: will need change when secrets manager is implemented

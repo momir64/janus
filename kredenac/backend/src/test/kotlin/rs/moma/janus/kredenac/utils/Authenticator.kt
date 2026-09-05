@@ -49,8 +49,26 @@ class Authenticator(
 
     fun encode(bytes: ByteArray): String = base64.encode(bytes)
 
-    // The attested credential data a registration returns, wrapped as an attestation object.
-    fun attestationObject(): ByteArray {
+    // What an authenticator sends when it attests to nothing at all.
+    fun attestationObject(): ByteArray = attestationObject("none", Cbor.map())
+
+    fun androidKeyAttestationObject(chain: List<ByteArray>, clientDataJSON: ByteArray): ByteArray =
+        attestationObject(
+            "android-key", Cbor.map(
+                Cbor.text("alg") to Cbor.nint(-7),
+                Cbor.text("sig") to Cbor.bytes(sign(attestedCredentialData(), clientDataJSON)),
+                Cbor.text("x5c") to Cbor.array(*chain.map { Cbor.bytes(it) }.toTypedArray())
+            )
+        )
+
+    private fun attestationObject(format: String, attStmt: ByteArray): ByteArray = Cbor.map(
+        Cbor.text("fmt") to Cbor.text(format),
+        Cbor.text("attStmt") to attStmt,
+        Cbor.text("authData") to Cbor.bytes(attestedCredentialData())
+    )
+
+    // The attested credential data a registration returns.
+    fun attestedCredentialData(): ByteArray {
         val point = (keyPair.public as ECPublicKey).w
         val coseKey = Cbor.map(
             Cbor.uint(1) to Cbor.uint(2),
@@ -60,17 +78,11 @@ class Authenticator(
             Cbor.nint(-3) to Cbor.bytes(coordinate(point.affineY))
         )
 
-        val attested = authenticatorData(flags = 0x45) +
+        return authenticatorData(flags = 0x45) +
                 (aaguid?.toByteArray() ?: ByteArray(16)) +
                 byteArrayOf((credentialId.size shr 8).toByte(), credentialId.size.toByte()) +
                 credentialId +
                 coseKey
-
-        return Cbor.map(
-            Cbor.text("fmt") to Cbor.text("none"),
-            Cbor.text("attStmt") to Cbor.map(),
-            Cbor.text("authData") to Cbor.bytes(attested)
-        )
     }
 
     private fun coordinate(value: BigInteger): ByteArray {

@@ -11,6 +11,7 @@ object CredentialTable : Table("credentials") {
     val publicKey = binary("public_key")
     val signCount = long("sign_count")
     val aaguid = uuid("aaguid").nullable()
+    val privezak = bool("privezak").default(false)
     val createdAt = timestamp("created_at")
     val lastUsedAt = timestamp("last_used_at").nullable()
     val encryptedLastUsedIp = binary("encrypted_last_used_ip").nullable()

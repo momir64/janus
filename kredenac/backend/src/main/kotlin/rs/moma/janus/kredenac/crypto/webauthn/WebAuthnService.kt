@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import java.security.MessageDigest
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
+import java.security.PublicKey
 
 @Serializable
 data class ClientDataJson(val type: String, val challenge: String, val origin: String)
@@ -22,7 +23,8 @@ class WebAuthnService(
     private val rpOrigin: String,
     private val hmacSecret: ByteArray,
     private val tokenRepository: TokenRepository,
-    internal val credentialRepository: CredentialRepository
+    internal val credentialRepository: CredentialRepository,
+    internal val attestationRoot: PublicKey = googleAttestationRoot()
 ) {
     private val json = Json { ignoreUnknownKeys = true }
     private val secureRandom = SecureRandom()

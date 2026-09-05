@@ -24,7 +24,7 @@ class StaticRoutingTest {
     }
 
     @Test
-    fun testBuiltFilesAreServedAndClientRoutesFallBackToTheShell() = testApplication {
+    fun `built files are served and client routes fall back to the shell`() = testApplication {
         val dir = dist()
         application {
             routing {

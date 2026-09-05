@@ -4,6 +4,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+val keystore = providers.gradleProperty("PRIVEZAK_STORE_FILE").orNull
+
 android {
     namespace = "rs.moma.janus.privezak"
     compileSdk {
@@ -22,17 +24,29 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (keystore != null) create("release") {
+            storeFile = file(keystore)
+            storePassword = providers.gradleProperty("PRIVEZAK_STORE_PASSWORD").get()
+            keyPassword = providers.gradleProperty("PRIVEZAK_KEY_PASSWORD").get()
+            keyAlias = providers.gradleProperty("PRIVEZAK_KEY_ALIAS").get()
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             optimization {
                 enable = false
             }
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         compose = true
     }
@@ -40,6 +54,7 @@ android {
 
 dependencies {
     implementation(platform(libs.androidx.compose.bom))
+
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)

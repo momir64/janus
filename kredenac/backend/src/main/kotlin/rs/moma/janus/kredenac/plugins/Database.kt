@@ -28,6 +28,8 @@ fun configureDatabase() {
     Database.connect(dataSource)
 
     transaction {
-        SchemaUtils.create(UserTable, CredentialTable, RefreshTokenTable, NotesTable, FilesTable)
+        val tables = arrayOf(UserTable, CredentialTable, RefreshTokenTable, NotesTable, FilesTable)
+        SchemaUtils.create(tables = tables)
+        SchemaUtils.addMissingColumnsStatements(tables = tables).forEach { exec(it) }
     }
 }
