@@ -1,0 +1,130 @@
+package rs.moma.janus.privezak.viewmodels
+
+import rs.moma.janus.privezak.security.SessionTimeout
+import rs.moma.janus.privezak.security.PasskeyStore
+import kotlinx.coroutines.flow.MutableStateFlow
+import rs.moma.janus.privezak.security.PinVault
+import rs.moma.janus.privezak.security.Passkey
+import rs.moma.janus.privezak.security.Session
+import androidx.lifecycle.AndroidViewModel
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import android.app.Application
+import javax.crypto.Cipher
+
+class MainViewModel(application: Application) : AndroidViewModel(application) {
+    private val vault = PinVault(application)
+    private var store: PasskeyStore? = null
+    private var dataKey: ByteArray? = null
+
+    private val _isUnlocked = MutableStateFlow<Boolean?>(null)
+    val isUnlocked = _isUnlocked.asStateFlow()
+
+    private val _isBiometricEnabled = MutableStateFlow(vault.isBiometricEnabled)
+    val isBiometricEnabled = _isBiometricEnabled.asStateFlow()
+
+    private val _isSetUp = MutableStateFlow(vault.isSetUp)
+    val isSetUp = _isSetUp.asStateFlow()
+
+    private val _needsSetupHint = MutableStateFlow(!vault.isSetupHintSeen)
+    val needsSetupHint = _needsSetupHint.asStateFlow()
+
+    private val _sessionTimeout = MutableStateFlow(vault.sessionTimeout)
+    val sessionTimeout = _sessionTimeout.asStateFlow()
+
+    private val _passkeys = MutableStateFlow(emptyList<Passkey>())
+    val passkeys = _passkeys.asStateFlow()
+
+    suspend fun setUp(pin: String) = withContext(Dispatchers.Default) {
+        open(vault.setUp(pin))
+        _isSetUp.value = true
+    }
+
+    suspend fun unlock(pin: String): Boolean = withContext(Dispatchers.Default) {
+        open(vault.unlock(pin) ?: return@withContext false)
+        true
+    }
+
+    suspend fun unlockWithBiometric(cipher: Cipher): Boolean = withContext(Dispatchers.Default) {
+        open(vault.unlockWithBiometric(cipher) ?: return@withContext false)
+        true
+    }
+
+    fun setSessionTimeout(timeout: SessionTimeout) {
+        vault.sessionTimeout = timeout
+        _sessionTimeout.value = timeout
+        dataKey?.let { Session.start(it, timeout) } ?: Session.clear()
+    }
+
+    fun lock() {
+        _isUnlocked.value = false
+        _passkeys.value = emptyList()
+        dataKey = null
+        store = null
+    }
+
+    suspend fun createPasskey(
+        rpId: String,
+        rpName: String,
+        userHandle: ByteArray,
+        userName: String,
+        displayName: String,
+        attestationChallenge: ByteArray
+    ): Passkey? = withContext(Dispatchers.Default) {
+        val store = store ?: return@withContext null
+        store.create(rpId, rpName, userHandle, userName, displayName, attestationChallenge)
+            .also { _passkeys.value = store.load() }
+    }
+
+    fun publicKey(id: String) = store?.publicKey(id)
+
+    fun certificateChain(id: String) = store?.certificateChain(id).orEmpty()
+
+    fun sign(id: String, data: ByteArray) = store?.sign(id, data)
+
+    fun hmacSecret(id: String, salt: ByteArray) = store?.hmacSecret(id, salt)
+
+    suspend fun recordUse(id: String): Int? = withContext(Dispatchers.Default) {
+        val store = store ?: return@withContext null
+        store.recordUse(id).also { _passkeys.value = store.load() }
+    }
+
+    suspend fun deletePasskey(id: String) = withContext(Dispatchers.Default) {
+        val store = store ?: return@withContext
+        store.delete(id)
+        _passkeys.value = store.load()
+    }
+
+    private fun open(key: ByteArray) {
+        dataKey = key
+        Session.start(key, vault.sessionTimeout)
+        store = PasskeyStore(getApplication(), key).also { _passkeys.value = it.load() }
+        _isUnlocked.value = true
+    }
+
+    suspend fun changePin(pin: String): Boolean = withContext(Dispatchers.Default) {
+        val key = dataKey ?: return@withContext false
+        vault.changePin(key, pin)
+        true
+    }
+
+    fun unlockBiometricCipher(): Cipher? = vault.unlockBiometricCipher()
+    fun enrollBiometricCipher(): Cipher = vault.enrollBiometricCipher()
+
+    suspend fun enableBiometric(cipher: Cipher) = withContext(Dispatchers.Default) {
+        val key = dataKey ?: return@withContext
+        vault.enableBiometric(key, cipher)
+        _isBiometricEnabled.value = true
+    }
+
+    fun dismissSetupHint() {
+        vault.isSetupHintSeen = true
+        _needsSetupHint.value = false
+    }
+
+    fun disableBiometric() {
+        vault.disableBiometric()
+        _isBiometricEnabled.value = false
+    }
+}

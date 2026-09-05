@@ -5,13 +5,13 @@ plugins {
 }
 
 android {
-    namespace = "rs.moma.privezak"
+    namespace = "rs.moma.janus.privezak"
     compileSdk {
         version = release(37)
     }
 
     defaultConfig {
-        applicationId = "rs.moma.privezak"
+        applicationId = "rs.moma.janus.privezak"
         // CredentialProviderService needs minSdk 34; mitigating StrandHogg attack needs 30:
         // https://developer.android.com/privacy-and-security/risks/strandhogg
         minSdk = 34
