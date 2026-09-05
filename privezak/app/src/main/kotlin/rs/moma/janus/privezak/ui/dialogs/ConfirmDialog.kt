@@ -1,16 +1,17 @@
 package rs.moma.janus.privezak.ui.dialogs
 
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.window.DialogWindowProvider
 import rs.moma.janus.privezak.ui.theme.CardBackground
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.layout.padding
-import rs.moma.janus.privezak.ui.theme.DarkerGrey
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.foundation.layout.size
+import rs.moma.janus.privezak.ui.theme.Heading
 import androidx.compose.ui.platform.LocalView
 import rs.moma.janus.privezak.ui.theme.Error
 import rs.moma.janus.privezak.ui.theme.Muted
@@ -27,6 +28,9 @@ fun ConfirmDialog(
     title: String,
     text: String,
     confirmLabel: String,
+    dismissColor: Color? = null,
+    dismissMessage: String? = null,
+    dismissBackgroundColor: Color? = null,
     confirmColor: Color = Error,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
@@ -50,18 +54,27 @@ fun ConfirmDialog(
             )
         },
         dismissButton = {
+            val backgroundColor = dismissBackgroundColor ?: CardBackground
+            val color = dismissColor ?: Heading
             Button(
                 modifier = Modifier.size(100.dp, 42.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = DarkerGrey),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = backgroundColor,
+                    contentColor = color
+                ),
+                contentPadding = PaddingValues(0.dp),
                 shape = RoundedCornerShape(16),
                 onClick = onDismiss
-            ) { Text("Cancel", color = Color.White) }
+            ) {
+                Text(dismissMessage ?: "Cancel")
+            }
             Spacer(Modifier.width(2.dp))
         },
         confirmButton = {
             Button(
                 modifier = Modifier.size(100.dp, 42.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = confirmColor),
+                contentPadding = PaddingValues(0.dp),
                 shape = RoundedCornerShape(16),
                 onClick = onConfirm
             ) { Text(confirmLabel) }

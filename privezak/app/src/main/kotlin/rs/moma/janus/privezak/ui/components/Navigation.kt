@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.platform.LocalFocusManager
 import rs.moma.janus.privezak.security.biometricIssue
 import rs.moma.janus.privezak.ui.screens.UnlockScreen
+import rs.moma.janus.privezak.ui.theme.CardBackground
 import rs.moma.janus.privezak.ui.screens.SetupScreen
 import rs.moma.janus.privezak.security.authenticate
 import rs.moma.janus.privezak.ui.screens.HomeScreen
@@ -20,6 +21,7 @@ import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.layout.Box
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.BackHandler
+import rs.moma.janus.privezak.ui.theme.Muted
 import androidx.lifecycle.repeatOnLifecycle
 import android.annotation.SuppressLint
 import androidx.compose.ui.Modifier
@@ -98,6 +100,9 @@ fun Navigation(vm: MainViewModel) {
                 title = "Configuration",
                 text = "To use privezak you need to add it as a credential manager in the settings.",
                 confirmLabel = "OK",
+                dismissMessage = "Dismiss",
+                dismissColor = Muted,
+                dismissBackgroundColor = CardBackground,
                 confirmColor = MaterialTheme.colorScheme.primary,
                 onConfirm = {
                     vm.dismissSetupHint()
