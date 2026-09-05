@@ -106,7 +106,7 @@ fun Route.authRoutes() {
 
             post("/register/finish") {
                 val (parsed, email) = verifyAttestation(call)
-                userService.register(email, parsed)
+                userService.register(email, parsed, call.clientInfo())
                 call.clearChallengeSessionCookie()
                 call.respond(HttpStatusCode.Created)
             }

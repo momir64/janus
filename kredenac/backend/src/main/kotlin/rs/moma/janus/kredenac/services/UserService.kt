@@ -50,11 +50,11 @@ class UserService(
         return token
     }
 
-    suspend fun register(email: String, parsedAttestation: ParsedAttestation) {
+    suspend fun register(email: String, parsedAttestation: ParsedAttestation, client: ClientInfo) {
         val userId = userRepository.findIdByEmail(email) ?: userRepository.insert(email)
         credentialRepository.insert(
             userId, parsedAttestation.credentialId, parsedAttestation.algorithm,
-            parsedAttestation.publicKey, parsedAttestation.aaguid
+            parsedAttestation.publicKey, parsedAttestation.aaguid, client.ip, client.location
         )
     }
 
@@ -64,7 +64,7 @@ class UserService(
         emailService.notifyPasskeyAdded(email, client)
         credentialRepository.insert(
             owner.userId, parsedAttestation.credentialId, parsedAttestation.algorithm,
-            parsedAttestation.publicKey, parsedAttestation.aaguid
+            parsedAttestation.publicKey, parsedAttestation.aaguid, client.ip, client.location
         )
     }
 

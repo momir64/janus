@@ -9,7 +9,7 @@ interface PasskeyCardOptions {
   onDelete: () => void;
 }
 
-type InfoLine = [label: string, value: string] | string;
+type InfoLine = [label: string, value: string];
 
 const build = template(markup);
 
@@ -19,13 +19,7 @@ function fillInfo(block: HTMLElement, lines: (InfoLine | null)[]): void {
     block.remove();
     return;
   }
-  block.append(
-    ...present.map((line) =>
-      typeof line === "string" ?
-        h("span", { class: "passkey-card__unused" }, line) :
-        h("span", {}, `${line[0]} `, h("b", {}, line[1]))
-    )
-  );
+  block.append(...present.map((line) => h("span", {}, `${line[0]} `, h("b", {}, line[1]))));
 }
 
 export function passkeyCard({ passkey, onDelete }: PasskeyCardOptions): HTMLElement {
@@ -35,21 +29,18 @@ export function passkeyCard({ passkey, onDelete }: PasskeyCardOptions): HTMLElem
   ref(root, "name").textContent = passkey.deviceName ?? "Unknown passkey device";
   if (!passkey.currentSession) ref(root, "session").remove();
 
-  const neverUsed: InfoLine[] = ["This passkey hasn't yet been used."];
+  const usedAt = lastUsedAt ?? createdAt;
 
   fillInfo(ref(root, "desktop-info"), [
-    ...(lastUsedAt ? [lastUsedIp ?
-      (["Last used from:", lastUsedLocation ? `${lastUsedIp} (${lastUsedLocation})` : lastUsedIp] as InfoLine) : null,
-      ["Last time used:", formatTimestamp(lastUsedAt)] as InfoLine,
-    ] : neverUsed),
+    lastUsedIp ? ["Last used from:", lastUsedLocation ? `${lastUsedIp} (${lastUsedLocation})` : lastUsedIp] : null,
+    usedAt ? ["Last time used:", formatTimestamp(usedAt)] : null,
     createdAt ? ["Created at:", formatTimestamp(createdAt)] : null,
   ]);
 
   fillInfo(ref(root, "mobile-info"), [
-    ...(lastUsedAt ? [lastUsedIp ? (["Last used ip:", lastUsedIp] as InfoLine) : null,
-      lastUsedLocation ? (["Last used from:", lastUsedLocation] as InfoLine) : null,
-      ["Last used at:", formatTimestamp(lastUsedAt)] as InfoLine,
-    ] : neverUsed),
+    lastUsedIp ? ["Last used ip:", lastUsedIp] : null,
+    lastUsedLocation ? ["Last used from:", lastUsedLocation] : null,
+    usedAt ? ["Last used at:", formatTimestamp(usedAt)] : null,
     createdAt ? ["Created at:", formatTimestamp(createdAt)] : null,
   ]);
 
