@@ -51,10 +51,21 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         true
     }
 
+    suspend fun unlockFromSession(): Boolean = withContext(Dispatchers.Default) {
+        val key = Session.key()?.takeIf { Session.isVisible }?.copyOf()
+        if (key == null) _isUnlocked.value = false else open(key)
+        key != null
+    }
+
     fun setSessionTimeout(timeout: SessionTimeout) {
         vault.sessionTimeout = timeout
         _sessionTimeout.value = timeout
         dataKey?.let { Session.start(it, timeout) } ?: Session.clear()
+    }
+
+    suspend fun refresh() = withContext(Dispatchers.Default) {
+        val store = store ?: return@withContext
+        _passkeys.value = store.load()
     }
 
     fun lock() {

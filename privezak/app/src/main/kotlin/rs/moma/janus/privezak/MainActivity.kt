@@ -7,6 +7,7 @@ import rs.moma.janus.privezak.viewmodels.MainViewModel
 import rs.moma.janus.privezak.ui.theme.PrivezakTheme
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.AndroidComposeUiFlags
+import rs.moma.janus.privezak.security.Session
 import androidx.fragment.app.FragmentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -36,8 +37,14 @@ class MainActivity : FragmentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        Session.isVisible = true
+    }
+
     override fun onStop() {
         super.onStop()
+        Session.isVisible = false
         if (!isChangingConfigurations) vm.lock()
     }
 }

@@ -75,6 +75,7 @@ fun Navigation(vm: MainViewModel) {
     LaunchedEffect(Unit) {
         activity.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             biometricIssue = activity.biometricIssue()
+            vm.refresh()
         }
     }
 

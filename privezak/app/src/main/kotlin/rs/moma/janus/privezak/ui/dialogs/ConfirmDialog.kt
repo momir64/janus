@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.foundation.layout.size
-import rs.moma.janus.privezak.ui.theme.Heading
 import androidx.compose.ui.platform.LocalView
 import rs.moma.janus.privezak.ui.theme.Error
 import rs.moma.janus.privezak.ui.theme.Muted
@@ -55,8 +54,8 @@ fun ConfirmDialog(
             )
         },
         dismissButton = {
-            val backgroundColor = dismissBackgroundColor ?: CardBackground
-            val color = dismissColor ?: Heading
+            val backgroundColor = dismissBackgroundColor ?: Color.Unspecified
+            val color = dismissColor ?: Color.Unspecified
             Button(
                 modifier = Modifier.size(100.dp, 42.dp),
                 colors = ButtonDefaults.buttonColors(

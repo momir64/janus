@@ -1,43 +1,18 @@
 package rs.moma.janus.privezak
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import rs.moma.janus.privezak.ui.components.unlockWithBiometric
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import android.view.WindowManager.LayoutParams.FLAG_SECURE
-import androidx.compose.material3.MaterialTheme.typography
 import rs.moma.janus.privezak.provider.EXTRA_CREDENTIAL_ID
 import androidx.credentials.provider.PendingIntentHandler
 import rs.moma.janus.privezak.provider.registrationResult
-import rs.moma.janus.privezak.ui.components.UnlockContent
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.fillMaxWidth
 import rs.moma.janus.privezak.provider.assertionResult
 import rs.moma.janus.privezak.viewmodels.MainViewModel
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.ui.input.pointer.pointerInput
-import rs.moma.janus.privezak.ui.theme.CardBackground
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.systemBars
+import rs.moma.janus.privezak.ui.dialogs.UnlockDialog
 import rs.moma.janus.privezak.provider.entriesResult
 import rs.moma.janus.privezak.ui.theme.PrivezakTheme
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import rs.moma.janus.privezak.ui.theme.Heading
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.fragment.app.FragmentActivity
-import androidx.compose.foundation.clickable
 import androidx.activity.compose.setContent
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.Alignment
 import androidx.activity.viewModels
-import androidx.compose.ui.Modifier
-import androidx.compose.material3.*
-import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.*
 import android.os.Bundle
 
@@ -67,6 +42,8 @@ class CredentialActivity : FragmentActivity() {
                 val biometricEnabled by vm.isBiometricEnabled.collectAsState()
                 val isUnlocked by vm.isUnlocked.collectAsState()
 
+                LaunchedEffect(Unit) { vm.unlockFromSession() }
+
                 LaunchedEffect(isUnlocked) {
                     if (isUnlocked != true) return@LaunchedEffect
                     val chosen = chosenCredential
@@ -84,42 +61,12 @@ class CredentialActivity : FragmentActivity() {
                     finish()
                 }
 
-                Box(
-                    modifier = Modifier.fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.6f))
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            onClick = ::finish,
-                            indication = null
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth()
-                            .windowInsetsPadding(WindowInsets.systemBars)
-                            .imePadding()
-                            .padding(24.dp)
-                            .pointerInput(Unit) { detectTapGestures { } },
-                        shape = RoundedCornerShape(22.dp),
-                        colors = CardDefaults.cardColors(containerColor = CardBackground)
-                    ) {
-                        Column(
-                            Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 28.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text("PRIVEZAK", style = typography.headlineMedium, color = Heading)
-                            Spacer(Modifier.height(20.dp))
-                            UnlockContent(
-                                biometricEnabled = biometricEnabled,
-                                onUnlock = vm::unlock,
-                                onUnlockWithBiometric = {
-                                    unlockWithBiometric(vm, this@CredentialActivity)
-                                },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-                }
+                if (isUnlocked == false) UnlockDialog(
+                    onUnlockWithBiometric = { unlockWithBiometric(vm, this@CredentialActivity) },
+                    biometricEnabled = biometricEnabled,
+                    onUnlock = vm::unlock,
+                    onDismiss = ::finish
+                )
             }
         }
     }

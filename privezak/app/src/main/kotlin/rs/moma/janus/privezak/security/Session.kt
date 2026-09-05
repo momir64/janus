@@ -19,6 +19,9 @@ object Session {
     private var key: ByteArray? = null
     private var expiresAt = 0L
 
+    @Volatile
+    var isVisible = false
+
     @Synchronized
     fun start(dataKey: ByteArray, timeout: SessionTimeout) {
         clear()

@@ -47,7 +47,7 @@ class PinVault(context: Context) {
     var sessionTimeout: SessionTimeout
         get() = prefs.getString(LIST_SESSION_TIMEOUT, null)
             ?.let { stored -> SessionTimeout.entries.find { it.name == stored } }
-            ?: SessionTimeout.Immediately
+            ?: SessionTimeout.OneMinute
         set(value) = prefs.edit(commit = true) { putString(LIST_SESSION_TIMEOUT, value.name) }
 
     fun setUp(pin: String): ByteArray {
