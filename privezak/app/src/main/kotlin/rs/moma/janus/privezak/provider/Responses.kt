@@ -59,13 +59,20 @@ internal suspend fun registrationResult(
         put("authenticatorAttachment", "platform")
         put("clientExtensionResults", buildJsonObject {
             if (prfRequested(calling.requestJson)) {
-                put("prf", buildJsonObject { put("enabled", true) })
+                put("prf", buildJsonObject {
+                    put("enabled", true)
+                    prfResults(calling.requestJson, passkey.id) { vm.hmacSecret(passkey.id, it) }
+                        ?.let { put("results", it) }
+                })
             }
         })
         put("response", buildJsonObject {
             put("clientDataJSON", if (browserHash == null) clientData.base64url() else "")
             put("attestationObject", attestation.base64url())
-            put("transports", buildJsonArray { add("internal") })
+            put("transports", buildJsonArray {
+                add("internal")
+                add("hybrid")
+            })
         })
     }
 
