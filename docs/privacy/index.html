@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privezak — Privacy Policy</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1b1b1f;
+    --muted: #5c5c66;
+    --rule: #e3e3e8;
+    --accent: #2f5d50;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16161a;
+      --fg: #ececf1;
+      --muted: #a0a0ad;
+      --rule: #2c2c33;
+      --accent: #8fc9b6;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  main {
+    max-width: 46rem;
+    margin: 0 auto;
+    padding: 3rem 1.25rem 5rem;
+  }
+
+  h1 {
+    font-size: 1.9rem;
+    line-height: 1.2;
+    margin: 0 0 .35rem;
+  }
+
+  h2 {
+    font-size: 1.15rem;
+    margin: 2.4rem 0 .6rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+  }
+
+  .updated {
+    color: var(--muted);
+    font-size: .9rem;
+    margin: 0 0 2rem;
+  }
+
+  .lede {
+    font-size: 1.05rem;
+  }
+
+  ul { padding-left: 1.2rem; }
+  li { margin: .35rem 0; }
+
+  a { color: var(--accent); }
+
+  code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .9em;
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+    padding: .1em .35em;
+    border-radius: .25em;
+  }
+
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Privezak — Privacy Policy</h1>
+  <p class="updated">Last updated 6 September 2026</p>
+
+  <p class="lede">
+    Privezak is a passkey manager for Android. It does not collect, transmit, or share any personal
+    data. Everything it stores stays on your device.
+  </p>
+
+  <h2>Data we collect</h2>
+  <p>
+    None. Privezak has no user accounts, no analytics, no crash reporting, and no advertising. The
+    app does not hold the Android <code>INTERNET</code> permission, so it is technically incapable
+    of sending your information anywhere, to us or to anyone else.
+  </p>
+
+  <h2>What the app stores on your device</h2>
+  <ul>
+    <li>
+      <strong>Passkeys</strong> — the credentials you create for websites and apps, together with
+      the site name and username each one belongs to. They are encrypted with AES-GCM using a key
+      derived from your PIN and kept in Privezak's private storage, which other apps cannot read.
+    </li>
+    <li>
+      <strong>Your PIN</strong> — never stored as typed. It is used to derive the key that unlocks
+      your passkeys.
+    </li>
+    <li>
+      <strong>Biometric unlock key</strong> — if you enable biometric unlock, the key is held by the
+      Android Keystore and protected by your device's hardware. Your fingerprint or face data itself
+      belongs to Android and is never made available to Privezak.
+    </li>
+    <li>
+      <strong>Preferences</strong> — small settings such as your chosen session timeout.
+    </li>
+  </ul>
+
+  <h2>Camera</h2>
+  <p>
+    Privezak asks for camera access only so you can scan a sign-in QR code. Frames are analysed on
+    the device as you point the camera and are never recorded, stored, or transmitted. You can
+    decline the permission and continue to use every other part of the app.
+  </p>
+
+  <h2>Backups and transfers</h2>
+  <p>
+    Privezak opts out of Android's automatic cloud backup and of device-to-device transfer, so your
+    passkeys are not copied to Google Drive or moved to a new phone. They exist only on the device
+    where you created them.
+  </p>
+
+  <h2>Sharing</h2>
+  <p>
+    Nothing is shared, because nothing leaves your device. When you sign in to a site, Android's
+    credential manager hands that site only the passkey signature it needs — the same exchange any
+    passkey provider performs — and no other information passes through us.
+  </p>
+
+  <h2>Deleting your data</h2>
+  <p>
+    You can delete individual passkeys inside the app at any time. Uninstalling Privezak removes all
+    of its stored data from the device permanently. Since we never receive your data, there is
+    nothing for us to delete on our side and no request you need to send us.
+  </p>
+
+  <h2>Children</h2>
+  <p>
+    Privezak is not directed at children and collects no data from anyone, regardless of age.
+  </p>
+
+  <h2>Changes</h2>
+  <p>
+    If this policy changes, the revised version will be posted at this address with a new date
+    above. Material changes will also be noted in the app's release notes on Google Play.
+  </p>
+
+  <h2>Contact</h2>
+  <p>
+    Questions about this policy can go to
+    <a href="mailto:privezak@moma.rs">privezak@moma.rs</a>.
+  </p>
+
+  <footer>
+    Privezak is developed by Momir Stanišić.
+  </footer>
+</main>
+</body>
+</html>
