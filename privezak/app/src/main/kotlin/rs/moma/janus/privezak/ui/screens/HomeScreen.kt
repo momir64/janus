@@ -1,8 +1,12 @@
 package rs.moma.janus.privezak.ui.screens
 
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme.typography
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import rs.moma.janus.privezak.ui.dialogs.ConfirmDialog
 import androidx.compose.foundation.layout.Arrangement
@@ -73,10 +77,11 @@ fun HomeScreen(
                     )
                 }
             } else {
+                val bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                 LazyColumn(
                     modifier = Modifier.fillMaxSize().padding(horizontal = 22.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(top = 16.dp, bottom = 128.dp)
+                    contentPadding = PaddingValues(top = 16.dp, bottom = 128.dp + bottom)
                 ) {
                     items(passkeys, key = { it.id }) { passkey ->
                         PasskeyCard(passkey) { pending = passkey }
@@ -88,6 +93,7 @@ fun HomeScreen(
         FloatingActionButton(
             onClick = onScan,
             modifier = Modifier.align(Alignment.BottomEnd)
+                .navigationBarsPadding()
                 .padding(end = 24.dp, bottom = 32.dp)
                 .size(70.dp)
         ) {
