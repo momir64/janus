@@ -18,7 +18,7 @@ android {
         // https://developer.android.com/privacy-and-security/risks/strandhogg
         minSdk = 34
         targetSdk = 37
-        versionCode = 6
+        versionCode = 8
         versionName = "0.1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
