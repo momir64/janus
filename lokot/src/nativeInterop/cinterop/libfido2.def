@@ -1,0 +1,10 @@
+headers = fido.h
+headerFilter = fido.h fido/**
+package = libfido2
+
+---
+struct fido_dev { char opaque; };
+struct fido_cred { char opaque; };
+struct fido_assert { char opaque; };
+struct fido_dev_info { char opaque; };
+struct fido_cbor_info { char opaque; };

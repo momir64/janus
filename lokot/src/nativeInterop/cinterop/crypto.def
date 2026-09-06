@@ -1,0 +1,11 @@
+headers = openssl/evp.h openssl/sha.h openssl/rand.h openssl/hmac.h openssl/crypto.h
+headerFilter = openssl/**
+package = crypto
+
+---
+// Opaque handles in the real headers (forward-declared only). Giving them a body here
+// makes cinterop emit real classes instead of unresolvable cnames.structs placeholders.
+struct evp_cipher_ctx_st { char opaque; };
+struct evp_cipher_st { char opaque; };
+struct evp_md_st { char opaque; };
+struct engine_st { char opaque; };
