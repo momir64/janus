@@ -95,9 +95,9 @@ class UserService(
 
     context(owner: Owner)
     private suspend fun deleteCredential(credentialId: Uuid) {
+        refreshTokenRepository.deleteChainsForCredential(credentialId)
         if (!credentialRepository.delete(credentialId))
             throw NotFoundException("Credential not found")
-        refreshTokenRepository.deleteChainsForCredential(credentialId)
     }
 
     context(owner: Owner)
