@@ -7,6 +7,7 @@ import rs.moma.janus.privezak.provider.noneAttestation
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import rs.moma.janus.privezak.security.PasskeyStore
 import rs.moma.janus.privezak.provider.prfResults
+import rs.moma.janus.privezak.provider.base64url
 import kotlinx.serialization.json.jsonPrimitive
 import rs.moma.janus.privezak.provider.prfSalt
 import android.content.ContextWrapper
@@ -69,12 +70,18 @@ class WebAuthnTest {
 
     @Test
     fun derivesThePrfSaltUnderTheWebAuthnPrefix() {
-        val salt = prfSalt(ByteArray(32) { it.toByte() })
+        val input = ByteArray(32) { it.toByte() }
         assertEquals(
             "dc1f4f3b3d759586245d5de7e2e115d2a056a2df27109db7cef9b4b3a89bb106",
-            salt.joinToString("") { "%02x".format(it.toInt() and 0xff) }
+            prfSalt(input.base64url(), alreadyHashed = false).hex()
+        )
+        assertEquals(
+            "a salt the client already derived is used verbatim",
+            input.hex(), prfSalt(input.base64url(), alreadyHashed = true).hex()
         )
     }
+
+    private fun ByteArray.hex() = joinToString("") { "%02x".format(it.toInt() and 0xff) }
 
     @Test
     fun evaluatesPrfInputsAgainstTheCredentialSecret() {
