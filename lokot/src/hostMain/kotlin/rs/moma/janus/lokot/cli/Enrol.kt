@@ -10,6 +10,8 @@ import rs.moma.janus.lokot.schema.Schema
 import rs.moma.janus.lokot.files.Files
 import rs.moma.janus.lokot.files.*
 
+private const val authRpId = Authenticator.RP_ID
+
 fun runInit(): Int {
     if (!Files.exists(SCHEMA_FILE)) {
         println("No $SCHEMA_FILE here. lokot needs one to know what the vault should contain.")
@@ -21,8 +23,9 @@ fun runInit(): Int {
         return 1
     }
 
+    val declared = Files.readText(SCHEMA_FILE)!!
     val schema = try {
-        Schema.parse(Files.readText(SCHEMA_FILE)!!)
+        Schema.parse(declared)
     } catch (failure: Exception) {
         println("$SCHEMA_FILE: ${failure.message}")
         return 1
@@ -53,6 +56,12 @@ fun runInit(): Int {
 
         schema.secrets.forEach { (name, spec) -> spec.generate()?.let { values[name] = it } }
 
+        schema.check(values)?.let {
+            println()
+            println("$it; nothing written.")
+            return 1
+        }
+
         val salt = Crypto.randomBytes(LokotHeader.SALT_SIZE)
 
         println()
@@ -68,11 +77,10 @@ fun runInit(): Int {
         val header = LokotHeader(
             project = schema.project,
             salt = salt,
-            rpId = Authenticator.RP_ID,
-            credentials = listOf(Kek.wrap(secret.output, secret.credentialId, kek)),
+            credentials = listOf(Kek.wrap(secret.output, secret.credentialId, authRpId, kek)),
         )
 
-        Files.writeBytes(VAULT_FILE, LokotFile.build(header, values, kek))
+        Files.writeBytes(VAULT_FILE, LokotFile.build(header, VaultBody(declared, values), kek))
         kek.wipe()
 
         println()
@@ -119,10 +127,11 @@ fun runAddKey(): Int {
 
         // The header is associated data, so adding a credential means resealing the body too.
         val extended = LokotHeader(
-            project = header.project, salt = header.salt, rpId = header.rpId,
-            credentials = header.credentials + Kek.wrap(enrolment.output, enrolment.credentialId, kek),
+            project = header.project, salt = header.salt, credentials = header.credentials + Kek.wrap(
+                enrolment.output, enrolment.credentialId, authRpId, kek
+            )
         )
-        Files.writeBytes(VAULT_FILE, LokotFile.build(extended, unlocked.values, kek))
+        Files.writeBytes(VAULT_FILE, LokotFile.build(extended, unlocked.body, kek))
 
         println()
         println("$VAULT_FILE now opens with ${pluralize(extended.credentials.size, "key")}.")
@@ -139,7 +148,7 @@ fun runRekey(): Int {
 
     val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
     try {
-        val kept = mutableListOf(Kek.wrap(unlocked.secret.output, unlocked.secret.credentialId, kek))
+        val kept = mutableListOf(Kek.wrap(unlocked.secret.output, unlocked.secret.credentialId, authRpId, kek))
         var remaining = header.credentials.filterNot { it.id.contentEquals(unlocked.secret.credentialId) }
 
         while (remaining.isNotEmpty()) {
@@ -159,7 +168,7 @@ fun runRekey(): Int {
                 authenticator.close()
             }
 
-            kept += Kek.wrap(secret.output, secret.credentialId, kek)
+            kept += Kek.wrap(secret.output, secret.credentialId, authRpId, kek)
             remaining = remaining.filterNot { it.id.contentEquals(secret.credentialId) }
         }
 
@@ -173,8 +182,8 @@ fun runRekey(): Int {
             }
         }
 
-        val rekeyed = LokotHeader(project = header.project, salt = header.salt, rpId = header.rpId, credentials = kept)
-        Files.writeBytes(VAULT_FILE, LokotFile.build(rekeyed, unlocked.values, kek))
+        val rekeyed = LokotHeader(project = header.project, salt = header.salt, credentials = kept)
+        Files.writeBytes(VAULT_FILE, LokotFile.build(rekeyed, unlocked.body, kek))
 
         println()
         println("$VAULT_FILE re-keyed. ${pluralize(kept.size, "key")} opens it; ${remaining.size} dropped.")

@@ -8,10 +8,12 @@ class Editor(
     text: String,
     private val check: (String) -> String?,
     private val save: (String) -> String?,
+    stored: String = text,
+    note: String? = null,
 ) {
     private val buffer = TextBuffer(text)
-    private var message: String? = null
-    private var saved = text
+    private var message: String? = note
+    private var saved = stored
     private var left = 0
     private var top = 0
 

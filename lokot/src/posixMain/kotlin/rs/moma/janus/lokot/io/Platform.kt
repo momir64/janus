@@ -75,3 +75,14 @@ fun flushToDisk(file: CPointer<FILE>) {
 }
 
 fun replaceFile(temporary: String, path: String): Boolean = rename(temporary, path) == 0
+
+// `/dev/shm` is the tmpfs linux already has
+fun secretsRoot(): String = "/dev/shm/lokot-${getuid()}"
+
+@OptIn(ExperimentalForeignApi::class)
+fun createDirectory(path: String): Boolean = mkdir(path, S_IRWXU.convert()) == 0 || errno == EEXIST
+
+@OptIn(ExperimentalForeignApi::class)
+fun restrictToOwner(path: String, directory: Boolean) {
+    chmod(path, (if (directory) S_IRWXU else S_IRUSR or S_IWUSR).convert())
+}

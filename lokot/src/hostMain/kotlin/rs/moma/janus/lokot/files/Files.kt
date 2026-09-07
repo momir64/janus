@@ -1,5 +1,7 @@
 package rs.moma.janus.lokot.files
 
+import rs.moma.janus.lokot.io.createDirectory
+import rs.moma.janus.lokot.io.restrictToOwner
 import rs.moma.janus.lokot.io.flushToDisk
 import rs.moma.janus.lokot.io.replaceFile
 import kotlinx.cinterop.*
@@ -47,4 +49,34 @@ object Files {
         }
         if (!replaceFile(temporary, path)) error("cannot move $temporary into place")
     }
+
+    fun makeDirectory(path: String): Boolean {
+        if (!createDirectory(path)) return false
+        restrictToOwner(path, directory = true)
+        return true
+    }
+
+    fun writeSecret(path: String, bytes: ByteArray) {
+        writeBytes(path, bytes)
+        restrictToOwner(path, directory = false)
+    }
+
+    fun list(path: String): List<String> {
+        val directory = opendir(path) ?: return emptyList()
+        val names = mutableListOf<String>()
+        try {
+            while (true) {
+                val entry = readdir(directory) ?: break
+                val name = entry.pointed.d_name.toKString()
+                if (name != "." && name != "..") names += name
+            }
+        } finally {
+            closedir(directory)
+        }
+        return names
+    }
+
+    fun delete(path: String): Boolean = remove(path) == 0
+
+    fun deleteDirectory(path: String): Boolean = rmdir(path) == 0
 }

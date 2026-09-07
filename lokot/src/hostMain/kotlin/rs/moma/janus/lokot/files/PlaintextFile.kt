@@ -63,3 +63,25 @@ object PlaintextFile {
 class DocumentException(val line: Int, message: String) : Exception(message) {
     val described: String get() = "line $line: $message"
 }
+
+class VaultBody(val schema: String, val values: Map<String, String>) {
+    fun encode(): ByteArray {
+        val schemaBytes = schema.encodeToByteArray()
+        return schemaBytes.size.toBigEndian() + schemaBytes + PlaintextFile.encode(values)
+    }
+
+    companion object {
+        private const val LENGTH_SIZE = 4
+
+        fun decode(bytes: ByteArray): VaultBody {
+            require(bytes.size >= LENGTH_SIZE) { "the body is too short to hold a schema" }
+            val length = bytes.readBigEndian(0)
+            require(length in 0..(bytes.size - LENGTH_SIZE)) { "the body's schema length is out of range" }
+            val end = LENGTH_SIZE + length
+            return VaultBody(
+                schema = bytes.decodeToString(LENGTH_SIZE, end),
+                values = PlaintextFile.decode(bytes.copyOfRange(end, bytes.size)),
+            )
+        }
+    }
+}

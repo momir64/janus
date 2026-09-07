@@ -21,7 +21,8 @@ fun main(args: Array<String>) {
 @OptIn(kotlin.experimental.ExperimentalNativeApi::class)
 private fun run(args: Array<String>): Int = when (args.firstOrNull()) {
     "init" -> runInit()
-    "unlock" -> runUnlock()
+    "unlock" -> runUnlock(args.drop(1))
+    "lock" -> runLock()
     "add-key" -> runAddKey()
     "rekey" -> runRekey()
     "edit" -> runEdit()
@@ -29,7 +30,8 @@ private fun run(args: Array<String>): Int = when (args.firstOrNull()) {
     else -> {
         println("usage: lokot <command> [options]\n")
         println("  init       create .env.lokot from lokot.toml, enrolling a passkey")
-        println("  unlock     open .env.lokot with an enrolled passkey and write .env from it")
+        println("  unlock     open .env.lokot with an enrolled passkey and write the service files")
+        println("  lock       delete the files 'unlock' wrote")
         println("  edit       change the values in .env.lokot, in a full-screen editor")
         println("  add-key    enrol another passkey, so losing one does not lose the vault")
         println("  rekey      re-key the vault, keeping only the passkeys you present")
