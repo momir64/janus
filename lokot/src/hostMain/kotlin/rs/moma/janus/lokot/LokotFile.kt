@@ -76,7 +76,6 @@ class LokotHeader(
     val salt: ByteArray,
     val rpId: String,
     val credentials: List<WrappedCredential>,
-    val plain: Map<String, String>
 ) {
     init {
         require(salt.size == SALT_SIZE) { "salt must be $SALT_SIZE bytes, was ${salt.size}" }
@@ -90,7 +89,6 @@ class LokotHeader(
             put("cred.$index.nonce", credential.nonce.toHex())
             put("cred.$index.kek", credential.sealed.toHex())
         }
-        plain.forEach { (name, value) -> put("plain.$name", value) }
     }
 
     companion object {
@@ -112,7 +110,6 @@ class LokotHeader(
                 salt = entries.getValue("salt").fromHex(),
                 rpId = entries.getValue("rpId"),
                 credentials = credentials,
-                plain = entries.filterKeys { it.startsWith("plain.") }.mapKeys { it.key.removePrefix("plain.") },
             )
         }
     }

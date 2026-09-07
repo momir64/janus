@@ -248,7 +248,6 @@ private fun formatChecks(): List<Check> {
         salt = ByteArray(LokotHeader.SALT_SIZE) { it.toByte() },
         rpId = "example.com",
         credentials = listOf(credential),
-        plain = mapOf("PORT" to "8080", "RP_ID" to "rpid.example"),
     )
 
     val secrets = mapOf("SECRET_A" to "<secret_value>", "SECRET_B" to PEM)
@@ -278,9 +277,6 @@ private fun formatChecks(): List<Check> {
             LokotFile.parse(file()).header.salt.contentEquals(ByteArray(LokotHeader.SALT_SIZE) { it.toByte() })
         },
         format.holds("lokot file", "rpId survives") { LokotFile.parse(file()).header.rpId == "example.com" },
-        format.holds("lokot file", "plain values survive") {
-            LokotFile.parse(file()).header.plain == mapOf("PORT" to "8080", "RP_ID" to "rpid.example")
-        },
         format.holds("lokot file", "credentials survive") {
             LokotFile.parse(file()).header.credentials.single().id.contentEquals(credentialId)
         },
@@ -290,9 +286,17 @@ private fun formatChecks(): List<Check> {
 
         format.holds("lokot file", "edited header fails to open") {
             val bytes = file()
-            val headerEnd = bytes.size - Crypto.NONCE_SIZE - Crypto.TAG_SIZE - KeyValue.encode(secrets).size
-            bytes[headerEnd - 1] = (bytes[headerEnd - 1].toInt() xor 1).toByte()
+            val marker = "example.com".encodeToByteArray()
+            val at = bytes.indices.first { start -> marker.indices.all { bytes.getOrNull(start + it) == marker[it] } }
+            bytes[at] = (bytes[at].toInt() xor 1).toByte()
             LokotFile.parse(bytes).open(kek) == null
+        },
+
+        format.rejects("lokot file", "rejects a corrupted hex field") {
+            val bytes = file()
+            val headerEnd = bytes.size - Crypto.NONCE_SIZE - Crypto.TAG_SIZE - KeyValue.encode(secrets).size
+            bytes[headerEnd - 1] = 'z'.code.toByte()
+            LokotFile.parse(bytes)
         },
 
         format.rejects("lokot file", "rejects an unknown format version") {
