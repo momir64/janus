@@ -13,11 +13,11 @@ back out of a unique id. Two consumers then fail to recognise it:
 
 | where | what it does | symptom |
 | --- | --- | --- |
-| `DeviceTrackingListener` in `com.android.tools.utp:gradle-work-action` | keys `perDeviceAllTestsPassed` by the encoded id, while `AndroidTestEngineRunner` looks it up by the raw serial in `serials.all { perDeviceAllTestsPassed[it] ?: false }` | task writes exit code 1; Gradle says "There were failing tests" while the HTML report says 100% successful |
+| `DeviceTrackingListener` in `com.android.tools.utp:gradle-work-action` | keys `perDeviceAllTestsPassed` by the encoded id, while `AndroidTestEngineRunner` looks it up by the raw serial in `serials.all { perDeviceAllTestsPassed[it] ?: false }` | task writes exit code 1, and Gradle says "There were failing tests" while the HTML report says 100% successful |
 | `AndroidTestResultListener` in `com.android.tools.androidtest:android-test-engine-result-listener` | writes the encoded id into the streamed result protos | Android Studio can't match results to a device, renders nothing, dumps raw `<UTP_TEST_RESULT_ON_TEST_RESULT_EVENT>` blocks to the build console |
 
 Both patches decode the id at the single point where it is extracted. Tests themselves were never
-failing; UTP's own `test-result.pb` records `PASSED` throughout.
+failing. UTP's own `test-result.pb` records `PASSED` throughout.
 
 Unaffected serials: USB, `emulator-NNNN`, and wireless-debugging mDNS pairings
 (`adb-<id>-<suffix>._adb-tls-connect._tcp`). Pairing over mDNS instead of `adb connect` avoids the
@@ -75,6 +75,6 @@ Expect `BUILD SUCCESSFUL` and `0` in
 `app/build/outputs/androidTest-results/connected/debug/test-result-exit-code.txt`.
 
 To check the Studio-side fix without opening Studio, add
-`-Pcom.android.tools.utp.GradleAndroidProjectResolverExtension.enable=true`; the base64
+`-Pcom.android.tools.utp.GradleAndroidProjectResolverExtension.enable=true`. The base64
 `<UTP_TEST_RESULT_ON_TEST_RESULT_EVENT>` blocks it prints should decode to a device id of
 `192.168.0.7:5555`, not `192.168.0.7%3A5555`.
