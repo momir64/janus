@@ -2,9 +2,10 @@ package rs.moma.janus.lokot
 
 import kotlin.io.encoding.Base64
 
-class Schema(val secrets: Map<String, SecretSpec>) {
+class Schema(val project: String, val secrets: Map<String, SecretSpec>) {
     companion object {
         private val NAME = Regex("[A-Z][A-Z0-9_]*")
+        private val PROJECT = Regex("[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}")
         private val PLANNED = setOf("certs", "bundles", "deliver")
 
         fun parse(text: String): Schema {
@@ -13,14 +14,17 @@ class Schema(val secrets: Map<String, SecretSpec>) {
             root.keys.firstOrNull { it in PLANNED }?.let {
                 throw SchemaException("[$it] is not supported yet")
             }
-            root.unknownKeys(setOf("secrets")).firstOrNull()?.let {
+            root.unknownKeys(setOf("project", "secrets")).firstOrNull()?.let {
                 throw SchemaException("unknown table '[$it]'")
             }
 
+            val project = root.string("project") ?: throw SchemaException("lokot.toml needs a project name")
+            if (!PROJECT.matches(project))
+                throw SchemaException("project must be 1-64 characters: letters, digits, space, dot, dash, underscore")
             val secrets = root.table("secrets") ?: throw SchemaException("lokot.toml needs a [secrets] table")
 
             return Schema(
-                secrets.entries.mapValues { (name, declaration) ->
+                project, secrets.entries.mapValues { (name, declaration) ->
                     if (!NAME.matches(name))
                         throw SchemaException("'$name' must be upper case and start with a letter")
                     if (declaration !is TomlTable)

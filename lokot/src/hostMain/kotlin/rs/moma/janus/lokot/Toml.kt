@@ -37,7 +37,7 @@ object Toml {
         val root = mutableMapOf<String, MutableMap<String, TomlValue>>()
         var current = root.getOrPut("") { mutableMapOf() }
 
-        text.lineSequence().forEachIndexed { index, rawLine ->
+        text.removePrefix("\uFEFF").lineSequence().forEachIndexed { index, rawLine ->
             val line = rawLine.trim()
             if (line.isEmpty() || line.startsWith("#")) return@forEachIndexed
 

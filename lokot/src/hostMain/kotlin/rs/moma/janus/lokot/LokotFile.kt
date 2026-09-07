@@ -73,6 +73,7 @@ class LokotFile private constructor(
 }
 
 class LokotHeader(
+    val project: String,
     val salt: ByteArray,
     val rpId: String,
     val credentials: List<WrappedCredential>,
@@ -82,6 +83,7 @@ class LokotHeader(
     }
 
     fun toMap(): Map<String, String> = buildMap {
+        put("project", project)
         put("salt", salt.toHex())
         put("rpId", rpId)
         credentials.forEachIndexed { index, credential ->
@@ -107,6 +109,7 @@ class LokotHeader(
                 }
 
             return LokotHeader(
+                project = entries.getValue("project"),
                 salt = entries.getValue("salt").fromHex(),
                 rpId = entries.getValue("rpId"),
                 credentials = credentials,

@@ -57,6 +57,8 @@ private const val NONCE_BUG =
 
 private const val SCHEMA_BUG = "There's a code bug in the toml parser or schema, not an environment issue."
 
+private const val PROJECTLESS = "[secrets]\nA = { type = \"port\" }"
+
 fun allChecks(): List<Check> = cryptoChecks() + formatChecks() + schemaChecks()
 
 private fun schemaChecks(): List<Check> {
@@ -64,6 +66,8 @@ private fun schemaChecks(): List<Check> {
 
     val document = """
         # a comment, and one with a "quote" in it
+        project = "example"
+
         [secrets]
         POSTGRES_PASSWORD = { type = "random", chars = 24 }   # trailing comment
         JWT_SECRET        = { type = "random", bytes = 32, encoding = "base64" }
@@ -75,13 +79,23 @@ private fun schemaChecks(): List<Check> {
     fun parsed() = Schema.parse(document)
     fun spec(name: String) = parsed().secrets.getValue(name)
 
+    fun doc(body: String) = "project = \"x\"\n[secrets]\n$body"
+
     return listOf(
         schema.equals("toml", "reads every declaration", 5) { parsed().secrets.size },
+        schema.equals("schema", "reads the project name", "example") { parsed().project },
+        schema.rejects("schema", "rejects a missing project") { Schema.parse(PROJECTLESS) },
+        schema.rejects("schema", "rejects a project that is not a name") {
+            Schema.parse(doc("A = { type = \"port\" }").replace("\"x\"", "\"a/b\""))
+        },
         schema.holds("toml", "a '#' inside a string is not a comment") {
             Toml.parse("""a = "one # two"""").string("a") == "one # two"
         },
         schema.holds("toml", "nests dotted table headers") {
             Toml.parse("[certs.ca]\ncn = \"x\"").table("certs")?.table("ca")?.string("cn") == "x"
+        },
+        schema.holds("toml", "tolerates a UTF-8 BOM") {
+            Toml.parse("\uFEFF[secrets]\nA = { type = \"port\" }").table("secrets") != null
         },
         schema.rejects("toml", "rejects arrays") { Toml.parse("a = [1, 2]") },
         schema.rejects("toml", "rejects arrays of tables") { Toml.parse("[[deliver]]") },
@@ -91,26 +105,26 @@ private fun schemaChecks(): List<Check> {
         schema.rejects("toml", "rejects a duplicate key") { Toml.parse("a = 1\na = 2") },
 
         schema.rejects("schema", "rejects a lower-case name") {
-            Schema.parse("[secrets]\njwt = { type = \"random\", bytes = 32 }")
+            Schema.parse(doc("jwt = { type = \"random\", bytes = 32 }"))
         },
         schema.rejects("schema", "rejects an unknown type") {
-            Schema.parse("[secrets]\nA = { type = \"magic\" }")
+            Schema.parse(doc("A = { type = \"magic\" }"))
         },
         schema.rejects("schema", "rejects bytes and chars together") {
-            Schema.parse("[secrets]\nA = { type = \"random\", bytes = 32, chars = 24 }")
+            Schema.parse(doc("A = { type = \"random\", bytes = 32, chars = 24 }"))
         },
         schema.rejects("schema", "rejects random with neither") {
-            Schema.parse("[secrets]\nA = { type = \"random\" }")
+            Schema.parse(doc("A = { type = \"random\" }"))
         },
         schema.rejects("schema", "rejects a key that means nothing for the type") {
-            Schema.parse("[secrets]\nA = { type = \"port\", bytes = 32 }")
+            Schema.parse(doc("A = { type = \"port\", bytes = 32 }"))
         },
         schema.rejects("schema", "rejects encoding on chars") {
-            Schema.parse("[secrets]\nA = { type = \"random\", chars = 24, encoding = \"hex\" }")
+            Schema.parse(doc("A = { type = \"random\", chars = 24, encoding = \"hex\" }"))
         },
         // Not "unknown table": these are planned, and the message should say so.
         schema.rejects("schema", "rejects tables that are not implemented yet") {
-            Schema.parse("[secrets]\nA = { type = \"port\" }\n[certs.ca]\ncn = \"x\"")
+            Schema.parse(doc("A = { type = \"port\" }\n[certs.ca]\ncn = \"x\""))
         },
 
         schema.equals("generate", "bytes become base64 of the right length", 44) {
@@ -245,6 +259,7 @@ private fun formatChecks(): List<Check> {
     fun credential() = Kek.wrap(hmacOutput, credentialId, kek)
 
     fun header(credential: WrappedCredential) = LokotHeader(
+        project = "example",
         salt = ByteArray(LokotHeader.SALT_SIZE) { it.toByte() },
         rpId = "example.com",
         credentials = listOf(credential),
@@ -277,6 +292,7 @@ private fun formatChecks(): List<Check> {
             LokotFile.parse(file()).header.salt.contentEquals(ByteArray(LokotHeader.SALT_SIZE) { it.toByte() })
         },
         format.holds("lokot file", "rpId survives") { LokotFile.parse(file()).header.rpId == "example.com" },
+        format.holds("lokot file", "project survives") { LokotFile.parse(file()).header.project == "example" },
         format.holds("lokot file", "credentials survive") {
             LokotFile.parse(file()).header.credentials.single().id.contentEquals(credentialId)
         },

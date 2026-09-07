@@ -1,6 +1,5 @@
 package rs.moma.janus.lokot
 
-import rs.moma.janus.lokot.Crypto.randomBytes
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction6
@@ -12,6 +11,10 @@ import libfido2.*
 
 class HmacSecret(val credentialId: ByteArray, val output: ByteArray)
 
+class Enrolment(val credentialId: ByteArray, output: ByteArray?) {
+    val secret = output?.let { HmacSecret(credentialId, it) }
+}
+
 @OptIn(ExperimentalForeignApi::class, kotlin.experimental.ExperimentalNativeApi::class)
 class Authenticator private constructor(val path: String, private val device: CPointer<fido_dev_t>) {
     val isWindowsHello: Boolean = fido_dev_is_winhello(device)
@@ -19,15 +22,19 @@ class Authenticator private constructor(val path: String, private val device: CP
     context(scope: MemScope)
     val ByteArray.uBytes: CPointer<UByteVar>; get() = this.toUBytes(scope)
 
-    fun enrol(pin: String?): ByteArray = memScoped {
+    fun enrol(pin: String?, project: String, salt: ByteArray): Enrolment = memScoped {
         val credential = fido_cred_new() ?: error("fido_cred_new returned null")
 
         try {
             ok(::fido_cred_set_type, credential, COSE_ES256)
             ok(::fido_cred_set_rp, credential, RP_ID, "lokot")
             ok(::fido_cred_set_clientdata, credential, CLIENT_DATA.uBytes, CLIENT_DATA.size())
-            ok(::fido_cred_set_user, credential, randomBytes(16).uBytes, 16u, "lokot", "lokot", null)
-            ok(::fido_cred_set_extensions, credential, FIDO_EXT_HMAC_SECRET)
+
+            val userId = Crypto.sha256(project.encodeToByteArray()).copyOf(16)
+            ok(::fido_cred_set_user, credential, userId.uBytes, 16u, project, project, null)
+
+            ok(::fido_cred_set_extensions, credential, FIDO_EXT_HMAC_SECRET or FIDO_EXT_HMAC_SECRET_MC)
+            ok(::fido_cred_set_hmac_salt, credential, prfSalt(salt).uBytes, HMAC_OUTPUT_SIZE.convert())
 
             ok(::fido_cred_set_rk, credential, FIDO_OPT_TRUE)
             ok(::fido_cred_set_uv, credential, FIDO_OPT_TRUE)
@@ -35,7 +42,12 @@ class Authenticator private constructor(val path: String, private val device: CP
             ok(::fido_dev_make_cred, device, credential, pin)
 
             val pointer = fido_cred_id_ptr(credential) ?: error("no credential id returned")
-            pointer.readBytes(fido_cred_id_len(credential).toInt())
+            Enrolment(
+                credentialId = pointer.readBytes(fido_cred_id_len(credential).toInt()),
+                output = fido_cred_hmac_secret_ptr(credential)
+                    ?.takeIf { fido_cred_hmac_secret_len(credential).toInt() == HMAC_OUTPUT_SIZE }
+                    ?.readBytes(HMAC_OUTPUT_SIZE),
+            )
         } finally {
             fido_cred_free(cValuesOf(credential))
         }
@@ -54,7 +66,7 @@ class Authenticator private constructor(val path: String, private val device: CP
             ok(::fido_assert_set_clientdata, assertion, CLIENT_DATA.uBytes, CLIENT_DATA.size())
             credentialIds.forEach { ok(::fido_assert_allow_cred, assertion, it.uBytes, it.size()) }
             ok(::fido_assert_set_extensions, assertion, FIDO_EXT_HMAC_SECRET)
-            ok(::fido_assert_set_hmac_salt, assertion, prfSalt(salt).uBytes, 32u)
+            ok(::fido_assert_set_hmac_salt, assertion, prfSalt(salt).uBytes, HMAC_OUTPUT_SIZE.convert())
 
             ok(::fido_assert_set_uv, assertion, FIDO_OPT_TRUE)
             ok(::fido_assert_set_up, assertion, FIDO_OPT_TRUE)
@@ -63,12 +75,12 @@ class Authenticator private constructor(val path: String, private val device: CP
 
             val output = fido_assert_hmac_secret_ptr(assertion, 0u) ?: error("no hmac-secret output, prf unsupported")
             val length = fido_assert_hmac_secret_len(assertion, 0u).toInt()
-            if (length != 32) error("expected 32 bytes of hmac-secret output, got $length")
+            if (length != HMAC_OUTPUT_SIZE) error("expected $HMAC_OUTPUT_SIZE bytes of hmac-secret output, got $length")
             val answered = fido_assert_id_ptr(assertion, 0u) ?: error("assertion did not report credential id")
 
             HmacSecret(
                 credentialId = answered.readBytes(fido_assert_id_len(assertion, 0u).toInt()),
-                output = output.readBytes(32)
+                output = output.readBytes(HMAC_OUTPUT_SIZE)
             )
         } finally {
             fido_assert_free(cValuesOf(assertion))
@@ -81,9 +93,10 @@ class Authenticator private constructor(val path: String, private val device: CP
     }
 
     companion object {
-        const val RP_ID = "lokot.localhost"
         private val PRF_PREFIX = "WebAuthn PRF".encodeToByteArray() + byteArrayOf(0)
         private val CLIENT_DATA = """{"origin":"lokot"}""".encodeToByteArray()
+        const val RP_ID = "lokot.localhost"
+        const val HMAC_OUTPUT_SIZE = 32
 
         private const val MAX_DEVICES = 8uL
 
