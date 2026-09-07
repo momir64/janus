@@ -9,6 +9,10 @@ import kotlinx.cinterop.*
 import platform.posix.*
 import libfido2.*
 
+class Device(val path: String, private val manufacturer: String, private val product: String) {
+    val name: String = product.ifEmpty { manufacturer.ifEmpty { path } }
+}
+
 class HmacSecret(val credentialId: ByteArray, val output: ByteArray)
 
 class Enrolment(val credentialId: ByteArray, output: ByteArray?) {
@@ -16,8 +20,8 @@ class Enrolment(val credentialId: ByteArray, output: ByteArray?) {
 }
 
 @OptIn(ExperimentalForeignApi::class, kotlin.experimental.ExperimentalNativeApi::class)
-class Authenticator private constructor(val path: String, private val device: CPointer<fido_dev_t>) {
-    val isWindowsHello: Boolean = fido_dev_is_winhello(device)
+class Authenticator private constructor(val device: Device, private val handle: CPointer<fido_dev_t>) {
+    val isWindowsHello: Boolean = fido_dev_is_winhello(handle)
 
     context(scope: MemScope)
     val ByteArray.uBytes: CPointer<UByteVar>; get() = this.toUBytes(scope)
@@ -39,7 +43,7 @@ class Authenticator private constructor(val path: String, private val device: CP
             ok(::fido_cred_set_rk, credential, FIDO_OPT_TRUE)
             ok(::fido_cred_set_uv, credential, FIDO_OPT_TRUE)
 
-            ok(::fido_dev_make_cred, device, credential, pin)
+            ok(::fido_dev_make_cred, handle, credential, pin)
 
             val pointer = fido_cred_id_ptr(credential) ?: error("no credential id returned")
             Enrolment(
@@ -71,7 +75,7 @@ class Authenticator private constructor(val path: String, private val device: CP
             ok(::fido_assert_set_uv, assertion, FIDO_OPT_TRUE)
             ok(::fido_assert_set_up, assertion, FIDO_OPT_TRUE)
 
-            ok(::fido_dev_get_assert, device, assertion, pin)
+            ok(::fido_dev_get_assert, handle, assertion, pin)
 
             val output = fido_assert_hmac_secret_ptr(assertion, 0u) ?: error("no hmac-secret output, prf unsupported")
             val length = fido_assert_hmac_secret_len(assertion, 0u).toInt()
@@ -88,8 +92,8 @@ class Authenticator private constructor(val path: String, private val device: CP
     }
 
     fun close() {
-        fido_dev_close(device)
-        memScoped { fido_dev_free(cValuesOf(device)) }
+        fido_dev_close(handle)
+        memScoped { fido_dev_free(cValuesOf(handle)) }
     }
 
     companion object {
@@ -107,23 +111,28 @@ class Authenticator private constructor(val path: String, private val device: CP
             fido_set_log_handler(if (enabled) staticCFunction(::printLogLine) else staticCFunction(::dropLogLine))
         }
 
-        fun paths(): List<String> = memScoped {
+        fun devices(): List<Device> = memScoped {
             val list = fido_dev_info_new(MAX_DEVICES) ?: error("fido_dev_info_new returned null")
             try {
                 val found = alloc<size_tVar>()
                 ok(::fido_dev_info_manifest, list, MAX_DEVICES, found.ptr)
-                (0 until found.value.toInt()).mapNotNull {
-                    fido_dev_info_path(fido_dev_info_ptr(list, it.convert()))?.toKString()
+                (0 until found.value.toInt()).mapNotNull { index ->
+                    val info = fido_dev_info_ptr(list, index.convert()) ?: return@mapNotNull null
+                    Device(
+                        path = fido_dev_info_path(info)?.toKString() ?: return@mapNotNull null,
+                        manufacturer = fido_dev_info_manufacturer_string(info)?.toKString()?.trim().orEmpty(),
+                        product = fido_dev_info_product_string(info)?.toKString()?.trim().orEmpty(),
+                    )
                 }
             } finally {
                 fido_dev_info_free(cValuesOf(list), MAX_DEVICES)
             }
         }
 
-        fun open(path: String): Authenticator {
-            val device = fido_dev_new() ?: error("fido_dev_new returned null")
-            ok(::fido_dev_open, device, path)
-            return Authenticator(path, device)
+        fun open(device: Device): Authenticator {
+            val handle = fido_dev_new() ?: error("fido_dev_new returned null")
+            ok(::fido_dev_open, handle, device.path)
+            return Authenticator(device, handle)
         }
 
         /** SHA-256("WebAuthn PRF" || 0x00 || salt), matching what a browser sends for PRF. */
