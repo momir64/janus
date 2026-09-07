@@ -21,6 +21,8 @@ class Check(
 }
 
 internal class CheckGroup(private val remedy: String) {
+    fun section(section: String) = CheckGroupSection(this, section)
+
     fun equal(section: String, name: String, expected: String, actual: () -> ByteArray) = Check(section, name, remedy) {
         val got = actual().toHex()
         if (got == expected.lowercase()) null else "expected $expected, got $got"
@@ -43,6 +45,13 @@ internal class CheckGroup(private val remedy: String) {
             null
         }
     }
+}
+
+internal class CheckGroupSection(private val group: CheckGroup, private val section: String) {
+    fun equal(name: String, expected: String, actual: () -> ByteArray) = group.equal(section, name, expected, actual)
+    fun <T> equals(name: String, expected: T, actual: () -> T) = group.equals(section, name, expected, actual)
+    fun holds(name: String, condition: () -> Boolean) = group.holds(section, name, condition)
+    fun rejects(name: String, block: () -> Unit) = group.rejects(section, name, block)
 }
 
 internal const val LATEST_LOKOT_FORMAT_VERSION = 1
