@@ -28,6 +28,8 @@ internal fun formatChecks(): List<Check> {
     val secrets = mapOf("SECRET_A" to "<secret_value>", "SECRET_B" to PEM)
     fun file() = LokotFile.build(header(credential()), secrets, kek)
     fun twoKeyFile() = LokotFile.build(header(credential(), secondCredential()), secrets, kek)
+    val freshKek = ByteArray(Crypto.KEY_SIZE) { (it + 64).toByte() }
+    fun rekeyedFile() = LokotFile.build(header(Kek.wrap(secondOutput, secondId, freshKek)), secrets, freshKek)
 
     return listOf(
         format.holds("key=value encoding", "round trips") { PlaintextFile.decode(PlaintextFile.encode(entries)) == entries },
@@ -67,6 +69,19 @@ internal fun formatChecks(): List<Check> {
         },
         format.holds("add-key", "a key that was never enrolled opens nothing") {
             LokotFile.parse(twoKeyFile()).header.credentials.all { Kek.unwrap(ByteArray(32), it) == null }
+        },
+
+        format.holds("rekey", "only the presented key is left enrolled") {
+            val header = LokotFile.parse(rekeyedFile()).header
+            header.credentials.singleOrNull()?.id?.contentEquals(secondId) == true
+        },
+        format.holds("rekey", "the presented key opens the re-keyed file") {
+            val rekeyed = LokotFile.parse(rekeyedFile())
+            rekeyed.open(Kek.unwrap(secondOutput, rekeyed.header.credentials.single())!!) == secrets
+        },
+        format.holds("rekey", "the revoked key opens nothing in it") {
+            val rekeyed = LokotFile.parse(rekeyedFile())
+            rekeyed.header.credentials.all { Kek.unwrap(hmacOutput, it) == null } && rekeyed.open(kek) == null
         },
 
         format.holds("lokot file", "secrets round trip") { LokotFile.parse(file()).open(kek) == secrets },

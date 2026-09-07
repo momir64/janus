@@ -7,6 +7,7 @@ import platform.windows.*
 import platform.posix.*
 
 private const val ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004u
+
 private const val ENABLE_VIRTUAL_TERMINAL_INPUT = 0x0200u
 
 @OptIn(ExperimentalForeignApi::class)

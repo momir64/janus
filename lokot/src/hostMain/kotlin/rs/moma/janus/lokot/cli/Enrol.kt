@@ -131,3 +131,55 @@ fun runAddKey(): Int {
         kek.wipe()
     }
 }
+
+fun runRekey(): Int {
+    val unlocked = unlockVault("rekey with") ?: return 1
+    unlocked.kek.wipe()
+    val header = unlocked.file.header
+
+    val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
+    try {
+        val kept = mutableListOf(Kek.wrap(unlocked.secret.output, unlocked.secret.credentialId, kek))
+        var remaining = header.credentials.filterNot { it.id.contentEquals(unlocked.secret.credentialId) }
+
+        while (remaining.isNotEmpty()) {
+            println()
+            println(
+                "${pluralize(kept.size, "key")} kept so far. ${pluralize(remaining.size, "other key")} still enrolled."
+            )
+            println("Connect one and press Enter to keep it, or type 'done' to drop the rest.")
+            if (readlnOrNull()?.trim()?.lowercase() == "done") break
+
+            val authenticator = openAuthenticator("keep") ?: return 1
+            val secret = try {
+                println()
+                println("Touch the key to keep it.")
+                authenticator.hmacSecret(authenticator.pin(), remaining.map { it.id }, header.salt)
+            } finally {
+                authenticator.close()
+            }
+
+            kept += Kek.wrap(secret.output, secret.credentialId, kek)
+            remaining = remaining.filterNot { it.id.contentEquals(secret.credentialId) }
+        }
+
+        if (remaining.isNotEmpty()) {
+            println()
+            println("${pluralize(remaining.size, "key")} will lose access to $VAULT_FILE, permanently.")
+            print("Type 'yes' to continue: ")
+            if (readlnOrNull()?.trim()?.lowercase() != "yes") {
+                println("Nothing written; $VAULT_FILE is as it was.")
+                return 1
+            }
+        }
+
+        val rekeyed = LokotHeader(project = header.project, salt = header.salt, rpId = header.rpId, credentials = kept)
+        Files.writeBytes(VAULT_FILE, LokotFile.build(rekeyed, unlocked.values, kek))
+
+        println()
+        println("$VAULT_FILE re-keyed. ${pluralize(kept.size, "key")} opens it; ${remaining.size} dropped.")
+        return 0
+    } finally {
+        kek.wipe()
+    }
+}

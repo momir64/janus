@@ -1,5 +1,7 @@
 package rs.moma.janus.lokot.cli
 
+import kotlinx.cinterop.*
+import platform.posix.*
 import rs.moma.janus.lokot.externals.Authenticator
 import rs.moma.janus.lokot.checks.allChecks
 import rs.moma.janus.lokot.LokotException
@@ -7,6 +9,7 @@ import rs.moma.janus.lokot.io.readHidden
 
 const val SCHEMA_FILE = "lokot.toml"
 const val VAULT_FILE = ".env.lokot"
+const val ENV_FILE = ".env"
 
 fun pluralize(count: Int, singular: String, plural: String = "${singular}s"): String =
     "$count ${if (count == 1) singular else plural}"
@@ -61,4 +64,14 @@ fun runSelftest(): Int {
 fun Authenticator.pin(): String? {
     if (isWindowsHello) return null
     return readHidden("PIN: ").takeUnless { it.isNullOrEmpty() } ?: throw LokotException("No PIN given.")
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun utcNow(): String = memScoped {
+    val seconds = alloc<time_tVar>()
+    time(seconds.ptr)
+    val moment = gmtime(seconds.ptr) ?: return@memScoped "an unknown time"
+    val text = allocArray<ByteVar>(32)
+    strftime(text, 32u, "%Y-%m-%dT%H:%M:%SZ", moment)
+    text.toKString()
 }
