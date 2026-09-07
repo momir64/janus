@@ -4,7 +4,7 @@
 
 It is also the other half of [Privezak](../privezak). Any passkey can open the cabinet and keep notes, but the file drawer only opens for a passkey that Privezak created, and the server can tell: the registration carries an `android-key` attestation chain up to Google's hardware root, naming Privezak's package and release signing certificate. Sessions that pass that check gets a `pzk` claim in their token, gving them file storage access.
 
-## Screenshot
+## Frontend screenshot
 
 ![Home page](frontend/docs/login.png)
 
@@ -41,6 +41,16 @@ dashboard, and the origin is `https://backend:8080` verified against the local C
   services on localhost so the backend can run from the IDE.
 - `generate-certs.ps1` / `generate-certs.sh`: the local CA and the leaf certificates.
 
+## Encryption at rest
+
+Nothing in Postgres or MinIO is readable on its own. Each user gets a random data key wrapped 
+by a master key the database never sees, and every note title, note body, filename and file 
+blob is encrypted under that user's key with AES-GCM. Emails, IP addresses and locations are 
+encrypted under a separate key, with an HMAC alongside the email so it can still be looked up. 
+Credential and refresh-token rows carry an integrity hash over all of their columns, and the 
+short-lived tokens in Redis are stored under HMAC keys with encrypted values. The full table 
+is in [`backend/README.md`](backend/README.md#data-at-rest).
+
 ## Configuration
 
 The stack is configured entirely through environment variables. Compose reads them from a
@@ -65,9 +75,9 @@ values for running the backend on the host.
 The keys are all random: 32 bytes, base64-encoded for the `*_BASE64` ones. Rotating
 `MASTER_KEY_BASE64` or `PII_ENCRYPTION_KEY_BASE64` makes existing rows unreadable, and
 rotating `DB_HMAC_SECRET` invalidates every email lookup and integrity hash, so treat them as
-permanent once there is data. The `.env` file is git-ignored. A proper secrets workflow is
-being built as a separate tool ([`../lokot`](../lokot)) and will replace the file when it
-lands.
+permanent once there is data. The `.env` file is git-ignored. All secrets are stored encrypted using
+[lokot](../lokot). It is still in development, so there is nothing more to say about it
+here yet.
 
 ## Running it
 
