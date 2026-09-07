@@ -2,3 +2,6 @@ build/
 .gradle/
 .kotlin/
 .idea/
+
+# https://developers.yubico.com/libfido2/Releases/
+vendor/downloads/
