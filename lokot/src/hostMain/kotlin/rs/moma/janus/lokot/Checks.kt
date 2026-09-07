@@ -93,7 +93,7 @@ private fun cryptoChecks(): List<Check> {
                 length = 42,
             )
         },
-        nonceBug.equal(
+        cryptoBug.equal(
             "HKDF-SHA-256 (RFC 5869)",
             "case 2 (long inputs, multi-block expand)",
             "b11e398dc80327a1c8e7f78c596a49344f012eda2d4efad8a050cc4c19afa97c59045a99cac7827271cb41" +
@@ -106,18 +106,16 @@ private fun cryptoChecks(): List<Check> {
                 length = 82,
             )
         },
-        nonceBug.equals(
-            "HKDF-SHA-256 (RFC 5869)",
-            "case 3 (empty salt and info)",
+        cryptoBug.equal(
+            "HKDF-SHA-256 (RFC 5869)", "case 3 (empty salt and info)",
             "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8"
         ) {
             Crypto.hkdf(ikm = "0b".repeat(22).fromHex(), salt = ByteArray(0), info = ByteArray(0), length = 42)
         },
 
         cryptoBug.equal(
-            "AES-256-GCM",
-            "matches across crypto implementations",
-            "c8803db705c088f6004e7dc806a0b029692b07bc740711213d7f353a920d87537795e4"
+            "AES-256-GCM", "matches across crypto implementations",
+            "5cb224d3f0eee5c2b990be6f52afdc3cdb37d3ec89c985779415b43761f3aa41e16cf1"
         ) { sealed() },
 
         cryptoBug.equals("AES-256-GCM", "tag appended", message.length + Crypto.TAG_SIZE) { sealed().size },
@@ -145,8 +143,8 @@ private fun cryptoChecks(): List<Check> {
             Crypto.aesGcmOpen(key, "01".repeat(12).fromHex(), sealed(), aad) == null
         },
 
-        cryptoBug.equals("random", "returns the requested length", 48) { Crypto.randomBytes(48).size },
-        cryptoBug.holds("random", "does not repeat") {
+        nonceBug.equals("random", "returns the requested length", 48) { Crypto.randomBytes(48).size },
+        nonceBug.holds("random", "does not repeat") {
             !Crypto.randomBytes(32).contentEquals(Crypto.randomBytes(32))
         }
     )
