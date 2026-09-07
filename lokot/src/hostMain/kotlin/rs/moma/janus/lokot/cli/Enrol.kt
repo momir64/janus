@@ -34,8 +34,7 @@ fun runInit(): Int {
 
     val authenticator = openAuthenticator("enrol") ?: return 1
     try {
-        val pin = if (authenticator.isWindowsHello) null else
-            readHidden("PIN: ") ?: run { println("no PIN given"); return 1 }
+        val pin = authenticator.pin()
 
         val values = mutableMapOf<String, String>()
         val prompted = schema.secrets.filterValues { it is SecretSpec.Prompted }
@@ -75,7 +74,6 @@ fun runInit(): Int {
 
         Files.writeBytes(VAULT_FILE, LokotFile.build(header, values, kek))
         kek.wipe()
-        values.values.forEach { it.encodeToByteArray().wipe() }
 
         println()
         println("Wrote ${pluralize(values.size, "value")} to $VAULT_FILE")
@@ -100,8 +98,7 @@ fun runAddKey(): Int {
 
         val authenticator = openAuthenticator("add") ?: return 1
         val enrolment = try {
-            val pin = if (authenticator.isWindowsHello) null else
-                readHidden("PIN: ") ?: run { println("no PIN given"); return 1 }
+            val pin = authenticator.pin()
 
             println()
             println("Touch the key to enrol.")

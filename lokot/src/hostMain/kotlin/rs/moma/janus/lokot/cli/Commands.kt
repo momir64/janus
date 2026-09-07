@@ -2,6 +2,8 @@ package rs.moma.janus.lokot.cli
 
 import rs.moma.janus.lokot.externals.Authenticator
 import rs.moma.janus.lokot.checks.allChecks
+import rs.moma.janus.lokot.LokotException
+import rs.moma.janus.lokot.io.readHidden
 
 const val SCHEMA_FILE = "lokot.toml"
 const val VAULT_FILE = ".env.lokot"
@@ -56,3 +58,7 @@ fun runSelftest(): Int {
     }
 }
 
+fun Authenticator.pin(): String? {
+    if (isWindowsHello) return null
+    return readHidden("PIN: ").takeUnless { it.isNullOrEmpty() } ?: throw LokotException("No PIN given.")
+}

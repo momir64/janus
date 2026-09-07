@@ -1,7 +1,9 @@
 # AGP wireless-adb test fix
 
 Local workaround for an AGP bug that makes `connectedAndroidTest` fail on any device whose adb
-serial contains a colon — every device connected with `adb connect host:port`.
+serial contains a colon, which is every device connected with `adb connect host:port`. This 
+[issue](https://issuetracker.google.com/556780790) has been reported to Google and is in 
+process of being resolved.
 
 ## The bug
 
@@ -15,17 +17,17 @@ back out of a unique id. Two consumers then fail to recognise it:
 | `AndroidTestResultListener` in `com.android.tools.androidtest:android-test-engine-result-listener` | writes the encoded id into the streamed result protos | Android Studio can't match results to a device, renders nothing, dumps raw `<UTP_TEST_RESULT_ON_TEST_RESULT_EVENT>` blocks to the build console |
 
 Both patches decode the id at the single point where it is extracted. Tests themselves were never
-failing — UTP's own `test-result.pb` records `PASSED` throughout.
+failing; UTP's own `test-result.pb` records `PASSED` throughout.
 
 Unaffected serials: USB, `emulator-NNNN`, and wireless-debugging mDNS pairings
 (`adb-<id>-<suffix>._adb-tls-connect._tcp`). Pairing over mDNS instead of `adb connect` avoids the
-bug entirely and needs no patching — that is the better fix if you don't mind re-pairing.
+bug entirely and needs no patching. That is the better fix if you don't mind re-pairing.
 
 ## Rebuilding after an AGP upgrade
 
 Both patches live in jars inside `~/.gradle/caches` and are lost whenever AGP's version changes or
 the cache is refreshed. Run these from this directory. They resolve jar paths by wildcard, so they
-work across versions as long as the classes still look the same — `PatchListener` fails loudly if
+work across versions as long as the classes still look the same. `PatchListener` fails loudly if
 `getDeviceId` is gone, which is the signal that upstream may have fixed it.
 
 ### 1. Gradle-side fix (exit code)

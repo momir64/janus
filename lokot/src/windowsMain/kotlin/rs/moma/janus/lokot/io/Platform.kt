@@ -4,6 +4,7 @@ import rs.moma.janus.lokot.cli.DEFAULT_CONSOLE
 import rs.moma.janus.lokot.cli.ConsoleSize
 import kotlinx.cinterop.*
 import platform.windows.*
+import platform.posix.*
 
 private const val ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004u
 private const val ENABLE_VIRTUAL_TERMINAL_INPUT = 0x0200u
@@ -78,4 +79,15 @@ fun readHidden(prompt: String): String? {
             println()
         }
     }
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun flushToDisk(file: CPointer<FILE>) {
+    fflush(file)
+    _commit(fileno(file))
+}
+
+fun replaceFile(temporary: String, path: String): Boolean {
+    remove(path)
+    return rename(temporary, path) == 0
 }

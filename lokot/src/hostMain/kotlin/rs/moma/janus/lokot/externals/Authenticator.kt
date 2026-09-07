@@ -1,5 +1,6 @@
 package rs.moma.janus.lokot.externals
 
+import rs.moma.janus.lokot.LokotException
 import kotlin.reflect.KFunction2
 import kotlin.reflect.KFunction3
 import kotlin.reflect.KFunction6
@@ -9,7 +10,7 @@ import kotlinx.cinterop.*
 import platform.posix.*
 import libfido2.*
 
-class Device(val path: String, private val manufacturer: String, private val product: String) {
+class Device(val path: String, manufacturer: String, product: String) {
     val name: String = product.ifEmpty { manufacturer.ifEmpty { path } }
 }
 
@@ -144,7 +145,22 @@ class Authenticator private constructor(val device: Device, private val handle: 
             check(fido, fido(a, b, c, d, e, f))
 
         private fun check(fido: KFunction<Int>, result: Int) {
-            if (result != FIDO_OK) error("${fido.name} failed: ${fido_strerr(result)?.toKString() ?: result.toString()}")
+            if (result == FIDO_OK) return
+            throw LokotException(
+                when (result) {
+                    FIDO_ERR_OPERATION_DENIED, FIDO_ERR_KEEPALIVE_CANCEL -> "The request was cancelled."
+                    FIDO_ERR_ACTION_TIMEOUT, FIDO_ERR_USER_ACTION_TIMEOUT -> "Timed out waiting for the key to be touched."
+                    FIDO_ERR_PIN_INVALID -> "That PIN is not right."
+                    FIDO_ERR_PIN_REQUIRED -> "This key needs its PIN."
+                    FIDO_ERR_PIN_NOT_SET -> "This key has no PIN set, and lokot requires verification."
+                    FIDO_ERR_NO_CREDENTIALS -> "This key holds no credential for this vault."
+                    FIDO_ERR_UP_REQUIRED -> "The key was not touched."
+                    FIDO_ERR_TX, FIDO_ERR_RX -> "Lost contact with the key. Is it still plugged in?"
+                    FIDO_ERR_PIN_BLOCKED, FIDO_ERR_PIN_AUTH_BLOCKED -> "The key has locked itself " +
+                            "after too many wrong PINs. Unplug it and try again, or reset it if it stays locked."
+                    else -> "${fido.name} failed: ${fido_strerr(result)?.toKString() ?: result}"
+                }
+            )
         }
     }
 }

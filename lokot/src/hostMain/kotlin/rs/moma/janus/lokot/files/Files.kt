@@ -1,5 +1,7 @@
 package rs.moma.janus.lokot.files
 
+import rs.moma.janus.lokot.io.flushToDisk
+import rs.moma.janus.lokot.io.replaceFile
 import kotlinx.cinterop.*
 import platform.posix.*
 
@@ -39,12 +41,10 @@ object Files {
                 val written = bytes.usePinned { fwrite(it.addressOf(0), 1u, bytes.size.convert(), file) }
                 if (written.toInt() != bytes.size) error("wrote $written of ${bytes.size} bytes to $temporary")
             }
+            flushToDisk(file)
         } finally {
             fclose(file)
         }
-        remove(path)
-        if (rename(temporary, path) != 0) error("cannot move $temporary into place")
+        if (!replaceFile(temporary, path)) error("cannot move $temporary into place")
     }
-
-    fun writeText(path: String, text: String) = writeBytes(path, text.encodeToByteArray())
 }

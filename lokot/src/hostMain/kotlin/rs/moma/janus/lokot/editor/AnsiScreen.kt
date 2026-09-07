@@ -1,19 +1,25 @@
 package rs.moma.janus.lokot.editor
 
-import rs.moma.janus.lokot.cli.ConsoleSize
+import rs.moma.janus.lokot.io.consoleSize
 import platform.posix.fflush
 import platform.posix.stdout
 
+
 @OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
-class AnsiScreen(val size: ConsoleSize) {
+class AnsiScreen {
     private val frame = StringBuilder()
+
+    var size = consoleSize(); private set
 
     fun enter() = send(ALTERNATE_ON + CLEAR + HIDE_CURSOR)
     fun leave() = send(SHOW_CURSOR + ALTERNATE_OFF)
 
     fun start() {
+        val now = consoleSize()
         frame.setLength(0)
         frame.append(HIDE_CURSOR)
+        if (now.columns != size.columns || now.rows != size.rows) frame.append(CLEAR)
+        size = now
     }
 
     private fun widthOf(number: Int) = if (number >= size.rows) size.columns - 1 else size.columns

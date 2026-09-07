@@ -3,7 +3,6 @@ package rs.moma.janus.lokot.cli
 import rs.moma.janus.lokot.externals.Authenticator
 import rs.moma.janus.lokot.externals.wipe
 import rs.moma.janus.lokot.editor.Editor
-import rs.moma.janus.lokot.io.readHidden
 import rs.moma.janus.lokot.files.Files
 import rs.moma.janus.lokot.files.*
 
@@ -30,8 +29,7 @@ fun unlockVault(purpose: String): Unlocked? {
 
     val authenticator = openAuthenticator(purpose) ?: return null
     val secret = try {
-        val pin = if (authenticator.isWindowsHello) null else
-            readHidden("PIN: ") ?: run { println("no PIN given"); return null }
+        val pin = authenticator.pin()
 
         println()
         println("Touch the key to open ${header.project}.")
@@ -49,7 +47,13 @@ fun unlockVault(purpose: String): Unlocked? {
         println("That key is enrolled, but its wrapped key will not open. $VAULT_FILE looks damaged.")
         return null
     }
-    val values = file.open(kek)
+    val values = try {
+        file.open(kek)
+    } catch (failure: Exception) {
+        kek.wipe()
+        println("$VAULT_FILE opened, but its contents will not parse: ${failure.message}")
+        return null
+    }
     if (values == null) {
         kek.wipe()
         println("$VAULT_FILE will not open: the body failed its authentication tag.")

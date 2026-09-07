@@ -1,7 +1,6 @@
 package rs.moma.janus.lokot.editor
 
 import rs.moma.janus.lokot.io.withRawTerminal
-import rs.moma.janus.lokot.io.consoleSize
 import rs.moma.janus.lokot.cli.readKey
 import rs.moma.janus.lokot.cli.Key
 
@@ -19,7 +18,7 @@ class Editor(
     private val modified: Boolean get() = buffer.text() != saved
 
     fun run() = withRawTerminal {
-        val screen = AnsiScreen(consoleSize())
+        val screen = AnsiScreen()
         screen.enter()
         try {
             while (true) {

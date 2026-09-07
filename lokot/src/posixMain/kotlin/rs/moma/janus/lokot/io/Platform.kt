@@ -67,3 +67,11 @@ fun readHidden(prompt: String): String? {
         }
     }
 }
+
+@OptIn(ExperimentalForeignApi::class)
+fun flushToDisk(file: CPointer<FILE>) {
+    fflush(file)
+    fsync(fileno(file))
+}
+
+fun replaceFile(temporary: String, path: String): Boolean = rename(temporary, path) == 0
