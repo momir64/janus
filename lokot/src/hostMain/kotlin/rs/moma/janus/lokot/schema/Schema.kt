@@ -1,5 +1,7 @@
-package rs.moma.janus.lokot
+package rs.moma.janus.lokot.schema
 
+import rs.moma.janus.lokot.externals.Crypto
+import rs.moma.janus.lokot.externals.toHex
 import kotlin.io.encoding.Base64
 
 class Schema(val project: String, val secrets: Map<String, SecretSpec>) {

@@ -1,10 +1,14 @@
-package rs.moma.janus.lokot
+package rs.moma.janus.lokot.cli
 
-const val SCHEMA_FILE = "lokot.toml"
-const val VAULT_FILE = ".env.lokot"
-
-private fun pluralize(count: Int, singular: String, plural: String = "${singular}s"): String =
-    "$count ${if (count == 1) singular else plural}"
+import rs.moma.janus.lokot.externals.Authenticator
+import rs.moma.janus.lokot.io.CONNECT_NEXT_KEY
+import rs.moma.janus.lokot.schema.SecretSpec
+import rs.moma.janus.lokot.externals.Crypto
+import rs.moma.janus.lokot.externals.wipe
+import rs.moma.janus.lokot.io.readHidden
+import rs.moma.janus.lokot.schema.Schema
+import rs.moma.janus.lokot.files.Files
+import rs.moma.janus.lokot.files.*
 
 fun runInit(): Int {
     if (!Files.exists(SCHEMA_FILE)) {
@@ -13,7 +17,7 @@ fun runInit(): Int {
     }
     if (Files.exists(VAULT_FILE)) {
         println("$VAULT_FILE already exists. Use 'lokot edit' to change it, or delete it to start over.")
-        println("Deleting it loses every secret inside — there is no recovery.")
+        println("Deleting it loses every secret inside. There is no recovery.")
         return 1
     }
 
@@ -28,23 +32,8 @@ fun runInit(): Int {
         return 1
     }
 
-    val devices = Authenticator.devices()
-    if (devices.isEmpty()) {
-        println("No authenticator found. Plug one in.")
-        return 1
-    }
-    if (devices.size > 1) {
-        println("More than one authenticator is connected. Leave the one you want to enrol:")
-        // Two of the same model report the same name, and then only the path tells them apart.
-        val ambiguous = devices.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
-        devices.forEach { println("  ${it.name}${if (it.name in ambiguous) "  ${it.path}" else ""}") }
-        return 1
-    }
-
-    val authenticator = Authenticator.open(devices.single())
+    val authenticator = openAuthenticator("enrol") ?: return 1
     try {
-        println("authenticator: ${authenticator.device.name}")
-
         val pin = if (authenticator.isWindowsHello) null else
             readHidden("PIN: ") ?: run { println("no PIN given"); return 1 }
 
@@ -96,5 +85,52 @@ fun runInit(): Int {
         return 0
     } finally {
         authenticator.close()
+    }
+}
+
+fun runAddKey(): Int {
+    val unlocked = unlockVault("open the vault with") ?: return 1
+    val kek = unlocked.kek
+    try {
+        val header = unlocked.file.header
+
+        println()
+        println(CONNECT_NEXT_KEY)
+        readlnOrNull() ?: return 1
+
+        val authenticator = openAuthenticator("add") ?: return 1
+        val enrolment = try {
+            val pin = if (authenticator.isWindowsHello) null else
+                readHidden("PIN: ") ?: run { println("no PIN given"); return 1 }
+
+            println()
+            println("Touch the key to enrol.")
+
+            val enrolment = authenticator.enrol(pin, header.project, header.salt)
+            enrolment.secret ?: run {
+                println("Touch again to derive the key.")
+                authenticator.hmacSecret(pin, listOf(enrolment.credentialId), header.salt)
+            }
+        } finally {
+            authenticator.close()
+        }
+
+        if (header.credentials.any { it.id.contentEquals(enrolment.credentialId) }) {
+            println("That credential is already enrolled; nothing written.")
+            return 1
+        }
+
+        // The header is associated data, so adding a credential means resealing the body too.
+        val extended = LokotHeader(
+            project = header.project, salt = header.salt, rpId = header.rpId,
+            credentials = header.credentials + Kek.wrap(enrolment.output, enrolment.credentialId, kek),
+        )
+        Files.writeBytes(VAULT_FILE, LokotFile.build(extended, unlocked.values, kek))
+
+        println()
+        println("$VAULT_FILE now opens with ${pluralize(extended.credentials.size, "key")}.")
+        return 0
+    } finally {
+        kek.wipe()
     }
 }

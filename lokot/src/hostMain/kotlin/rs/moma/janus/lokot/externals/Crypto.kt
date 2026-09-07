@@ -1,4 +1,4 @@
-package rs.moma.janus.lokot
+package rs.moma.janus.lokot.externals
 
 import kotlinx.cinterop.*
 import crypto.*

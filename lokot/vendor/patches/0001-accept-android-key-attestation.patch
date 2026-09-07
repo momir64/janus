@@ -3,15 +3,15 @@ Accept android-key attestation statements.
 libfido2's cbor_decode_fmt allowlists four attestation formats and returns -1 for
 anything else. Android made hardware-backed `android-key` the FIDO2 default in April
 2025 with no opt-out, so every Android credential provider now fails to enrol through
-libfido2 — the ceremony succeeds and then the response fails to parse, surfacing as
+libfido2 - the ceremony succeeds and then the response fails to parse, surfacing as
 FIDO_ERR_INTERNAL.
 
 Windows makes this unavoidable: libfido2's Hello backend hardcodes
 dwAttestationConveyancePreference = DIRECT, so a caller cannot ask for no attestation.
 
 android-key's statement is {alg, sig, x5c}, which decode_attstmt_entry already handles,
-so accepting the format name is the whole fix. lokot never verifies attestation — it
-uses only the credential id and the hmac-secret output — so nothing downstream depends
+so accepting the format name is the whole fix. lokot never verifies attestation - it
+uses only the credential id and the hmac-secret output - so nothing downstream depends
 on the statement being understood.
 
 --- a/src/cbor.c

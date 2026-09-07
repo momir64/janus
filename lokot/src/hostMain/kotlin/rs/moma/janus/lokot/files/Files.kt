@@ -1,4 +1,4 @@
-package rs.moma.janus.lokot
+package rs.moma.janus.lokot.files
 
 import kotlinx.cinterop.*
 import platform.posix.*

@@ -8,7 +8,7 @@
 #   ./vendor/build-libfido2.sh
 #   ./gradlew build
 #
-# For a Raspberry Pi, from an x86_64 Linux machine — the Kotlin/Native compiler runs only on Linux
+# For a Raspberry Pi, from an x86_64 Linux machine - the Kotlin/Native compiler runs only on Linux
 # x86_64, Windows x86_64 and macOS, so an aarch64 binary is always cross-built:
 #
 #   # once, from the Pi, which needs the same -dev packages installed:
@@ -37,7 +37,7 @@
 #
 # Why it uses Kotlin/Native's toolchain rather than the system compiler: K/N links through its own
 # glibc 2.19 sysroot. A libfido2 built against a modern glibc pulls in the C23 aliases that
-# _GNU_SOURCE turns on from 2.38 — __isoc23_sscanf, __isoc23_strtoull — and those do not exist in
+# _GNU_SOURCE turns on from 2.38 — __isoc23_sscanf, __isoc23_strtoull - and those do not exist in
 # that sysroot, so the link fails on symbols the host libc actually has. Compiling against the same
 # sysroot K/N links against avoids the mismatch, and makes the result run on any glibc >= 2.19.
 #
@@ -68,7 +68,7 @@ sysroot="$gcc_toolchain/$machine-unknown-linux-gnu/sysroot"
 
 # Where the third-party headers and shared libraries come from: this machine for a native build,
 # the copy taken off the target for a cross one. Searched with -idirafter, after the K/N sysroot,
-# so only what that lacks is picked up — libc stays the sysroot's, which is the whole point.
+# so only what that lacks is picked up - libc stays the sysroot's, which is the whole point.
 if [ "$machine" = "$(uname -m)" ]; then
     extras=""
     cross=""

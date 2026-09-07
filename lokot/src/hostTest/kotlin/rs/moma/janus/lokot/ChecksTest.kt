@@ -1,5 +1,7 @@
 package rs.moma.janus.lokot
 
+import rs.moma.janus.lokot.checks.allChecks
+
 import kotlin.test.Test
 import kotlin.test.fail
 

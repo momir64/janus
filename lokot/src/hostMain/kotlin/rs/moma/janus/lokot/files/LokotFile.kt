@@ -1,20 +1,25 @@
-package rs.moma.janus.lokot
+package rs.moma.janus.lokot.files
 
-import rs.moma.janus.lokot.Crypto.randomBytes
-import rs.moma.janus.lokot.Crypto.NONCE_SIZE
-import rs.moma.janus.lokot.Crypto.aesGcmOpen
-import rs.moma.janus.lokot.Crypto.aesGcmSeal
-import rs.moma.janus.lokot.Crypto.KEY_SIZE
-import rs.moma.janus.lokot.Crypto.TAG_SIZE
-import rs.moma.janus.lokot.Crypto.hkdf
+import rs.moma.janus.lokot.externals.Crypto.randomBytes
+import rs.moma.janus.lokot.externals.Crypto.NONCE_SIZE
+import rs.moma.janus.lokot.externals.Crypto.aesGcmOpen
+import rs.moma.janus.lokot.externals.Crypto.aesGcmSeal
+import rs.moma.janus.lokot.externals.Crypto.KEY_SIZE
+import rs.moma.janus.lokot.externals.Crypto.TAG_SIZE
+import rs.moma.janus.lokot.externals.Crypto.hkdf
+import rs.moma.janus.lokot.externals.fromHex
+import rs.moma.janus.lokot.externals.toHex
+import rs.moma.janus.lokot.externals.wipe
 
 /**
  * The `.lokot` file format:
  * ```
  * magic      : 6 bytes                   // "LOKOT\0"
  * version    : u8                        // for now always 1
- * headerLen  : u32be                     // length of `header` in bytes
+ * headerLen  : u32be                     // length of `header` in bytes, the newlines excluded
+ * newline    : 1 byte                    // so the header starts on a line of its own
  * header     : headerLen bytes           // plaintext, everything needed before the KEK exists
+ * newline    : 1 byte                    // so the body does not run onto the header's last line
  * nonce      : 12 bytes                  // nonce for AES-256-GCM of `ciphertext`
  * ciphertext : remaining bytes minus 16  // AES-256-GCM output over the secrets
  * tag        : 16 bytes                  // GCM auth tag for AES-256-GCM of `ciphertext`
@@ -30,20 +35,22 @@ class LokotFile private constructor(
     private val nonce: ByteArray,
     private val body: ByteArray,
 ) {
-    fun open(kek: ByteArray): Map<String, String>? = aesGcmOpen(kek, nonce, body, associatedData)?.let(KeyValue::decode)
+    fun open(kek: ByteArray): Map<String, String>? = aesGcmOpen(kek, nonce, body, associatedData)?.let(PlaintextFile::decode)
 
     companion object {
         private const val PREFIX_SIZE = 11 // magic (6) + version (1) + headerLen (4)
+        private const val NEWLINE = '\n'.code.toByte()
         private val MAGIC = "LOKOT".encodeToByteArray() + byteArrayOf(0)
         const val VERSION = 1
 
         fun build(header: LokotHeader, secrets: Map<String, String>, kek: ByteArray): ByteArray {
-            val headerBytes = KeyValue.encode(header.toMap())
-            val associatedData = MAGIC + byteArrayOf(VERSION.toByte()) + headerBytes.size.toBigEndian() + headerBytes
+            val headerBytes = PlaintextFile.encode(header.toMap())
+            val associatedData = MAGIC + byteArrayOf(VERSION.toByte()) + headerBytes.size.toBigEndian() +
+                    byteArrayOf(NEWLINE) + headerBytes + byteArrayOf(NEWLINE)
 
             // for .lokot to be public and tracked by git, every version of the file should have a fresh nonce
             val nonce = randomBytes(NONCE_SIZE)
-            val plaintext = KeyValue.encode(secrets)
+            val plaintext = PlaintextFile.encode(secrets)
             val sealed = aesGcmSeal(kek, nonce, plaintext, associatedData)
             plaintext.wipe()
 
@@ -58,12 +65,19 @@ class LokotFile private constructor(
             require(version == VERSION) { "file is format version $version, this lokot understands $VERSION" }
 
             val headerLength = bytes.readBigEndian(MAGIC.size + 1)
-            val bodyStart = PREFIX_SIZE + headerLength
-            require(headerLength >= 0 && bodyStart <= bytes.size) { "not a lokot file: header length out of range" }
+            require(headerLength in 0..(bytes.size - PREFIX_SIZE - 2)) {
+                "not a lokot file: header length out of range"
+            }
+
+            val headerStart = PREFIX_SIZE + 1
+            val bodyStart = headerStart + headerLength + 1
+            require(bytes[PREFIX_SIZE] == NEWLINE && bytes[bodyStart - 1] == NEWLINE) {
+                "not a lokot file: the header is not framed by newlines"
+            }
             require(bytes.size - bodyStart >= NONCE_SIZE + TAG_SIZE) { "not a lokot file: body truncated" }
 
             return LokotFile(
-                header = LokotHeader.fromMap(KeyValue.decode(bytes.copyOfRange(PREFIX_SIZE, bodyStart))),
+                header = LokotHeader.fromMap(PlaintextFile.decode(bytes.copyOfRange(headerStart, bodyStart - 1))),
                 associatedData = bytes.copyOfRange(0, bodyStart),
                 nonce = bytes.copyOfRange(bodyStart, bodyStart + NONCE_SIZE),
                 body = bytes.copyOfRange(bodyStart + NONCE_SIZE, bytes.size),
