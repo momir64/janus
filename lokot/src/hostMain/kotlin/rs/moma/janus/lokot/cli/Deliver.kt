@@ -13,26 +13,26 @@ fun runUnlock(arguments: List<String>): Int {
     val initialising = arguments.any { it == "-i" || it == "--init" }
     val target = target(arguments) ?: return 1
 
-    val unlocked = unlockVault("use") ?: return 1
-    unlocked.kek.wipe()
-
-    val schema = try {
-        Schema.parse(unlocked.body.schema)
-    } catch (failure: Exception) {
-        println("The schema inside $VAULT_FILE will not parse: ${failure.message}")
-        return 1
-    }
-
-    // Everything is checked before anything is written, so a refusal leaves no half-written root.
-    schema.check(unlocked.values)?.let {
-        println("$VAULT_FILE does not match its schema: $it")
-        println("Put it right with 'lokot edit'. Nothing was written.")
-        return 1
-    }
-
-    val chosen = schema.deliveries.filter { initialising || !it.onlyAtInit }
     val destination = open(target) ?: return 1
     try {
+        val unlocked = readVault(destination)?.let { unlockVault("use", it) } ?: return 1
+        unlocked.kek.wipe()
+
+        val schema = try {
+            Schema.parse(unlocked.body.schema)
+        } catch (failure: Exception) {
+            println("The schema inside ${destination.vaultFile} will not parse: ${failure.message}")
+            return 1
+        }
+
+        // Everything is checked before anything is written, so a refusal leaves no half-written root.
+        schema.check(unlocked.values)?.let {
+            println("${destination.vaultFile} does not match its schema: $it")
+            println("Put it right with 'lokot edit'. Nothing was written.")
+            return 1
+        }
+
+        val chosen = schema.deliveries.filter { initialising || !it.onlyAtInit }
         clear(destination) // an unlock leaves what the schema says now, and nothing it used to say
         if (!destination.makeDirectory(destination.root)) {
             println("Cannot create ${destination.root}, so there is nowhere to put the files.")
@@ -111,14 +111,14 @@ private fun target(arguments: List<String>): Target? {
 }
 
 private fun open(target: Target): Destination? {
-    if (target.host.isEmpty()) return LocalDestination(ENV_FILE)
+    if (target.host.isEmpty()) return LocalDestination(ENV_FILE, VAULT_FILE)
 
     println("Connecting to ${target.host}. ssh will ask for whatever it needs.")
     val sftp = Sftp.connect(target.host) ?: run {
         println("Could not open an sftp session on ${target.host}.")
         return null
     }
-    return RemoteDestination(sftp, sftp.uid(), target.directory)
+    return RemoteDestination(sftp, sftp.uid(), target.directory, ENV_FILE, VAULT_FILE)
 }
 
 fun renderEnvironment(root: String, names: List<String>, values: Map<String, String>): String {

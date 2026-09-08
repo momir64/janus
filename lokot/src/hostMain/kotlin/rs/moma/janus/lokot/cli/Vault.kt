@@ -17,8 +17,9 @@ internal class Unlocked(
     val values: Map<String, String> get() = body.values.asText()
 }
 
-internal fun unlockVault(purpose: String): Unlocked? {
-    val file = readVault() ?: return null
+internal fun unlockVault(purpose: String): Unlocked? = readVault()?.let { unlockVault(purpose, it) }
+
+internal fun unlockVault(purpose: String, file: LokotFile): Unlocked? {
     val header = file.header
     if (header.credentials.isEmpty()) {
         println("$VAULT_FILE has no keys enrolled at all, so nothing can open it.")
@@ -87,15 +88,20 @@ private fun answer(
     return null
 }
 
-internal fun readVault(): LokotFile? {
-    val bytes = Files.readBytes(VAULT_FILE) ?: run {
-        println("No $VAULT_FILE here. Run 'lokot init' to create one.")
+internal fun readVault(): LokotFile? = readVault(VAULT_FILE, Files.readBytes(VAULT_FILE))
+
+internal fun readVault(destination: Destination): LokotFile? =
+    readVault(destination.vaultFile, destination.readBytes(destination.vaultFile))
+
+private fun readVault(path: String, bytes: ByteArray?): LokotFile? {
+    if (bytes == null) {
+        println("No $path there. Run 'lokot init' to create one.")
         return null
     }
     return try {
         LokotFile.parse(bytes)
     } catch (failure: Exception) {
-        println("$VAULT_FILE: ${failure.message}")
+        println("$path: ${failure.message}")
         null
     }
 }
