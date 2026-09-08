@@ -23,7 +23,7 @@ private fun run(args: Array<String>): Int = when (args.firstOrNull()) {
     "init" -> runInit(args.drop(1))
     "unlock" -> runUnlock(args.drop(1))
     "lock" -> runLock(args.drop(1))
-    "add-key" -> runAddKey(args.drop(1))
+    "add-key", "addkey" -> runAddKey(args.drop(1))
     "rekey" -> runRekey(args.drop(1))
     "edit" -> runEdit(args.drop(1))
     "selftest" -> runSelftest()
