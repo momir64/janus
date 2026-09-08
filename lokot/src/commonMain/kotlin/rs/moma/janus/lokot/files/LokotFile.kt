@@ -18,7 +18,7 @@ import rs.moma.janus.lokot.externals.wipe
  * version    : u8                        // version of the format
  * headerLen  : u32be                     // length of `header` in bytes, the newlines excluded
  * newline    : 1 byte                    // so the header starts on a line of its own
- * header     : headerLen bytes           // plaintext, everything needed before the KEK exists
+ * header     : headerLen bytes           // plaintext, everything needed before the DEK exists
  * newline    : 1 byte                    // so the body does not run onto the header's last line
  * nonce      : 12 bytes                  // nonce for AES-256-GCM of `ciphertext`
  * ciphertext : remaining bytes minus 16  // AES-256-GCM output over the schema and the secrets
@@ -35,7 +35,7 @@ internal class LokotFile private constructor(
     private val nonce: ByteArray,
     private val body: ByteArray,
 ) {
-    fun open(kek: ByteArray): VaultBody? = aesGcmOpen(kek, nonce, body, associatedData)?.let(VaultBody::decode)
+    fun open(dek: ByteArray): VaultBody? = aesGcmOpen(dek, nonce, body, associatedData)?.let(VaultBody::decode)
 
     companion object {
         private const val PREFIX_SIZE = 11 // magic (6) + version (1) + headerLen (4)
@@ -43,7 +43,7 @@ internal class LokotFile private constructor(
         private val MAGIC = "LOKOT".encodeToByteArray() + byteArrayOf(0)
         const val VERSION = 1
 
-        fun build(header: LokotHeader, body: VaultBody, kek: ByteArray): ByteArray {
+        fun build(header: LokotHeader, body: VaultBody, dek: ByteArray): ByteArray {
             val headerBytes = PlaintextFile.encode(header.toMap())
             val associatedData = MAGIC + byteArrayOf(VERSION.toByte()) + headerBytes.size.toBigEndian() +
                     byteArrayOf(NEWLINE) + headerBytes + byteArrayOf(NEWLINE)
@@ -51,7 +51,7 @@ internal class LokotFile private constructor(
             // for .lokot to be public and tracked by git, every version of the file should have a fresh nonce
             val nonce = randomBytes(NONCE_SIZE)
             val plaintext = body.encode()
-            val sealed = aesGcmSeal(kek, nonce, plaintext, associatedData)
+            val sealed = aesGcmSeal(dek, nonce, plaintext, associatedData)
             plaintext.wipe()
 
             return associatedData + nonce + sealed
@@ -100,7 +100,7 @@ internal class LokotHeader(val project: String, val salt: ByteArray, val credent
             put("cred.$index.id", credential.id.toHex())
             put("cred.$index.rp", credential.rpId)
             put("cred.$index.nonce", credential.nonce.toHex())
-            put("cred.$index.kek", credential.sealed.toHex())
+            put("cred.$index.dek", credential.sealed.toHex())
         }
     }
 
@@ -116,7 +116,7 @@ internal class LokotHeader(val project: String, val salt: ByteArray, val credent
                         id = entries.getValue("cred.$index.id").fromHex(),
                         rpId = entries.getValue("cred.$index.rp"),
                         nonce = entries.getValue("cred.$index.nonce").fromHex(),
-                        sealed = entries.getValue("cred.$index.kek").fromHex(),
+                        sealed = entries.getValue("cred.$index.dek").fromHex(),
                     )
                 }
 
@@ -131,24 +131,24 @@ internal class LokotHeader(val project: String, val salt: ByteArray, val credent
 
 internal class WrappedCredential(val id: ByteArray, val rpId: String, val nonce: ByteArray, val sealed: ByteArray)
 
-internal object Kek {
-    private const val WRAP_INFO = "lokot-kek-wrap-v1"
+internal object Dek {
+    private const val WRAP_INFO = "lokot-dek-wrap-v1"
 
     private fun derive(hmacOutput: ByteArray) = hkdf(hmacOutput, ByteArray(0), WRAP_INFO.encodeToByteArray(), KEY_SIZE)
 
-    fun wrap(hmacOutput: ByteArray, credentialId: ByteArray, rpId: String, kek: ByteArray): WrappedCredential {
-        val wrappingKey = derive(hmacOutput)
+    fun wrap(hmacOutput: ByteArray, credentialId: ByteArray, rpId: String, dek: ByteArray): WrappedCredential {
+        val kek = derive(hmacOutput)
         val nonce = randomBytes(NONCE_SIZE)
-        val sealed = aesGcmSeal(wrappingKey, nonce, kek, credentialId)
-        wrappingKey.wipe()
+        val sealed = aesGcmSeal(kek, nonce, dek, credentialId)
+        kek.wipe()
         return WrappedCredential(credentialId, rpId, nonce, sealed)
     }
 
     fun unwrap(hmacOutput: ByteArray, credential: WrappedCredential): ByteArray? {
-        val wrappingKey = derive(hmacOutput)
-        val kek = aesGcmOpen(wrappingKey, credential.nonce, credential.sealed, credential.id)
-        wrappingKey.wipe()
-        return kek
+        val kek = derive(hmacOutput)
+        val dek = aesGcmOpen(kek, credential.nonce, credential.sealed, credential.id)
+        kek.wipe()
+        return dek
     }
 }
 

@@ -15,7 +15,7 @@ fun runUnlock(arguments: List<String>): Int {
     val initialising = arguments.any { it == "-i" || it == "--init" }
 
     return withVault(arguments, "use") { destination, unlocked ->
-        unlocked.kek.wipe()
+        unlocked.dek.wipe()
 
         val schema = try {
             Schema.parse(unlocked.body.schema)

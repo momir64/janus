@@ -19,15 +19,15 @@ hand it, without that key ever leaving the device. CTAP calls the extension `hma
 WebAuthn exposes it to browsers as `prf`. Lokot rests entirely on it.
 
 ```
-passkey --hmac-secret over the vault's salt--> 32 bytes --HKDF--> wrapping key
-                                                                      |
-header:  cred.N.kek = AES-256-GCM(wrapping key, KEK)  <---------------+
+passkey --hmac-secret over the vault's salt--> 32 bytes --HKDF--> KEK
+                                                                   |
+header:  cred.N.dek = AES-256-GCM(KEK, DEK)           <------------+
 
-body:    AES-256-GCM(KEK, schema + secrets), with the header as associated data
+body:    AES-256-GCM(DEK, schema + secrets), with the header as associated data
 ```
 
-Every enrolled key wraps the same KEK, so adding a key adds four lines to the header, and
-rekeying replaces the KEK and the salt. The header is plaintext, so `git diff` shows which keys
+Every enrolled key wraps the same DEK, the data encryption key, under a KEK of its own, so adding a key adds four lines to the header, and
+rekeying replaces the DEK and the salt. The header is plaintext, so `git diff` shows which keys
 are enrolled and under which relying party, but it is also the associated data of the body:
 change a byte of it and the body refuses to open. Every write draws a fresh nonce, so two
 commits of the same secrets do not look alike.
@@ -128,7 +128,7 @@ keys move. A value that spans lines is written as a `"""` block, which is how th
 certificates appear. Quitting with unsaved changes offers to save them, and if the schema
 rejects the buffer it offers only to return or to discard.
 
-`rekey` draws a new KEK and a new salt, asks you to present each key you want to keep, and
+`rekey` draws a new DEK and a new salt, asks you to present each key you want to keep, and
 drops the rest. The dropped keys lose access permanently, which is the point.
 
 `selftest` runs about 180 checks against RFC vectors and known answers: the crypto, the file
@@ -182,7 +182,7 @@ vault.lock()                                           // wipes everything it he
 
 `challenge` lists the credentials enrolled for that relying party id, the salt, and where to go
 afterwards. The page asks the browser for an assertion with `prf.eval.first` set to the salt,
-posts the credential id and the PRF output back, and lokot unwraps the KEK with them. There is
+posts the credential id and the PRF output back, and lokot unwraps the DEK with them. There is
 no separate authentication step: a wrong key simply fails to unwrap. Values come out as
 `CharArray` rather than `String` so the caller can overwrite them once a driver has taken its
 copy. `Lokot.page(base)` rewrites the page's `<base href>` when it is served from somewhere
@@ -190,8 +190,17 @@ other than the root of its host.
 
 ## The file
 
+The `.lokot` file format:
 ```
-"LOKOT\0"  u8 version  u32be headerLen  "\n"  header  "\n"  nonce(12)  ciphertext  tag(16)
+magic      : 6 bytes                   // "LOKOT\0"
+version    : u8                        // version of the format
+headerLen  : u32be                     // length of `header` in bytes, the newlines excluded
+newline    : 1 byte                    // so the header starts on a line of its own
+header     : headerLen bytes           // plaintext, everything needed before the DEK exists
+newline    : 1 byte                    // so the body does not run onto the header's last line
+nonce      : 12 bytes                  // nonce for AES-256-GCM of `ciphertext`
+ciphertext : remaining bytes minus 16  // AES-256-GCM output over the schema and the secrets
+tag        : 16 bytes                  // GCM auth tag for AES-256-GCM of `ciphertext`
 ```
 
 The header is a `name = value` document:
@@ -202,7 +211,7 @@ salt         = <32 bytes, hex>
 cred.0.id    = <credential id, hex>
 cred.0.rp    = lokot-kredenac.moma.rs
 cred.0.nonce = <12 bytes, hex>
-cred.0.kek   = <the wrapped KEK, hex>
+cred.0.dek   = <the wrapped DEK, hex>
 ```
 
 Once opened, the body is `u32be schemaLen`, the schema text, and the secrets in the same

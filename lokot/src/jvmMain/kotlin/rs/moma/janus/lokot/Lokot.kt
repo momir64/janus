@@ -5,7 +5,7 @@ import rs.moma.janus.lokot.browser.challengeJson
 import java.util.concurrent.locks.ReentrantLock
 import rs.moma.janus.lokot.files.LokotFile
 import rs.moma.janus.lokot.externals.wipe
-import rs.moma.janus.lokot.files.Kek
+import rs.moma.janus.lokot.files.Dek
 import kotlin.concurrent.withLock
 import kotlin.io.encoding.Base64
 import kotlin.io.path.readBytes
@@ -18,7 +18,7 @@ public class Lokot(private val vault: Path) {
     private val guard = ReentrantLock()
     private val opened = guard.newCondition()
 
-    private var kek: ByteArray? = null
+    private var dek: ByteArray? = null
     private var values: MutableMap<String, CharArray>? = null
 
     public fun isUnlocked(): Boolean = guard.withLock { values != null }
@@ -32,7 +32,7 @@ public class Lokot(private val vault: Path) {
 
     private fun unlock(credentialId: ByteArray, prfOutput: ByteArray): Boolean {
         val credential = file.header.credentials.firstOrNull { it.id.contentEquals(credentialId) } ?: return false
-        val opening = Kek.unwrap(prfOutput, credential) ?: return false
+        val opening = Dek.unwrap(prfOutput, credential) ?: return false
         val body = try {
             file.open(opening)
         } catch (_: Exception) {
@@ -44,8 +44,8 @@ public class Lokot(private val vault: Path) {
         }
 
         guard.withLock {
-            kek?.wipe()
-            kek = opening
+            dek?.wipe()
+            dek = opening
             values = body.values.toMutableMap()
             opened.signalAll()
         }
@@ -81,8 +81,8 @@ public class Lokot(private val vault: Path) {
     }
 
     public fun lock(): Unit = guard.withLock {
-        kek?.wipe()
-        kek = null
+        dek?.wipe()
+        dek = null
         values?.values?.forEach { it.wipe() }
         values = null
     }

@@ -9,7 +9,7 @@ import rs.moma.janus.lokot.files.LokotFile
 import rs.moma.janus.lokot.files.VaultBody
 import rs.moma.janus.lokot.files.asChars
 import rs.moma.janus.lokot.files.asText
-import rs.moma.janus.lokot.files.Kek
+import rs.moma.janus.lokot.files.Dek
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -69,7 +69,7 @@ class JvmCryptoTest {
     fun `a vault opens with the key its credential wraps`() {
         val hmacOutput = ByteArray(32) { (it + 100).toByte() }
         val credentialId = ByteArray(48) { (it + 7).toByte() }
-        val kek = ByteArray(Crypto.KEY_SIZE) { it.toByte() }
+        val dek = ByteArray(Crypto.KEY_SIZE) { it.toByte() }
         val secrets = mapOf(
             "JWT_SECRET" to "value",
             "CERT" to "-----BEGIN CERTIFICATE-----\nx\n-----END CERTIFICATE-----"
@@ -78,17 +78,17 @@ class JvmCryptoTest {
         val header = LokotHeader(
             project = "example",
             salt = ByteArray(LokotHeader.SALT_SIZE) { it.toByte() },
-            credentials = listOf(Kek.wrap(hmacOutput, credentialId, "lokot.localhost", kek)),
+            credentials = listOf(Dek.wrap(hmacOutput, credentialId, "lokot.localhost", dek)),
         )
         val parsed = LokotFile.parse(
-            LokotFile.build(header, VaultBody("project = \"example\"", secrets.asChars()), kek)
+            LokotFile.build(header, VaultBody("project = \"example\"", secrets.asChars()), dek)
         )
 
         assertEquals("example", parsed.header.project)
         assertEquals("lokot.localhost", parsed.header.credentials.single().rpId)
 
-        val unwrapped = Kek.unwrap(hmacOutput, parsed.header.credentials.single())
-        assertTrue(unwrapped.contentEquals(kek))
+        val unwrapped = Dek.unwrap(hmacOutput, parsed.header.credentials.single())
+        assertTrue(unwrapped.contentEquals(dek))
         assertEquals(secrets, parsed.open(unwrapped!!)?.values?.asText())
         assertNull(parsed.open(ByteArray(Crypto.KEY_SIZE)))
     }

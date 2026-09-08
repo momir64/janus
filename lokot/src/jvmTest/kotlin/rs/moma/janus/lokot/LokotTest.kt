@@ -7,7 +7,7 @@ import rs.moma.janus.lokot.files.LokotFile
 import rs.moma.janus.lokot.files.VaultBody
 import rs.moma.janus.lokot.files.asChars
 import kotlin.io.path.createTempFile
-import rs.moma.janus.lokot.files.Kek
+import rs.moma.janus.lokot.files.Dek
 import kotlin.io.encoding.Base64
 import kotlin.io.path.writeBytes
 import kotlin.test.assertEquals
@@ -25,14 +25,14 @@ class LokotTest {
     )
 
     private fun vault(): Lokot {
-        val kek = ByteArray(Crypto.KEY_SIZE) { it.toByte() }
+        val dek = ByteArray(Crypto.KEY_SIZE) { it.toByte() }
         val header = LokotHeader(
             project = "example",
             salt = ByteArray(LokotHeader.SALT_SIZE) { it.toByte() },
-            credentials = listOf(Kek.wrap(prfOutput, credentialId, "example.com", kek)),
+            credentials = listOf(Dek.wrap(prfOutput, credentialId, "example.com", dek)),
         )
         val path = createTempFile("lokot", ".vault")
-        path.writeBytes(LokotFile.build(header, VaultBody("project = \"example\"", values.asChars()), kek))
+        path.writeBytes(LokotFile.build(header, VaultBody("project = \"example\"", values.asChars()), dek))
         return Lokot(path)
     }
 
