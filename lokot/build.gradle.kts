@@ -28,6 +28,33 @@ val sysroot: String =
     if (crossing) layout.projectDirectory.dir("vendor/downloads/sysroot-$machine").asFile.absolutePath else ""
 layout.buildDirectory.set(layout.projectDirectory.dir("build/${if (isWindows) "mingw" else "linux-$machine"}"))
 
+val unlockPage = layout.projectDirectory.file("src/commonMain/resources/lokot/unlock.html")
+val generatedPage = layout.buildDirectory.dir("generated/page")
+val generateUnlockPage = tasks.register("generateUnlockPage") {
+    description = "Compiles src/commonMain/resources/lokot/unlock.html into a Kotlin constant."
+    val source = unlockPage.asFile
+    val destination = generatedPage
+    inputs.file(source)
+    outputs.dir(destination)
+
+    doLast {
+        val html = source.readText()
+        check(!html.contains("\"\"\"")) { "$source cannot hold a Kotlin raw string terminator" }
+        val file = destination.get().file("rs/moma/janus/lokot/browser/UnlockPage.kt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            buildString {
+                appendLine("package rs.moma.janus.lokot.browser")
+                appendLine()
+                appendLine("// Generated from ${source.name}. Edit that file, not this one.")
+                append("internal const val UNLOCK_PAGE: String = \"\"\"")
+                append(html.replace("$", "\${'\$'}"))
+                appendLine("\"\"\"")
+            }
+        )
+    }
+}
+
 kotlin {
     jvmToolchain(21)
     jvm {
@@ -67,6 +94,7 @@ kotlin {
         compilations.getByName("main").defaultSourceSet.kotlin.srcDir(
             if (isWindows) "src/windowsMain/kotlin" else "src/posixMain/kotlin"
         )
+        compilations.getByName("main").defaultSourceSet.kotlin.srcDir(generateUnlockPage)
 
         compilations.getByName("test").defaultSourceSet.dependencies {
             implementation(kotlin("test"))

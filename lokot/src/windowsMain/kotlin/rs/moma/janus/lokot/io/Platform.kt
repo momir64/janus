@@ -96,3 +96,81 @@ fun secretsRoot(): String = ".lokot-secrets"
 fun createDirectory(path: String, mode: Int): Boolean = mkdir(path) == 0 || errno == EEXIST
 fun applyMode(path: String, mode: Int) {
 }
+
+@OptIn(ExperimentalForeignApi::class)
+private fun CPointer<platform.posix.sockaddr_in>.asBytes() = this.reinterpret<ByteVar>()
+
+@OptIn(ExperimentalForeignApi::class)
+fun openLoopbackListener(): Long = memScoped<Long> {
+    val started = alloc<platform.posix.WSADATA>()
+    if (platform.posix.WSAStartup(0x0202u.toUShort(), started.ptr) != 0) return -1
+
+    val listener = platform.posix.socket(platform.posix.AF_INET, platform.posix.SOCK_STREAM, 0)
+    if (listener.toLong() < 0) return -1
+
+    val address = alloc<platform.posix.sockaddr_in>()
+    memset(address.ptr, 0, sizeOf<platform.posix.sockaddr_in>().convert())
+    address.sin_family = platform.posix.AF_INET.convert()
+    address.ptr.asBytes().let { bytes -> bytes[4] = 127; bytes[5] = 0; bytes[6] = 0; bytes[7] = 1 }
+
+    val bound = platform.posix.bind(listener, address.ptr.reinterpret(), sizeOf<platform.posix.sockaddr_in>().convert()) == 0
+    if (!bound || platform.posix.listen(listener, 4) != 0) {
+        platform.posix.closesocket(listener.convert())
+        return -1
+    }
+    listener.toLong()
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun listenerPort(listener: Long): Int = memScoped<Int> {
+    val address = alloc<platform.posix.sockaddr_in>()
+    val size = alloc<IntVar>()
+    size.value = sizeOf<platform.posix.sockaddr_in>().convert()
+    if (platform.posix.getsockname(listener.convert(), address.ptr.reinterpret(), size.ptr) != 0) return -1
+
+    val bytes = address.ptr.asBytes()
+    ((bytes[2].toInt() and 0xFF) shl 8) or (bytes[3].toInt() and 0xFF)
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun acceptConnection(listener: Long): Long = platform.posix.accept(listener.convert(), null, null).toLong()
+
+@OptIn(ExperimentalForeignApi::class)
+fun receiveBytes(connection: Long, buffer: ByteArray): Int = buffer.usePinned { pinned ->
+    platform.posix.recv(connection.convert(), pinned.addressOf(0), buffer.size, 0)
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun sendBytes(connection: Long, bytes: ByteArray, offset: Int): Int = bytes.usePinned { pinned ->
+    platform.posix.send(connection.convert(), pinned.addressOf(offset), bytes.size - offset, 0)
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun closeSocket(handle: Long) {
+    platform.posix.closesocket(handle.convert())
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun connectLoopback(port: Int): Long = memScoped<Long> {
+    val connection = platform.posix.socket(platform.posix.AF_INET, platform.posix.SOCK_STREAM, 0)
+    if (connection.toLong() < 0) return -1
+
+    val address = alloc<platform.posix.sockaddr_in>()
+    memset(address.ptr, 0, sizeOf<platform.posix.sockaddr_in>().convert())
+    address.sin_family = platform.posix.AF_INET.convert()
+    address.ptr.asBytes().let { bytes ->
+        bytes[2] = (port shr 8).toByte(); bytes[3] = port.toByte()
+        bytes[4] = 127; bytes[5] = 0; bytes[6] = 0; bytes[7] = 1
+    }
+
+    val joined = platform.posix.connect(
+        connection, address.ptr.reinterpret(), sizeOf<platform.posix.sockaddr_in>().convert()
+    ) == 0
+    if (!joined) {
+        platform.posix.closesocket(connection.convert())
+        return -1
+    }
+    connection.toLong()
+}
+
+fun browserCommand(address: String): List<String> = listOf("cmd", "/c", "start", "", address)

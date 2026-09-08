@@ -1,6 +1,10 @@
 package rs.moma.janus.lokot.cli
 
+import rs.moma.janus.lokot.browser.unlockViaBrowser
+import rs.moma.janus.lokot.browser.enrolViaBrowser
 import rs.moma.janus.lokot.externals.Authenticator
+import rs.moma.janus.lokot.browser.BROWSER_OPTION
+import rs.moma.janus.lokot.externals.HmacSecret
 import rs.moma.janus.lokot.io.CONNECT_NEXT_KEY
 import rs.moma.janus.lokot.schema.SecretSpec
 import rs.moma.janus.lokot.externals.Crypto
@@ -40,9 +44,10 @@ fun runInit(arguments: List<String>): Int {
         return 1
     }
 
-    val authenticator = openAuthenticator("enrol") ?: return 1
+    val chosen = chooseAuthenticator("Where does the first key live?", browser = rpId == authRpId) ?: return 1
+    val authenticator = (chosen as? Chosen.Key)?.authenticator
     try {
-        val pin = authenticator.pin()
+        val pin = authenticator?.pin()
 
         val values = mutableMapOf<String, String>()
         val prompted = schema.secrets.filterValues { it is SecretSpec.Prompted }
@@ -77,13 +82,16 @@ fun runInit(arguments: List<String>): Int {
 
         val salt = Crypto.randomBytes(LokotHeader.SALT_SIZE)
 
-        println()
-        println("Touch the key to enrol.")
-        val enrolment = authenticator.enrol(pin, schema.project, salt, rpId)
+        val secret = if (authenticator == null) enrolViaBrowser(schema.project, salt, emptyList()) ?: return 1
+        else {
+            println()
+            println("Touch the key to enrol.")
+            val enrolment = authenticator.enrol(pin, schema.project, salt, rpId)
 
-        val secret = enrolment.secret ?: run {
-            println("Touch again to derive the key.")
-            authenticator.hmacSecret(pin, listOf(enrolment.credentialId), salt, rpId)
+            enrolment.secret ?: run {
+                println("Touch again to derive the key.")
+                authenticator.hmacSecret(pin, listOf(enrolment.credentialId), salt, rpId)
+            }
         }
 
         val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
@@ -104,7 +112,7 @@ fun runInit(arguments: List<String>): Int {
         println("lose it and the file cannot be opened again, by anyone, ever.")
         return 0
     } finally {
-        authenticator.close()
+        authenticator?.close()
         destination.close()
     }
 }
@@ -124,24 +132,15 @@ fun runAddKey(arguments: List<String>): Int {
                 println("'lokot unlock' will ask which key to use, with lokot's own offered first.")
                 println()
             }
+
             println(CONNECT_NEXT_KEY)
             readlnOrNull() ?: return 1
 
-            val authenticator = openAuthenticator("add") ?: return 1
-            val enrolment = try {
-                val pin = authenticator.pin()
-
-                println()
-                println("Touch the key to enrol.")
-
-                val enrolment = authenticator.enrol(pin, header.project, header.salt, rpId)
-                enrolment.secret ?: run {
-                    println("Touch again to derive the key.")
-                    authenticator.hmacSecret(pin, listOf(enrolment.credentialId), header.salt, rpId)
-                }
-            } finally {
-                authenticator.close()
-            }
+            val next = chooseAuthenticator("Where does the next key live?", browser = rpId == authRpId) ?: return 1
+            val enrolment = when (next) {
+                is Chosen.Browser -> enrolViaBrowser(header.project, header.salt, header.credentials.map { it.id })
+                is Chosen.Key -> enrolWithKey(next.authenticator, header.project, header.salt, rpId)
+            } ?: return 1
 
             if (header.credentials.any { it.id.contentEquals(enrolment.credentialId) }) {
                 println("That credential is already enrolled; nothing written.")
@@ -196,13 +195,17 @@ fun runRekey(arguments: List<String>): Int {
                 println("Connect one and press Enter to keep it, or type 'done' to drop the rest.")
                 if (readlnOrNull()?.trim()?.lowercase() == "done") break
 
-                val authenticator = openAuthenticator("keep") ?: return 1
-                val secret = try {
-                    println()
-                    println("Touch the key to keep it.")
-                    authenticator.hmacSecret(authenticator.pin(), group.map { it.id }, salt, family)
-                } finally {
-                    authenticator.close()
+                val ids = group.map { it.id }
+                val secret = when (val presented = chooseAuthenticator("Which key is it?", family == authRpId)) {
+                    null -> return 1
+                    is Chosen.Browser -> unlockViaBrowser(header.project, salt, ids) ?: return 1
+                    is Chosen.Key -> try {
+                        println()
+                        println("Touch the key to keep it.")
+                        presented.authenticator.hmacSecret(presented.authenticator.pin(), ids, salt, family)
+                    } finally {
+                        presented.authenticator.close()
+                    }
                 }
 
                 kept += Kek.wrap(secret.output, secret.credentialId, family, kek)
@@ -241,6 +244,24 @@ fun runRekey(arguments: List<String>): Int {
         } finally {
             kek.wipe()
         }
+    }
+}
+
+private fun enrolWithKey(authenticator: Authenticator, project: String, salt: ByteArray, rpId: String): HmacSecret? {
+    return try {
+        val pin = authenticator.pin()
+        println()
+        println("Touch the key to enrol.")
+        val enrolment = authenticator.enrol(pin, project, salt, rpId)
+        enrolment.secret ?: run {
+            println("Touch again to derive the key.")
+            authenticator.hmacSecret(pin, listOf(enrolment.credentialId), salt, rpId)
+        }
+    } catch (failure: Exception) {
+        println(failure.message ?: "no key answered")
+        null
+    } finally {
+        authenticator.close()
     }
 }
 

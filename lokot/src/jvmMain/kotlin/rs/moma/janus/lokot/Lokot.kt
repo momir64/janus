@@ -1,5 +1,7 @@
 package rs.moma.janus.lokot
 
+import rs.moma.janus.lokot.browser.parseUnlockBody
+import rs.moma.janus.lokot.browser.challengeJson
 import java.util.concurrent.locks.ReentrantLock
 import rs.moma.janus.lokot.files.LokotFile
 import rs.moma.janus.lokot.externals.wipe
@@ -10,9 +12,6 @@ import kotlin.io.path.readBytes
 import kotlin.time.Duration
 import java.nio.CharBuffer
 import java.nio.file.Path
-
-private val urlEncoder = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT)
-private val urlDecoder = Base64.UrlSafe.withPadding(Base64.PaddingOption.PRESENT_OPTIONAL)
 
 public class Lokot(private val vault: Path) {
     private val file = LokotFile.parse(vault.readBytes())
@@ -54,11 +53,9 @@ public class Lokot(private val vault: Path) {
     }
 
     public fun unlock(body: String): Boolean {
-        if (body.length > MAX_BODY) return false
-        val credentialId = field(body, "credentialId") ?: return false
-        val output = decode(field(body, "output") ?: return false) ?: return false
+        val (credentialId, output) = parseUnlockBody(body) ?: return false
         try {
-            return unlock(decode(credentialId) ?: return false, output)
+            return unlock(credentialId, output)
         } finally {
             output.wipe()
         }
@@ -102,15 +99,9 @@ public class Lokot(private val vault: Path) {
         values != null
     }
 
-    private fun field(body: String, name: String): String? =
-        Regex("\"$name\"\\s*:\\s*\"([A-Za-z0-9_-]{1,4096})\"").find(body)?.groupValues?.get(1)
-
-    private fun decode(text: String): ByteArray? = runCatching { urlDecoder.decode(text) }.getOrNull()
-
     public companion object {
         private const val PAGE = "/lokot/unlock.html"
         private const val DEFAULT_BASE = "/"
-        private const val MAX_BODY = 16 * 1024
 
         public fun page(base: String = DEFAULT_BASE): String {
             require(base.startsWith("/") && base.none { it == '"' || it.isWhitespace() }) {
@@ -130,10 +121,5 @@ public class Challenge(
     public val salt: ByteArray,
     public val credentialIds: List<ByteArray>,
 ) {
-    public val json: String
-        get() = """{"rpId":"$rpId","home":"$home","salt":"${salt.url()}","credentialIds":[${
-            credentialIds.joinToString(",") { "\"${it.url()}\"" }
-        }]}"""
-
-    private fun ByteArray.url() = urlEncoder.encode(this)
+    public val json: String get() = challengeJson(rpId, salt, credentialIds, home)
 }
