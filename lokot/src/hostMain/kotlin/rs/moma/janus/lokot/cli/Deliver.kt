@@ -2,7 +2,9 @@ package rs.moma.janus.lokot.cli
 
 import rs.moma.janus.lokot.files.RemoteDestination
 import rs.moma.janus.lokot.files.LocalDestination
+import rs.moma.janus.lokot.files.SERVICE_MODE
 import rs.moma.janus.lokot.files.Destination
+import rs.moma.janus.lokot.files.ROOT_MODE
 import rs.moma.janus.lokot.schema.Delivery
 import rs.moma.janus.lokot.LokotException
 import rs.moma.janus.lokot.externals.wipe
@@ -34,13 +36,13 @@ fun runUnlock(arguments: List<String>): Int {
 
         val chosen = schema.deliveries.filter { initialising || !it.onlyAtInit }
         clear(destination) // an unlock leaves what the schema says now, and nothing it used to say
-        if (!destination.makeDirectory(destination.root)) {
+        if (!destination.makeDirectory(destination.root, ROOT_MODE)) {
             println("Cannot create ${destination.root}, so there is nowhere to put the files.")
             return 1
         }
 
         chosen.groupBy { it.service }.forEach { (service, deliveries) ->
-            if (!destination.makeDirectory("${destination.root}/$service")) {
+            if (!destination.makeDirectory("${destination.root}/$service", SERVICE_MODE)) {
                 println("Cannot create ${destination.root}/$service.")
                 return 1
             }
@@ -81,8 +83,8 @@ fun runLock(arguments: List<String>): Int {
         println(if (removed == 0) "Nothing to remove; $root is already gone." else "Removed $removed from $root.")
 
         // Only the one lokot wrote: an .env of someone's own is not lokot's to delete.
-        if (destination.read(destination.envFile)
-                ?.startsWith(GENERATED) == true && destination.delete(destination.envFile)
+        if (destination.read(destination.envFile)?.startsWith(GENERATED) == true
+            && destination.delete(destination.envFile)
         )
             println("Removed ${destination.envFile}.")
         return 0

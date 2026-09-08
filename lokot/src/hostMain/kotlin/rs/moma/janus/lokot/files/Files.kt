@@ -1,9 +1,9 @@
 package rs.moma.janus.lokot.files
 
 import rs.moma.janus.lokot.io.createDirectory
-import rs.moma.janus.lokot.io.restrictToOwner
 import rs.moma.janus.lokot.io.flushToDisk
 import rs.moma.janus.lokot.io.replaceFile
+import rs.moma.janus.lokot.io.applyMode
 import kotlinx.cinterop.*
 import platform.posix.*
 
@@ -50,15 +50,15 @@ object Files {
         if (!replaceFile(temporary, path)) error("cannot move $temporary into place")
     }
 
-    fun makeDirectory(path: String): Boolean {
-        if (!createDirectory(path)) return false
-        restrictToOwner(path, directory = true)
+    fun makeDirectory(path: String, mode: Int): Boolean {
+        if (!createDirectory(path, mode)) return false
+        applyMode(path, mode)
         return true
     }
 
     fun writeSecret(path: String, bytes: ByteArray) {
         writeBytes(path, bytes)
-        restrictToOwner(path, directory = false)
+        applyMode(path, FILE_MODE)
     }
 
     fun list(path: String): List<String> {

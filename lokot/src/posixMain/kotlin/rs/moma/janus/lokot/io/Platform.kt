@@ -80,10 +80,10 @@ fun replaceFile(temporary: String, path: String): Boolean = rename(temporary, pa
 fun secretsRoot(): String = "/dev/shm/lokot-${getuid()}"
 
 @OptIn(ExperimentalForeignApi::class)
-fun createDirectory(path: String): Boolean = mkdir(path, S_IRWXU.convert()) == 0 || errno == EEXIST
+fun createDirectory(path: String, mode: Int): Boolean = mkdir(path, mode.convert()) == 0 || errno == EEXIST
 
 // Directories 0700 (the root gates access), files 0644 (containers read them as their own uids, not the operator).
 @OptIn(ExperimentalForeignApi::class)
-fun restrictToOwner(path: String, directory: Boolean) {
-    chmod(path, (if (directory) S_IRWXU else S_IRUSR or S_IWUSR or S_IRGRP or S_IROTH).convert())
+fun applyMode(path: String, mode: Int) {
+    chmod(path, mode.convert())
 }

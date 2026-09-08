@@ -2,12 +2,16 @@ package rs.moma.janus.lokot.files
 
 import rs.moma.janus.lokot.io.secretsRoot
 
+const val SERVICE_MODE = 493 // 0755
+const val ROOT_MODE = 448    // 0700
+const val FILE_MODE = 420    // 0644
+
 interface Destination {
     val root: String
     val envFile: String
     val vaultFile: String
 
-    fun makeDirectory(path: String): Boolean
+    fun makeDirectory(path: String, mode: Int): Boolean
     fun write(path: String, bytes: ByteArray): Boolean
     fun read(path: String): String?
     fun readBytes(path: String): ByteArray?
@@ -20,7 +24,7 @@ interface Destination {
 class LocalDestination(override val envFile: String, override val vaultFile: String) : Destination {
     override val root = secretsRoot()
 
-    override fun makeDirectory(path: String) = Files.makeDirectory(path)
+    override fun makeDirectory(path: String, mode: Int) = Files.makeDirectory(path, mode)
     override fun write(path: String, bytes: ByteArray) = runCatching { Files.writeSecret(path, bytes) }.isSuccess
     override fun read(path: String) = Files.readText(path)
     override fun readBytes(path: String) = Files.readBytes(path)
@@ -40,7 +44,7 @@ class RemoteDestination(
     override val envFile = "$directory/$envFile"
     override val vaultFile = "$directory/$vaultFile"
 
-    override fun makeDirectory(path: String) = sftp.makeDirectory(path, DIRECTORY_MODE)
+    override fun makeDirectory(path: String, mode: Int) = sftp.makeDirectory(path, mode)
     override fun write(path: String, bytes: ByteArray) = sftp.write(path, bytes, FILE_MODE)
     override fun read(path: String) = sftp.read(path)?.decodeToString()
     override fun readBytes(path: String) = sftp.read(path)
@@ -51,8 +55,4 @@ class RemoteDestination(
         sftp.close()
     }
 
-    companion object {
-        private const val DIRECTORY_MODE = 448 // 0700, the gate
-        private const val FILE_MODE = 420      // 0644, so a container that is not root can read it
-    }
 }

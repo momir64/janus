@@ -94,7 +94,6 @@ fun replaceFile(temporary: String, path: String): Boolean {
 }
 
 fun secretsRoot(): String = ".lokot-secrets"
-fun createDirectory(path: String): Boolean = mkdir(path) == 0 || errno == EEXIST
-fun restrictToOwner(path: String, directory: Boolean) {
-    if (!directory) chmod(path, S_IREAD or S_IWRITE)
+fun createDirectory(path: String, mode: Int): Boolean = mkdir(path) == 0 || errno == EEXIST
+fun applyMode(path: String, mode: Int) {
 }
