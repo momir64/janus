@@ -5,11 +5,35 @@ import platform.posix.*
 import rs.moma.janus.lokot.externals.Authenticator
 import rs.moma.janus.lokot.checks.allChecks
 import rs.moma.janus.lokot.LokotException
+import rs.moma.janus.lokot.io.withRawTerminal
 import rs.moma.janus.lokot.io.readHidden
 
 const val SCHEMA_FILE = "lokot.toml"
 const val VAULT_FILE = ".env.lokot"
 const val ENV_FILE = ".env"
+
+internal fun choose(question: String, options: List<String>): String? = withRawTerminal {
+    var at = 0
+    write("$question\r\n")
+    while (true) {
+        options.forEachIndexed { index, option -> write(" ${if (index == at) ">" else " "} $option\r\n") }
+        when (readKey()) {
+            is Key.Up -> at = (at + options.size - 1) % options.size
+            is Key.Down -> at = (at + 1) % options.size
+            is Key.Enter -> return@withRawTerminal options[at]
+            is Key.Escape, is Key.EndOfInput -> return@withRawTerminal null
+            else -> {}
+        }
+        write("\u001b[${options.size}A")
+    }
+    @Suppress("UNREACHABLE_CODE") null
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun write(text: String) {
+    print(text)
+    fflush(stdout)
+}
 
 fun pluralize(count: Int, singular: String, plural: String = "${singular}s"): String =
     "$count ${if (count == 1) singular else plural}"

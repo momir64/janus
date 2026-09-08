@@ -41,6 +41,11 @@ internal fun unlockVault(purpose: String, file: LokotFile, prefer: String = Auth
     val families = header.credentials.groupBy { it.rpId }
     val order = families.keys.sortedWith(compareBy({ if (it == prefer) 0 else 1 }, { it }))
 
+    val family = if (order.size == 1) order.first() else choose("Which key opens ${header.project}?", order) ?: run {
+        println("No key chosen.")
+        return null
+    }
+
     val authenticator = openAuthenticator(purpose) ?: return null
     val secret = try {
         val pin = authenticator.pin()
@@ -48,10 +53,13 @@ internal fun unlockVault(purpose: String, file: LokotFile, prefer: String = Auth
         println()
         println("Touch the key to open ${header.project}.")
 
-        answer(authenticator, pin, order, families, header.salt)
+        authenticator.hmacSecret(pin, families.getValue(family).map { it.id }, header.salt, family)
+    } catch (failure: Exception) {
+        println(failure.message ?: "no key answered")
+        return null
     } finally {
         authenticator.close()
-    } ?: return null
+    }
 
     val credential = header.credentials.firstOrNull { it.id.contentEquals(secret.credentialId) } ?: run {
         println("The key that answered is not one of the ${header.credentials.size} enrolled here.")
@@ -76,29 +84,6 @@ internal fun unlockVault(purpose: String, file: LokotFile, prefer: String = Auth
     return Unlocked(file, kek, body, secret)
 }
 
-private fun answer(
-    authenticator: Authenticator,
-    pin: String?,
-    order: List<String>,
-    families: Map<String, List<WrappedCredential>>,
-    salt: ByteArray,
-): HmacSecret? {
-    order.forEachIndexed { index, family ->
-        if (index > 0) {
-            println()
-            println("No key answered for '${order[index - 1]}'. Touch one enrolled for '$family'.")
-        }
-        try {
-            return authenticator.hmacSecret(pin, families.getValue(family).map { it.id }, salt, family)
-        } catch (failure: Exception) {
-            if (index == order.lastIndex) {
-                println(failure.message ?: "no key answered")
-                return null
-            }
-        }
-    }
-    return null
-}
 
 internal fun readVault(destination: Destination): LokotFile? =
     readVault(destination.vaultFile, destination.readBytes(destination.vaultFile))
