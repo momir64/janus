@@ -13,7 +13,8 @@ import java.nio.file.Path
 
 object Tls {
     private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-    val password: CharArray = CharArray(32) { ALPHABET[SecureRandom().nextInt(ALPHABET.length)] }
+    private val secret = CharArray(32) { ALPHABET[SecureRandom().nextInt(ALPHABET.length)] }
+    val password: CharArray get() = secret.copyOf()
 
     fun keyStore(certificate: Path, privateKey: Path, alias: String): KeyStore =
         KeyStore.getInstance("PKCS12").apply {
