@@ -10,7 +10,7 @@ Windows makes this unavoidable: libfido2's Hello backend hardcodes
 dwAttestationConveyancePreference = DIRECT, so a caller cannot ask for no attestation.
 
 android-key's statement is {alg, sig, x5c}, which decode_attstmt_entry already handles,
-so accepting the format name is the whole fix. lokot never verifies attestation - it
+so accepting the format name is the whole fix. Lokot never verifies attestation - it
 uses only the credential id and the hmac-secret output - so nothing downstream depends
 on the statement being understood.
 
