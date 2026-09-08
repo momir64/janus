@@ -27,6 +27,8 @@ private fun load(name: String): Map<String, String>? {
 object Env {
     fun get(key: String): String = getOrNull(key) ?: error("Missing environment variable: $key")
 
+    fun get(key: String, default: String): String = getOrNull(key) ?: default
+
     fun getOrNull(key: String): String? = System.getenv(key) ?: dotenv[key]
 
     fun getBytes(key: String): ByteArray = Base64.withPadding(PRESENT_OPTIONAL).decode(get(key))

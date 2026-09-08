@@ -157,10 +157,11 @@ there, and `lokot lock user@host:/path/to/kredenac` cleans up the same way.
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d postgres redis minio
 ```
 
-then run `rs.moma.janus.kredenac.MainKt` from `backend/`. Outside compose nothing sets the
-hosts or the certificate paths, so the run configuration has to: `POSTGRES_HOST`, `REDIS_HOST`
-and `MINIO_HOST` are `localhost`, and `BACKEND_TLS_CERT_PATH`, `BACKEND_TLS_KEY_PATH` and
-`REDIS_TLS_CA_PATH` point into `$LOKOT_DIR/backend`. The rest comes from the generated `.env`,
+then run `rs.moma.janus.kredenac.MainKt` from `backend/`. `POSTGRES_HOST` and `REDIS_HOST`
+default to `localhost` when unset, which is right for this setup, but outside compose nothing
+sets `MINIO_HOST` or the certificate paths, so the run configuration still has to: `MINIO_HOST`
+is `localhost`, and `BACKEND_TLS_CERT_PATH`, `BACKEND_TLS_KEY_PATH` and `REDIS_TLS_CA_PATH`
+point into `$LOKOT_DIR/backend`. The rest comes from the generated `.env`,
 which the server also finds one directory up. Both hostnames are matched on the `Host` header
 and the passkeys are scoped to them, so for anything involving a real passkey the practical
 route is to point the tunnel at your machine, as the [frontend README](frontend/README.md#development)
@@ -169,7 +170,8 @@ describes. The backend serves the frontend only when `FRONTEND_DIST_PATH` points
 
 **Backend tests** need the same Postgres and Redis running, and the files `lokot unlock`
 wrote, since they take the database credentials, the Redis password and the CA from there.
-With `POSTGRES_HOST` and `REDIS_HOST` set to `localhost` in the environment:
+`POSTGRES_HOST` and `REDIS_HOST` default to `localhost`, so nothing extra needs setting for
+this:
 
 ```bash
 cd backend && ./gradlew test

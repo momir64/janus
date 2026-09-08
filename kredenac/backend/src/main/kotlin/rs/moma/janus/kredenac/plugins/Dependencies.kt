@@ -21,9 +21,9 @@ import rs.moma.janus.kredenac.services.UserService
 import rs.moma.janus.kredenac.common.vault
 import rs.moma.janus.kredenac.common.text
 import rs.moma.janus.lokot.externals.wipe
+import javax.net.ssl.TrustManagerFactory
 import org.koin.core.module.dsl.singleOf
 import rs.moma.janus.kredenac.common.Env
-import rs.moma.janus.kredenac.common.Tls
 import io.lettuce.core.api.coroutines
 import io.lettuce.core.ClientOptions
 import org.koin.core.qualifier.named
@@ -32,11 +32,10 @@ import io.lettuce.core.RedisClient
 import io.lettuce.core.SslOptions
 import org.koin.ktor.plugin.Koin
 import io.lettuce.core.RedisURI
-import kotlin.io.path.Path
 import org.koin.dsl.module
 
 @OptIn(ExperimentalLettuceCoroutinesApi::class)
-fun Application.configureDependencies() {
+fun Application.configureDependencies(redisTrustManager: TrustManagerFactory) {
     install(Koin) {
         modules(module {
             singleOf(::NotesRepository)
@@ -56,10 +55,9 @@ fun Application.configureDependencies() {
             single(named("rpOrigin")) { rpOrigin }
             single(named("rpId")) { Env.get("RP_ID") }
 
-            val sslOptions = SslOptions.builder().jdkSslProvider()
-                .trustManager(Tls.trustManager(Path(Env.get("REDIS_TLS_CA_PATH")))).build()
+            val sslOptions = SslOptions.builder().jdkSslProvider().trustManager(redisTrustManager).build()
 
-            val redisUri = RedisURI.Builder.redis(Env.get("REDIS_HOST"), Env.get("REDIS_PORT").toInt())
+            val redisUri = RedisURI.Builder.redis(Env.get("REDIS_HOST", "localhost"), Env.get("REDIS_PORT").toInt())
                 .withSsl(true).withVerifyPeer(true).withPassword(vault.get("REDIS_PASSWORD")).build()
             val redisClient = RedisClient.create(redisUri)
             redisClient.options = ClientOptions.builder().sslOptions(sslOptions).build()

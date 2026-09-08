@@ -10,12 +10,13 @@ import rs.moma.janus.kredenac.plugins.configureDatabase
 import rs.moma.janus.kredenac.plugins.configureCleanup
 import rs.moma.janus.kredenac.plugins.configureRouting
 import rs.moma.janus.kredenac.common.vault
+import javax.net.ssl.TrustManagerFactory
 import io.ktor.server.application.*
 
-fun Application.module() {
+fun Application.module(redisTrustManager: TrustManagerFactory) {
     configureDatabase()
     configureRateLimit()
-    configureDependencies()
+    configureDependencies(redisTrustManager)
     configureSerialization()
     configureStatusPages()
     configureSecurityHeaders()
