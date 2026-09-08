@@ -11,7 +11,6 @@ internal class Unlocked(
     val file: LokotFile,
     val kek: ByteArray,
     val body: VaultBody,
-    val secret: HmacSecret,
 ) {
     val values: Map<String, String> get() = body.values.asText()
 }
@@ -81,7 +80,7 @@ internal fun unlockVault(purpose: String, file: LokotFile, prefer: String = Auth
         println("$VAULT_FILE will not open: the body failed its authentication tag.")
         return null
     }
-    return Unlocked(file, kek, body, secret)
+    return Unlocked(file, kek, body)
 }
 
 
