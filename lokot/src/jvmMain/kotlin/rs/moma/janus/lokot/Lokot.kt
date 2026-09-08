@@ -109,7 +109,7 @@ public class Lokot(private val vault: Path) {
 
     public companion object {
         private const val PAGE = "/lokot/unlock.html"
-        private const val DEFAULT_BASE = "/lokot/"
+        private const val DEFAULT_BASE = "/"
         private const val MAX_BODY = 16 * 1024
 
         public fun page(base: String = DEFAULT_BASE): String {
