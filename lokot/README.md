@@ -249,7 +249,7 @@ aarch64 binary is cross-built with `-Plokot.arch=aarch64` from an x86_64 Linux m
 Pi's headers and shared libraries copied into `vendor/downloads/sysroot-aarch64`. The top of
 `build-libfido2.sh` has the exact commands.
 
-**The jar.** `./gradlew jvmJar` writes `build/<host>/libs/lokot-jvm-0.0.1.jar`. kredenac keeps a
+**The jar.** `./gradlew jvmJar` writes `build/<host>/libs/lokot.jar`. kredenac keeps a
 copy under `backend/libs`, and its build warns when that copy is older than lokot's sources.
 
 **Tests.** `./gradlew hostTest jvmTest` runs every `selftest` check under Gradle, plus the

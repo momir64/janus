@@ -114,6 +114,10 @@ kotlin {
     }
 }
 
+// kredenac vendors this by name. Without this it would carry the target and the version, which
+// buys nothing for a jar depended on as a file and means a rename in both projects on every bump.
+tasks.named<Jar>("jvmJar") { archiveFileName.set("lokot.jar") }
+
 val copyVendorDlls = tasks.register("copyVendorDlls") {
     group = "build"
     description = "Places libfido2's runtime DLLs beside each executable so it can start."
