@@ -112,7 +112,7 @@ class Editor(
 
         screen.start()
         paintText(screen)
-        screen.row(screen.size.rows - 1, message ?: "")
+        message?.let { screen.bar(screen.size.rows - 1, "> $it") } ?: screen.row(screen.size.rows - 1, "")
         screen.bar(screen.size.rows, " ^S Save   ^X Quit")
         screen.finish(1 + (buffer.row - top), 1 + (buffer.column - left))
     }
