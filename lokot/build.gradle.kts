@@ -30,7 +30,11 @@ layout.buildDirectory.set(layout.projectDirectory.dir("build/${if (isWindows) "m
 
 kotlin {
     jvmToolchain(21)
-    jvm()
+    jvm {
+        compilations.getByName("main").compileTaskProvider.configure {
+            compilerOptions.freeCompilerArgs.add("-Xexplicit-api=strict")
+        }
+    }
     sourceSets.getByName("jvmTest").dependencies { implementation(kotlin("test")) }
 
     val hostTarget = when {

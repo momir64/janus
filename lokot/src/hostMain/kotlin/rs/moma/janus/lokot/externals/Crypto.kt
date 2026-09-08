@@ -120,7 +120,7 @@ internal actual fun platformAesGcmOpen(
 fun ByteArray.size(): ULong = size.toULong()
 
 @OptIn(ExperimentalForeignApi::class)
-actual fun ByteArray.wipe() {
+public actual fun ByteArray.wipe() {
     if (isEmpty()) return
     usePinned { OPENSSL_cleanse(it.addressOf(0), size()) }
 }

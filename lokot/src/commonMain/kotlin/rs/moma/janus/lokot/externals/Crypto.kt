@@ -48,9 +48,9 @@ internal object Crypto {
     }
 }
 
-expect fun ByteArray.wipe()
+public expect fun ByteArray.wipe()
 
-fun CharArray.wipe() = fill('\u0000')
+public fun CharArray.wipe(): Unit = fill('\u0000')
 
 internal expect fun ByteArray.toChars(): CharArray
 

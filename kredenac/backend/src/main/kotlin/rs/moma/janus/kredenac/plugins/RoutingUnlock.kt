@@ -12,17 +12,17 @@ import io.ktor.http.ContentType
 import io.ktor.server.routing.*
 import kotlin.io.path.Path
 
-const val LOKOT_PATH = "/lokot"
-
-fun Application.configureUnlock(lokot: Lokot, rpId: String) {
+fun Application.configureUnlock(lokot: Lokot) {
     install(IgnoreTrailingSlash)
 
+    val host = Env.get("LOKOT_RP_ID")
+    val home = "https://${Env.get("RP_ID")}/"
     val frontend = Env.getOrNull("FRONTEND_DIST_PATH")?.let(::Path)?.takeIf { it.isDirectory() }
 
     routing {
-        route(LOKOT_PATH) {
-            get { call.respondText(Lokot.page(LOKOT_PATH), ContentType.Text.Html) }
-            get("challenge") { call.respondText(lokot.challenge(rpId).json, ContentType.Application.Json) }
+        host(host) {
+            get { call.respondText(Lokot.page(), ContentType.Text.Html) }
+            get("challenge") { call.respondText(lokot.challenge(host, home).json, ContentType.Application.Json) }
             post("unlock") {
                 if (lokot.unlock(call.receiveText())) call.respond(HttpStatusCode.NoContent)
                 else call.respond(HttpStatusCode.Unauthorized)

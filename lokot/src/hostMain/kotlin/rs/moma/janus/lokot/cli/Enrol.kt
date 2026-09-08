@@ -7,33 +7,36 @@ import rs.moma.janus.lokot.externals.Crypto
 import rs.moma.janus.lokot.externals.wipe
 import rs.moma.janus.lokot.io.readHidden
 import rs.moma.janus.lokot.schema.Schema
-import rs.moma.janus.lokot.files.Files
 import rs.moma.janus.lokot.files.*
 
 private const val authRpId = Authenticator.RP_ID
 
 fun runInit(arguments: List<String>): Int {
     val rpId = relyingParty(arguments, "init") ?: return 1
+    val destination = open(target(arguments) ?: return 1) ?: return 1
 
-    if (!Files.exists(SCHEMA_FILE)) {
-        println("No $SCHEMA_FILE here. lokot needs one to know what the vault should contain.")
-        return 1
-    }
-    if (Files.exists(VAULT_FILE)) {
-        println("$VAULT_FILE already exists. Use 'lokot edit' to change it, or delete it to start over.")
+    if (destination.readBytes(destination.vaultFile) != null) {
+        println("${destination.vaultFile} already exists. Use 'lokot edit', or delete it to start over.")
         println("Deleting it loses every secret inside. There is no recovery.")
+        destination.close()
+        return 1
+    }
+    val declared = destination.read(destination.schemaFile) ?: run {
+        println("No ${destination.schemaFile} there. lokot needs one to know what the vault should contain.")
+        destination.close()
         return 1
     }
 
-    val declared = Files.readText(SCHEMA_FILE)!!
     val schema = try {
         Schema.parse(declared)
     } catch (failure: Exception) {
-        println("$SCHEMA_FILE: ${failure.message}")
+        println("${destination.schemaFile}: ${failure.message}")
+        destination.close()
         return 1
     }
     if (schema.secrets.isEmpty()) {
-        println("$SCHEMA_FILE declares no secrets.")
+        println("${destination.schemaFile} declares no secrets.")
+        destination.close()
         return 1
     }
 
@@ -90,17 +93,18 @@ fun runInit(arguments: List<String>): Int {
             credentials = listOf(Kek.wrap(secret.output, secret.credentialId, rpId, kek)),
         )
 
-        Files.writeBytes(VAULT_FILE, LokotFile.build(header, VaultBody(declared, values.asChars()), kek))
+        destination.write(destination.vaultFile, LokotFile.build(header, VaultBody(declared, values.asChars()), kek))
         kek.wipe()
 
         println()
-        println("Wrote ${pluralize(values.size, "value")} to $VAULT_FILE")
+        println("Wrote ${pluralize(values.size, "value")} to ${destination.vaultFile}")
         println()
         println("Enrol a second key with 'lokot add-key' before you rely only on this one:")
         println("lose it and the file cannot be opened again, by anyone, ever.")
         return 0
     } finally {
         authenticator.close()
+        destination.close()
     }
 }
 
@@ -108,129 +112,140 @@ fun runAddKey(arguments: List<String>): Int {
     val rpId = relyingParty(arguments, "add-key") ?: return 1
     val browserFamily = rpId != Authenticator.RP_ID
 
-    val unlocked = unlockVault("open the vault with") ?: return 1
-    val kek = unlocked.kek
-    try {
-        val header = unlocked.file.header
-
-        println()
-        if (browserFamily) {
-            println("The next key is enrolled for '$rpId', so a browser at that origin can use it.")
-            println("'lokot unlock' tries lokot's own keys first, and this one only if none answers.")
-            println()
-        }
-        println(CONNECT_NEXT_KEY)
-        readlnOrNull() ?: return 1
-
-        val authenticator = openAuthenticator("add") ?: return 1
-        val enrolment = try {
-            val pin = authenticator.pin()
+    return withVault(arguments, "open the vault with") { destination, unlocked ->
+        val kek = unlocked.kek
+        try {
+            val header = unlocked.file.header
 
             println()
-            println("Touch the key to enrol.")
-
-            val enrolment = authenticator.enrol(pin, header.project, header.salt, rpId)
-            enrolment.secret ?: run {
-                println("Touch again to derive the key.")
-                authenticator.hmacSecret(pin, listOf(enrolment.credentialId), header.salt, rpId)
-            }
-        } finally {
-            authenticator.close()
-        }
-
-        if (header.credentials.any { it.id.contentEquals(enrolment.credentialId) }) {
-            println("That credential is already enrolled; nothing written.")
-            return 1
-        }
-
-        // The header is associated data, so adding a credential means resealing the body too.
-        val extended = LokotHeader(
-            project = header.project, salt = header.salt, credentials = header.credentials + Kek.wrap(
-                enrolment.output, enrolment.credentialId, rpId, kek
-            )
-        )
-        Files.writeBytes(VAULT_FILE, LokotFile.build(extended, unlocked.body, kek))
-
-        println()
-        println("$VAULT_FILE now opens with ${pluralize(extended.credentials.size, "key")}.")
-        if (browserFamily) println("${extended.credentialsFor(rpId).size} of them for '$rpId'.")
-        return 0
-    } finally {
-        kek.wipe()
-    }
-}
-
-fun runRekey(): Int {
-    val unlocked = unlockVault("rekey with") ?: return 1
-    unlocked.kek.wipe()
-    val header = unlocked.file.header
-
-    val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
-    try {
-        val kept = mutableListOf(Kek.wrap(unlocked.secret.output, unlocked.secret.credentialId, authRpId, kek))
-        var remaining = header.credentials.filterNot { it.id.contentEquals(unlocked.secret.credentialId) }
-
-        while (remaining.isNotEmpty()) {
-            val family = remaining.first().rpId
-            val group = remaining.filter { it.rpId == family }
-
-            println()
-            println(
-                "${pluralize(kept.size, "key")} kept so far. ${pluralize(remaining.size, "other key")} still enrolled."
-            )
-            if (family != authRpId)
-                println("${pluralize(group.size, "of them")} enrolled for '$family', which a browser uses.")
-            println("Connect one and press Enter to keep it, or type 'done' to drop the rest.")
-            if (readlnOrNull()?.trim()?.lowercase() == "done") break
-
-            val authenticator = openAuthenticator("keep") ?: return 1
-            val secret = try {
+            if (browserFamily) {
+                println("The next key is enrolled for '$rpId', so a browser at that origin can use it.")
+                println("'lokot unlock' tries lokot's own keys first, and this one only if none answers.")
                 println()
-                println("Touch the key to keep it.")
-                authenticator.hmacSecret(authenticator.pin(), group.map { it.id }, header.salt, family)
+            }
+            println(CONNECT_NEXT_KEY)
+            readlnOrNull() ?: return 1
+
+            val authenticator = openAuthenticator("add") ?: return 1
+            val enrolment = try {
+                val pin = authenticator.pin()
+
+                println()
+                println("Touch the key to enrol.")
+
+                val enrolment = authenticator.enrol(pin, header.project, header.salt, rpId)
+                enrolment.secret ?: run {
+                    println("Touch again to derive the key.")
+                    authenticator.hmacSecret(pin, listOf(enrolment.credentialId), header.salt, rpId)
+                }
             } finally {
                 authenticator.close()
             }
 
-            kept += Kek.wrap(secret.output, secret.credentialId, family, kek)
-            remaining = remaining.filterNot { it.id.contentEquals(secret.credentialId) }
-        }
-
-        if (remaining.isNotEmpty()) {
-            println()
-            println("${pluralize(remaining.size, "key")} will lose access to $VAULT_FILE, permanently.")
-            print("Type 'yes' to continue: ")
-            if (readlnOrNull()?.trim()?.lowercase() != "yes") {
-                println("Nothing written; $VAULT_FILE is as it was.")
+            if (header.credentials.any { it.id.contentEquals(enrolment.credentialId) }) {
+                println("That credential is already enrolled; nothing written.")
                 return 1
             }
+
+            // The header is associated data, so adding a credential means resealing the body too.
+            val extended = LokotHeader(
+                project = header.project, salt = header.salt, credentials = header.credentials + Kek.wrap(
+                    enrolment.output, enrolment.credentialId, rpId, kek
+                )
+            )
+            destination.write(destination.vaultFile, LokotFile.build(extended, unlocked.body, kek))
+
+            println()
+            println("${destination.vaultFile} now opens with ${pluralize(extended.credentials.size, "key")}.")
+            if (browserFamily) println("${extended.credentialsFor(rpId).size} of them for '$rpId'.")
+            0
+        } finally {
+            kek.wipe()
         }
+    }
+}
 
-        val rekeyed = LokotHeader(project = header.project, salt = header.salt, credentials = kept)
-        Files.writeBytes(VAULT_FILE, LokotFile.build(rekeyed, unlocked.body, kek))
+fun runRekey(arguments: List<String>): Int {
+    val rpId = relyingParty(arguments, "rekey") ?: return 1
+    return withVault(arguments, "rekey with", rpId) { destination, unlocked ->
+        unlocked.kek.wipe()
+        val header = unlocked.file.header
 
-        println()
-        println("$VAULT_FILE re-keyed. ${pluralize(kept.size, "key")} opens it; ${remaining.size} dropped.")
-        return 0
-    } finally {
-        kek.wipe()
+        val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
+        try {
+            val opened = header.credentials.first { it.id.contentEquals(unlocked.secret.credentialId) }
+            val kept = mutableListOf(Kek.wrap(unlocked.secret.output, opened.id, opened.rpId, kek))
+            var remaining = header.credentials.filterNot { it.id.contentEquals(unlocked.secret.credentialId) }
+
+            while (remaining.isNotEmpty()) {
+                val family = remaining.first().rpId
+                val group = remaining.filter { it.rpId == family }
+
+                println()
+                println(
+                    "${pluralize(kept.size, "key")} kept so far. ${
+                        pluralize(
+                            remaining.size,
+                            "other key"
+                        )
+                    } still enrolled."
+                )
+                if (family != authRpId)
+                    println("${pluralize(group.size, "of them")} enrolled for '$family', which a browser uses.")
+                println("Connect one and press Enter to keep it, or type 'done' to drop the rest.")
+                if (readlnOrNull()?.trim()?.lowercase() == "done") break
+
+                val authenticator = openAuthenticator("keep") ?: return 1
+                val secret = try {
+                    println()
+                    println("Touch the key to keep it.")
+                    authenticator.hmacSecret(authenticator.pin(), group.map { it.id }, header.salt, family)
+                } finally {
+                    authenticator.close()
+                }
+
+                kept += Kek.wrap(secret.output, secret.credentialId, family, kek)
+                remaining = remaining.filterNot { it.id.contentEquals(secret.credentialId) }
+            }
+
+            if (remaining.isNotEmpty()) {
+                println()
+                println("${pluralize(remaining.size, "key")} will lose access to $VAULT_FILE, permanently.")
+                print("Type 'yes' to continue: ")
+                if (readlnOrNull()?.trim()?.lowercase() != "yes") {
+                    println("Nothing written; ${destination.vaultFile} is as it was.")
+                    return 1
+                }
+            }
+
+            val rekeyed = LokotHeader(project = header.project, salt = header.salt, credentials = kept)
+            destination.write(destination.vaultFile, LokotFile.build(rekeyed, unlocked.body, kek))
+
+            println()
+            println(
+                "${destination.vaultFile} re-keyed. ${
+                    pluralize(
+                        kept.size,
+                        "key"
+                    )
+                } opens it; ${remaining.size} dropped."
+            )
+            0
+        } finally {
+            kek.wipe()
+        }
     }
 }
 
 private fun relyingParty(arguments: List<String>, command: String): String? {
     val flag = arguments.indexOfFirst { it == "--rp" }
-    if (flag < 0) {
-        arguments.firstOrNull()?.let {
-            println("'$it' is not something 'lokot $command' understands. Only --rp <id>.")
-            return null
-        }
-        return Authenticator.RP_ID
-    }
+    if (flag < 0) return Authenticator.RP_ID
+
     val rpId = arguments.getOrNull(flag + 1) ?: run {
-        println("--rp needs the relying party id, like --rp kredenac.moma.rs")
+        println("--rp needs the relying party id, like --rp kredenac.moma.rs ('lokot $command')")
         return null
     }
-    if (arguments.size > 2 || !RELYING_PARTY.matches(rpId)) {
+    if (!RELYING_PARTY.matches(rpId)) {
         println("A relying party id is a host name, like kredenac.moma.rs, not '$rpId'.")
         return null
     }

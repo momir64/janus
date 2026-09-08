@@ -9,12 +9,6 @@ import platform.posix.*
 
 @OptIn(ExperimentalForeignApi::class)
 object Files {
-    fun exists(path: String): Boolean {
-        val file = fopen(path, "rb") ?: return false
-        fclose(file)
-        return true
-    }
-
     fun readBytes(path: String): ByteArray? {
         val file = fopen(path, "rb") ?: return null
         try {
