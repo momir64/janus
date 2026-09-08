@@ -2,7 +2,6 @@ package rs.moma.janus.lokot.cli
 
 import rs.moma.janus.lokot.browser.unlockViaBrowser
 import rs.moma.janus.lokot.externals.Authenticator
-import rs.moma.janus.lokot.browser.BROWSER_OPTION
 import rs.moma.janus.lokot.externals.HmacSecret
 import rs.moma.janus.lokot.externals.wipe
 import rs.moma.janus.lokot.editor.Editor
@@ -11,7 +10,7 @@ import rs.moma.janus.lokot.files.*
 
 internal class Unlocked(
     val file: LokotFile,
-    val kek: ByteArray,
+    val dek: ByteArray,
     val body: VaultBody,
 ) {
     val values: Map<String, String> get() = body.values.asText()
@@ -62,23 +61,23 @@ internal fun unlockVault(purpose: String, file: LokotFile, prefer: String = Auth
         println("The key that answered is not one of the ${header.credentials.size} enrolled here.")
         return null
     }
-    val kek = Kek.unwrap(secret.output, credential) ?: run {
+    val dek = Dek.unwrap(secret.output, credential) ?: run {
         println("That key is enrolled, but its wrapped key will not open. $VAULT_FILE looks damaged.")
         return null
     }
     val body = try {
-        file.open(kek)
+        file.open(dek)
     } catch (failure: Exception) {
-        kek.wipe()
+        dek.wipe()
         println("$VAULT_FILE opened, but its contents will not parse: ${failure.message}")
         return null
     }
     if (body == null) {
-        kek.wipe()
+        dek.wipe()
         println("$VAULT_FILE will not open: the body failed its authentication tag.")
         return null
     }
-    return Unlocked(file, kek, body)
+    return Unlocked(file, dek, body)
 }
 
 private fun touchKey(
@@ -126,7 +125,7 @@ internal fun writeVault(destination: Destination, bytes: ByteArray): Boolean {
 }
 
 fun runEdit(arguments: List<String>) = withVault(arguments, "open the vault with") { destination, unlocked ->
-    val kek = unlocked.kek
+    val dek = unlocked.dek
     try {
         val header = unlocked.file.header
         val schema = refreshedSchema(destination, unlocked.body.schema)
@@ -160,7 +159,7 @@ fun runEdit(arguments: List<String>) = withVault(arguments, "open the vault with
                 try {
                     val body = VaultBody(schema, PlaintextFile.parse(text).asChars())
                     // Not writeVault: its println would land on the editor's alternate screen.
-                    if (destination.write(destination.vaultFile, LokotFile.build(header, body, kek))) {
+                    if (destination.write(destination.vaultFile, LokotFile.build(header, body, dek))) {
                         written++
                         null
                     } else "could not write ${destination.vaultFile}"
@@ -174,7 +173,7 @@ fun runEdit(arguments: List<String>) = withVault(arguments, "open the vault with
         println(if (written == 0) "Nothing written; $vault is as it was." else "Wrote $vault.")
         0
     } finally {
-        kek.wipe()
+        dek.wipe()
     }
 }
 

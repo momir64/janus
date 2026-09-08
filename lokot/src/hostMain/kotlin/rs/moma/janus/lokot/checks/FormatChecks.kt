@@ -9,19 +9,19 @@ internal fun formatChecks(): List<Check> {
     val secondOutput = ByteArray(32) { (it + 200).toByte() }
     val hmacOutput = ByteArray(32) { (it + 100).toByte() }
     val credentialId = ByteArray(48) { (it + 7).toByte() }
-    val kek = ByteArray(Crypto.KEY_SIZE) { it.toByte() }
+    val dek = ByteArray(Crypto.KEY_SIZE) { it.toByte() }
     val secondId = ByteArray(32) { (it + 11).toByte() }
     val cliRp = "lokot.localhost"
 
     val format = CheckGroup(FORMAT_BUG)
     val encoding = format.section("key=value encoding")
-    val envelope = format.section("kek envelope")
+    val envelope = format.section("dek envelope")
     val addKey = format.section("add-key")
     val rekeying = format.section("rekey")
     val lokotFile = format.section("lokot file")
 
-    fun credential() = Kek.wrap(hmacOutput, credentialId, cliRp, kek)
-    fun secondCredential() = Kek.wrap(secondOutput, secondId, cliRp, kek)
+    fun credential() = Dek.wrap(hmacOutput, credentialId, cliRp, dek)
+    fun secondCredential() = Dek.wrap(secondOutput, secondId, cliRp, dek)
 
     fun header(vararg credentials: WrappedCredential) = LokotHeader(
         project = "example",
@@ -33,10 +33,10 @@ internal fun formatChecks(): List<Check> {
     val schema = "project = \"example\"\n[secrets]\nSECRET_A = { type = \"port\" }\n"
     fun body() = VaultBody(schema, secrets.asChars())
     val bodySize = body().encode().size
-    fun file() = LokotFile.build(header(credential()), body(), kek)
-    fun twoKeyFile() = LokotFile.build(header(credential(), secondCredential()), body(), kek)
-    val freshKek = ByteArray(Crypto.KEY_SIZE) { (it + 64).toByte() }
-    fun rekeyedFile() = LokotFile.build(header(Kek.wrap(secondOutput, secondId, cliRp, freshKek)), body(), freshKek)
+    fun file() = LokotFile.build(header(credential()), body(), dek)
+    fun twoKeyFile() = LokotFile.build(header(credential(), secondCredential()), body(), dek)
+    val freshDek = ByteArray(Crypto.KEY_SIZE) { (it + 64).toByte() }
+    fun rekeyedFile() = LokotFile.build(header(Dek.wrap(secondOutput, secondId, cliRp, freshDek)), body(), freshDek)
 
     return listOf(
         encoding.holds("round trips"
@@ -49,26 +49,26 @@ internal fun formatChecks(): List<Check> {
         },
 
         envelope.holds("unwraps with the right hmac output") {
-            Kek.unwrap(hmacOutput, credential())?.contentEquals(kek) == true
+            Dek.unwrap(hmacOutput, credential())?.contentEquals(dek) == true
         },
         envelope.holds("stays sealed under a wrong hmac output") {
-            Kek.unwrap(ByteArray(32), credential()) == null
+            Dek.unwrap(ByteArray(32), credential()) == null
         },
         envelope.holds("every wrap uses a fresh nonce") {
             !credential().nonce.contentEquals(credential().nonce)
         },
-        envelope.holds("a second key reaches the same kek") {
-            Kek.unwrap(secondOutput, secondCredential())?.contentEquals(kek) == true
+        envelope.holds("a second key reaches the same dek") {
+            Dek.unwrap(secondOutput, secondCredential())?.contentEquals(dek) == true
         },
         envelope.holds("one key's envelope does not open another's") {
-            Kek.unwrap(hmacOutput, secondCredential()) == null && Kek.unwrap(secondOutput, credential()) == null
+            Dek.unwrap(hmacOutput, secondCredential()) == null && Dek.unwrap(secondOutput, credential()) == null
         },
 
         addKey.holds("either enrolled key opens the file") {
             val parsed = LokotFile.parse(twoKeyFile())
             parsed.header.credentials.all { wrapped ->
                 val output = if (wrapped.id.contentEquals(credentialId)) hmacOutput else secondOutput
-                parsed.open(Kek.unwrap(output, wrapped)!!)?.values?.asText() == secrets
+                parsed.open(Dek.unwrap(output, wrapped)!!)?.values?.asText() == secrets
             }
         },
         addKey.holds("the credentials keep their order and identity") {
@@ -76,7 +76,7 @@ internal fun formatChecks(): List<Check> {
                     listOf(credentialId.toHex(), secondId.toHex())
         },
         addKey.holds("a key that was never enrolled opens nothing") {
-            LokotFile.parse(twoKeyFile()).header.credentials.all { Kek.unwrap(ByteArray(32), it) == null }
+            LokotFile.parse(twoKeyFile()).header.credentials.all { Dek.unwrap(ByteArray(32), it) == null }
         },
 
         rekeying.holds("only the presented key is left enrolled") {
@@ -85,19 +85,19 @@ internal fun formatChecks(): List<Check> {
         },
         rekeying.holds("the presented key opens the re-keyed file") {
             val rekeyed = LokotFile.parse(rekeyedFile())
-            rekeyed.open(Kek.unwrap(secondOutput, rekeyed.header.credentials.single())!!)?.values?.asText() == secrets
+            rekeyed.open(Dek.unwrap(secondOutput, rekeyed.header.credentials.single())!!)?.values?.asText() == secrets
         },
         rekeying.holds("the revoked key opens nothing in it") {
             val rekeyed = LokotFile.parse(rekeyedFile())
-            rekeyed.header.credentials.all { Kek.unwrap(hmacOutput, it) == null } && rekeyed.open(kek) == null
+            rekeyed.header.credentials.all { Dek.unwrap(hmacOutput, it) == null } && rekeyed.open(dek) == null
         },
 
-        lokotFile.holds("secrets round trip") { LokotFile.parse(file()).open(kek)?.values?.asText() == secrets },
+        lokotFile.holds("secrets round trip") { LokotFile.parse(file()).open(dek)?.values?.asText() == secrets },
         lokotFile.holds("salt survives") {
             LokotFile.parse(file()).header.salt.contentEquals(ByteArray(LokotHeader.SALT_SIZE) { it.toByte() })
         },
         lokotFile.holds("the schema travels inside the body") {
-            LokotFile.parse(file()).open(kek)?.schema == schema
+            LokotFile.parse(file()).open(dek)?.schema == schema
         },
         lokotFile.holds("the schema is not in the plaintext header") {
             !file().decodeToString().contains("[secrets]")
@@ -109,8 +109,8 @@ internal fun formatChecks(): List<Check> {
             LokotFile.parse(file()).header.credentials.single().rpId == cliRp
         },
         lokotFile.holds("a key of another family is not asked for") {
-            val browser = Kek.wrap(secondOutput, secondId, "example.com", kek)
-            val parsed = LokotFile.parse(LokotFile.build(header(credential(), browser), body(), kek))
+            val browser = Dek.wrap(secondOutput, secondId, "example.com", dek)
+            val parsed = LokotFile.parse(LokotFile.build(header(credential(), browser), body(), dek))
             parsed.header.credentialsFor(cliRp).single().id.contentEquals(credentialId) &&
                     parsed.header.credentialsFor("example.com").single().id.contentEquals(secondId)
         },
@@ -118,7 +118,7 @@ internal fun formatChecks(): List<Check> {
         lokotFile.holds("credentials survive") {
             LokotFile.parse(file()).header.credentials.single().id.contentEquals(credentialId)
         },
-        lokotFile.holds("body stays sealed under a wrong kek") {
+        lokotFile.holds("body stays sealed under a wrong dek") {
             LokotFile.parse(file()).open(ByteArray(Crypto.KEY_SIZE)) == null
         },
 
@@ -127,7 +127,7 @@ internal fun formatChecks(): List<Check> {
             val marker = cliRp.encodeToByteArray()
             val at = bytes.indices.first { start -> marker.indices.all { bytes.getOrNull(start + it) == marker[it] } }
             bytes[at] = (bytes[at].toInt() xor 1).toByte()
-            LokotFile.parse(bytes).open(kek) == null
+            LokotFile.parse(bytes).open(dek) == null
         },
 
         lokotFile.rejects("rejects a corrupted hex field") {

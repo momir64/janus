@@ -94,15 +94,15 @@ fun runInit(arguments: List<String>): Int {
             }
         }
 
-        val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
+        val dek = Crypto.randomBytes(Crypto.KEY_SIZE)
         val header = LokotHeader(
             project = schema.project,
             salt = salt,
-            credentials = listOf(Kek.wrap(secret.output, secret.credentialId, rpId, kek)),
+            credentials = listOf(Dek.wrap(secret.output, secret.credentialId, rpId, dek)),
         )
 
-        val wrote = writeVault(destination, LokotFile.build(header, VaultBody(declared, values.asChars()), kek))
-        kek.wipe()
+        val wrote = writeVault(destination, LokotFile.build(header, VaultBody(declared, values.asChars()), dek))
+        dek.wipe()
         if (!wrote) return 1
 
         println()
@@ -122,7 +122,7 @@ fun runAddKey(arguments: List<String>): Int {
     val browserFamily = rpId != Authenticator.RP_ID
 
     return withVault(arguments, "open the vault with") { destination, unlocked ->
-        val kek = unlocked.kek
+        val dek = unlocked.dek
         try {
             val header = unlocked.file.header
 
@@ -149,18 +149,18 @@ fun runAddKey(arguments: List<String>): Int {
 
             // The header is associated data, so adding a credential means resealing the body too.
             val extended = LokotHeader(
-                project = header.project, salt = header.salt, credentials = header.credentials + Kek.wrap(
-                    enrolment.output, enrolment.credentialId, rpId, kek
+                project = header.project, salt = header.salt, credentials = header.credentials + Dek.wrap(
+                    enrolment.output, enrolment.credentialId, rpId, dek
                 )
             )
-            if (!writeVault(destination, LokotFile.build(extended, unlocked.body, kek))) return 1
+            if (!writeVault(destination, LokotFile.build(extended, unlocked.body, dek))) return 1
 
             println()
             println("${destination.vaultFile} now opens with ${pluralize(extended.credentials.size, "key")}.")
             if (browserFamily) println("${extended.credentialsFor(rpId).size} of them for '$rpId'.")
             0
         } finally {
-            kek.wipe()
+            dek.wipe()
         }
     }
 }
@@ -168,10 +168,10 @@ fun runAddKey(arguments: List<String>): Int {
 fun runRekey(arguments: List<String>): Int {
     val rpId = relyingParty(arguments, "rekey") ?: return 1
     return withVault(arguments, "rekey with", rpId) { destination, unlocked ->
-        unlocked.kek.wipe()
+        unlocked.dek.wipe()
         val header = unlocked.file.header
 
-        val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
+        val dek = Crypto.randomBytes(Crypto.KEY_SIZE)
         val salt = Crypto.randomBytes(LokotHeader.SALT_SIZE)
         try {
             val kept = mutableListOf<WrappedCredential>()
@@ -208,7 +208,7 @@ fun runRekey(arguments: List<String>): Int {
                     }
                 }
 
-                kept += Kek.wrap(secret.output, secret.credentialId, family, kek)
+                kept += Dek.wrap(secret.output, secret.credentialId, family, dek)
                 remaining = remaining.filterNot { it.id.contentEquals(secret.credentialId) }
             }
 
@@ -229,7 +229,7 @@ fun runRekey(arguments: List<String>): Int {
             }
 
             val rekeyed = LokotHeader(project = header.project, salt = salt, credentials = kept)
-            if (!writeVault(destination, LokotFile.build(rekeyed, unlocked.body, kek))) return 1
+            if (!writeVault(destination, LokotFile.build(rekeyed, unlocked.body, dek))) return 1
 
             println()
             println(
@@ -242,7 +242,7 @@ fun runRekey(arguments: List<String>): Int {
             )
             0
         } finally {
-            kek.wipe()
+            dek.wipe()
         }
     }
 }

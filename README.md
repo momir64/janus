@@ -1,7 +1,7 @@
 # Janus
 
-Janus is not only the Roman god of doors and passages, it's also my bachelor thesis about passkeys.
-Three programs make it up. Privezak is an Android passkey manager that keeps every key in the
+Janus is not only the Roman god of doors and passages, it's also the name of my bachelor thesis about passkeys.
+It's made out of three parts. Privezak is an Android passkey manager that keeps every key in the
 phone's secure hardware and can prove it. Kredenac is a web app for notes and files with no
 passwords, only passkeys, and it trusts the ones kept on Privezak a bit more than the rest.
 Lokot is a command-line vault that keeps Kredenac's own secrets behind a passkey too. What started
