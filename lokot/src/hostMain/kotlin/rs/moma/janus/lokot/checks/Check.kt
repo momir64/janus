@@ -63,7 +63,10 @@ internal const val FORMAT_BUG = "There's a code bug in the lokot file format, no
 internal const val SCHEMA_BUG = "There's a code bug in the toml parser or schema, not an environment issue."
 internal const val CRYPTO_BUG =
     "crypto backend disagrees with the reference implementation - check the linked libssl/libcrypto version"
+internal const val BROWSER_BUG =
+    "The browser authenticator's own transport is broken, not the browser or the key."
 internal const val NONCE_BUG =
     "nonce generation may be broken or seeded deterministically - do not use this build to encrypt real secrets"
 
-fun allChecks(): List<Check> = cryptoChecks() + formatChecks() + documentChecks() + schemaChecks() + editorChecks()
+fun allChecks(): List<Check> =
+    cryptoChecks() + formatChecks() + documentChecks() + schemaChecks() + editorChecks() + browserChecks()

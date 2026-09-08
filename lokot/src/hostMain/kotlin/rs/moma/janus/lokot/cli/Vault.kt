@@ -1,6 +1,8 @@
 package rs.moma.janus.lokot.cli
 
+import rs.moma.janus.lokot.browser.unlockViaBrowser
 import rs.moma.janus.lokot.externals.Authenticator
+import rs.moma.janus.lokot.browser.BROWSER_OPTION
 import rs.moma.janus.lokot.externals.HmacSecret
 import rs.moma.janus.lokot.externals.wipe
 import rs.moma.janus.lokot.editor.Editor
@@ -40,25 +42,21 @@ internal fun unlockVault(purpose: String, file: LokotFile, prefer: String = Auth
     val families = header.credentials.groupBy { it.rpId }
     val order = families.keys.sortedWith(compareBy({ if (it == prefer) 0 else 1 }, { it }))
 
-    val family = if (order.size == 1) order.first() else choose("Which key opens ${header.project}?", order) ?: run {
-        println("No key chosen.")
+    val family = if (order.size == 1) order.first()
+    else choose("Which passkeys open ${header.project}?", order) ?: run {
+        println("Nothing chosen.")
         return null
     }
+    val credentialIds = families.getValue(family).map { it.id }
 
-    val authenticator = openAuthenticator(purpose) ?: return null
-    val secret = try {
-        val pin = authenticator.pin()
+    val chosen = chooseAuthenticator(
+        "Which key opens ${header.project}?", browser = family == Authenticator.RP_ID
+    ) ?: return null
 
-        println()
-        println("Touch the key to open ${header.project}.")
-
-        authenticator.hmacSecret(pin, families.getValue(family).map { it.id }, header.salt, family)
-    } catch (failure: Exception) {
-        println(failure.message ?: "no key answered")
-        return null
-    } finally {
-        authenticator.close()
-    }
+    val secret = when (chosen) {
+        is Chosen.Browser -> unlockViaBrowser(header.project, header.salt, credentialIds)
+        is Chosen.Key -> touchKey(chosen.authenticator, header, credentialIds, family)
+    } ?: return null
 
     val credential = header.credentials.firstOrNull { it.id.contentEquals(secret.credentialId) } ?: run {
         println("The key that answered is not one of the ${header.credentials.size} enrolled here.")
@@ -83,6 +81,26 @@ internal fun unlockVault(purpose: String, file: LokotFile, prefer: String = Auth
     return Unlocked(file, kek, body)
 }
 
+private fun touchKey(
+    authenticator: Authenticator,
+    header: LokotHeader,
+    credentialIds: List<ByteArray>,
+    rpId: String,
+): HmacSecret? {
+    return try {
+        val pin = authenticator.pin()
+
+        println()
+        println("Touch the key to open ${header.project}.")
+
+        authenticator.hmacSecret(pin, credentialIds, header.salt, rpId)
+    } catch (failure: Exception) {
+        println(failure.message ?: "no key answered")
+        null
+    } finally {
+        authenticator.close()
+    }
+}
 
 internal fun readVault(destination: Destination): LokotFile? =
     readVault(destination.vaultFile, destination.readBytes(destination.vaultFile))

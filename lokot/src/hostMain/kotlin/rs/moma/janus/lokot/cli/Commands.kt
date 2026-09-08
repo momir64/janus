@@ -1,12 +1,17 @@
 package rs.moma.janus.lokot.cli
 
+import rs.moma.janus.lokot.externals.Authenticator
+import rs.moma.janus.lokot.browser.BROWSER_OPTION
+import kotlin.experimental.ExperimentalNativeApi
+import rs.moma.janus.lokot.io.withRawTerminal
+import rs.moma.janus.lokot.checks.allChecks
+import rs.moma.janus.lokot.externals.Device
+import rs.moma.janus.lokot.LokotException
+import rs.moma.janus.lokot.io.readHidden
+import kotlin.native.OsFamily
+import kotlin.native.Platform
 import kotlinx.cinterop.*
 import platform.posix.*
-import rs.moma.janus.lokot.externals.Authenticator
-import rs.moma.janus.lokot.checks.allChecks
-import rs.moma.janus.lokot.LokotException
-import rs.moma.janus.lokot.io.withRawTerminal
-import rs.moma.janus.lokot.io.readHidden
 
 const val SCHEMA_FILE = "lokot.toml"
 const val VAULT_FILE = ".env.lokot"
@@ -38,23 +43,49 @@ private fun write(text: String) {
 fun pluralize(count: Int, singular: String, plural: String = "${singular}s"): String =
     "$count ${if (count == 1) singular else plural}"
 
-fun openAuthenticator(purpose: String): Authenticator? {
+sealed interface Chosen {
+    class Key(val authenticator: Authenticator) : Chosen
+    data object Browser : Chosen
+}
+
+fun chooseAuthenticator(question: String, browser: Boolean = false): Chosen? {
     val devices = Authenticator.devices()
-    if (devices.isEmpty()) {
+
+    windowsHello(devices)?.let {
+        println("authenticator: ${it.device.name}")
+        return Chosen.Key(it)
+    }
+
+    val browserList = if (browser) listOf(BROWSER_OPTION) else emptyList()
+    val ambiguous = devices.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
+    val labels = devices.map { "${it.name}${if (it.name in ambiguous) "  ${it.path}" else ""}" } + browserList
+
+    if (labels.isEmpty()) {
         println("No authenticator found. Plug one in.")
         return null
     }
-    if (devices.size > 1) {
-        println("More than one authenticator is connected. Leave the one you want to $purpose:")
-        // Two of the same model report the same name, and then only the path tells them apart.
-        val ambiguous = devices.groupingBy { it.name }.eachCount().filterValues { it > 1 }.keys
-        devices.forEach { println("  ${it.name}${if (it.name in ambiguous) "  ${it.path}" else ""}") }
+
+    val label = if (labels.size == 1) labels.single() else choose(question, labels) ?: run {
+        println("Nothing chosen.")
         return null
     }
 
-    val authenticator = Authenticator.open(devices.single())
+    if (label == BROWSER_OPTION) return Chosen.Browser
+
+    val authenticator = Authenticator.open(devices[labels.indexOf(label)])
     println("authenticator: ${authenticator.device.name}")
-    return authenticator
+    return Chosen.Key(authenticator)
+}
+
+@OptIn(ExperimentalNativeApi::class)
+private fun windowsHello(devices: List<Device>): Authenticator? {
+    if (Platform.osFamily != OsFamily.WINDOWS) return null
+    for (device in devices) {
+        val opened = runCatching { Authenticator.open(device) }.getOrNull() ?: continue
+        if (opened.isWindowsHello) return opened
+        opened.close()
+    }
+    return null
 }
 
 fun runSelftest(): Int {

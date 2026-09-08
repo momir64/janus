@@ -87,40 +87,96 @@
     .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
   const say = text => { message.textContent = text; };
+  const random = () => crypto.getRandomValues(new Uint8Array(32));
+  const prfOf = credential => {
+    const prf = credential.getClientExtensionResults().prf;
+    return prf && prf.results && prf.results.first;
+  };
 
-  async function unlock() {
-    button.disabled = true;
-    try {
-      say("asking the vault what to sign");
-      const challenge = await (await fetch("challenge")).json();
-      if (!challenge.credentialIds.length) return fail("no passkey is enrolled for this origin");
+  let asked = null;
+  async function ask() {
+    if (!asked) {
+      asked = await (await fetch("challenge")).json();
+      if (asked.action === "ADD KEY") button.textContent = "ADD  KEY";
+    }
+    return asked;
+  }
 
-      say("waiting for your passkey");
+  async function sign(challenge) {
+    if (!challenge.enrol) {
+      if (!challenge.credentialIds.length) throw new Error("no passkey is enrolled for this origin");
+      say("Waiting for your passkey");
       const assertion = await navigator.credentials.get({
         publicKey: {
-          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          challenge: random(),
           rpId: challenge.rpId,
           userVerification: "required",
           allowCredentials: challenge.credentialIds.map(id => ({ type: "public-key", id: fromUrl(id) })),
           extensions: { prf: { eval: { first: fromUrl(challenge.salt) } } },
         },
       });
+      return { id: assertion.rawId, output: prfOf(assertion) };
+    }
 
-      const prf = assertion.getClientExtensionResults().prf;
-      if (!prf || !prf.results) return fail("this browser did not evaluate the PRF extension");
+    say("Creating the passkey");
+    const created = await navigator.credentials.create({
+      publicKey: {
+        challenge: random(),
+        rp: { id: challenge.rpId, name: "Lokot" },
+        user: { id: fromUrl(challenge.userId), name: challenge.label, displayName: challenge.label },
+        pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+        authenticatorSelection: { userVerification: "required", residentKey: "required" },
+        excludeCredentials: challenge.credentialIds.map(id => ({ type: "public-key", id: fromUrl(id) })),
+        extensions: { prf: { eval: { first: fromUrl(challenge.salt) } } },
+      },
+    });
 
-      say("opening");
+    let output = prfOf(created);
+    if (!output) {
+      say("Touch it once more, to derive the key");
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: random(),
+          rpId: challenge.rpId,
+          userVerification: "required",
+          allowCredentials: [{ type: "public-key", id: created.rawId }],
+          extensions: { prf: { eval: { first: fromUrl(challenge.salt) } } },
+        },
+      });
+      output = prfOf(assertion);
+    }
+    return { id: created.rawId, output: output };
+  }
+
+  async function unlock() {
+    button.disabled = true;
+    try {
+      say("Asking the vault what to sign");
+      const challenge = await ask();
+      const signed = await sign(challenge);
+      if (!signed.output) return fail("This browser did not evaluate the PRF extension");
+
+      say("Opening");
       const response = await fetch("unlock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ credentialId: toUrl(assertion.rawId), output: toUrl(prf.results.first) }),
+        body: JSON.stringify({ credentialId: toUrl(signed.id), output: toUrl(signed.output) }),
       });
 
-      if (!response.ok) return fail("that key did not open it");
+      if (!response.ok) return fail("That key did not open it");
       button.remove();
-      say("unlocked, waiting for the server");
-      await waiting();
-      location.replace(challenge.home || "/");
+
+      if (!challenge.cli) {
+        say("Unlocked, waiting for the server");
+        await waiting();
+        location.replace(challenge.home || "/");
+      } else {
+        say("Done. Closing this tab …");
+        setTimeout(() => {
+          window.close();
+          say("Done. You can close this tab and go back to the terminal.");
+        }, 400);
+      }
     } catch (failure) {
       fail(failure.message || String(failure));
     }
@@ -144,6 +200,7 @@
     }
   }
 
+  ask().catch(() => {});
   button.addEventListener("click", unlock);
 </script>
 </body>

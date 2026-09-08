@@ -87,3 +87,73 @@ fun createDirectory(path: String, mode: Int): Boolean = mkdir(path, mode.convert
 fun applyMode(path: String, mode: Int) {
     chmod(path, mode.convert())
 }
+
+// Loopback sockets, for the browser authenticator. The handle crosses into shared code as a
+// Long only because it is a file descriptor here and a SOCKET on Windows.
+private const val LOOPBACK = 0x7f000001u
+
+@OptIn(ExperimentalForeignApi::class)
+fun openLoopbackListener(): Long = memScoped<Long> {
+    val listener = socket(AF_INET, SOCK_STREAM, 0)
+    if (listener < 0) return -1
+
+    val address = alloc<sockaddr_in>()
+    memset(address.ptr, 0, sizeOf<sockaddr_in>().convert())
+    address.sin_family = AF_INET.convert()
+    address.sin_addr.s_addr = htonl(LOOPBACK)
+
+    val bound = bind(listener, address.ptr.reinterpret(), sizeOf<sockaddr_in>().convert()) == 0
+    if (!bound || listen(listener, 4) != 0) {
+        close(listener)
+        return -1
+    }
+    listener.toLong()
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun listenerPort(listener: Long): Int = memScoped<Int> {
+    val address = alloc<sockaddr_in>()
+    val size = alloc<socklen_tVar>()
+    size.value = sizeOf<sockaddr_in>().convert()
+    if (getsockname(listener.toInt(), address.ptr.reinterpret(), size.ptr) != 0) -1
+    else ntohs(address.sin_port).toInt()
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun acceptConnection(listener: Long): Long = accept(listener.toInt(), null, null).toLong()
+
+@OptIn(ExperimentalForeignApi::class)
+fun receiveBytes(connection: Long, buffer: ByteArray): Int = buffer.usePinned { pinned ->
+    recv(connection.toInt(), pinned.addressOf(0), buffer.size.convert(), 0).toInt()
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun sendBytes(connection: Long, bytes: ByteArray, offset: Int): Int = bytes.usePinned { pinned ->
+    send(connection.toInt(), pinned.addressOf(offset), (bytes.size - offset).convert(), 0).toInt()
+}
+
+fun closeSocket(handle: Long) {
+    close(handle.toInt())
+}
+
+@OptIn(ExperimentalForeignApi::class)
+fun connectLoopback(port: Int): Long = memScoped<Long> {
+    val connection = socket(AF_INET, SOCK_STREAM, 0)
+    if (connection < 0) return -1
+
+    val address = alloc<sockaddr_in>()
+    memset(address.ptr, 0, sizeOf<sockaddr_in>().convert())
+    address.sin_family = AF_INET.convert()
+    address.ptr.reinterpret<ByteVar>().let { bytes ->
+        bytes[2] = (port shr 8).toByte(); bytes[3] = port.toByte()
+        bytes[4] = 127; bytes[5] = 0; bytes[6] = 0; bytes[7] = 1
+    }
+
+    if (connect(connection, address.ptr.reinterpret(), sizeOf<sockaddr_in>().convert()) != 0) {
+        close(connection)
+        return -1
+    }
+    connection.toLong()
+}
+
+fun browserCommand(address: String): List<String> = listOf("xdg-open", address)
