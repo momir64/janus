@@ -76,8 +76,7 @@ fun readHidden(prompt: String): String? {
         try {
             readlnOrNull()
         } finally {
-            if (restore) SetConsoleMode(input, original.value)
-            println()
+            if (restore) SetConsoleMode(input, original.value) else println()
         }
     }
 }

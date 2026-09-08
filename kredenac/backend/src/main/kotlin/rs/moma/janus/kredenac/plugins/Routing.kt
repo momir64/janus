@@ -19,6 +19,10 @@ fun Application.configureRouting() {
     val frontend = Env.getOrNull("FRONTEND_DIST_PATH")?.let(::Path)?.takeIf { it.isDirectory() }
 
     routing {
+        host(Env.get("LOKOT_RP_ID")) {
+            route("{...}") { handle { call.error(HttpStatusCode.NotFound) } }
+        }
+
         route(API_ROOT) {
             notesRoutes()
             filesRoutes()

@@ -5,7 +5,6 @@ import rs.moma.janus.lokot.externals.HmacSecret
 import rs.moma.janus.lokot.externals.wipe
 import rs.moma.janus.lokot.editor.Editor
 import rs.moma.janus.lokot.schema.Schema
-import rs.moma.janus.lokot.files.Files
 import rs.moma.janus.lokot.files.*
 
 internal class Unlocked(
@@ -17,9 +16,22 @@ internal class Unlocked(
     val values: Map<String, String> get() = body.values.asText()
 }
 
-internal fun unlockVault(purpose: String): Unlocked? = readVault()?.let { unlockVault(purpose, it) }
+internal inline fun withVault(
+    arguments: List<String>,
+    purpose: String,
+    prefer: String = Authenticator.RP_ID,
+    action: (Destination, Unlocked) -> Int,
+): Int {
+    val destination = open(target(arguments) ?: return 1) ?: return 1
+    try {
+        val unlocked = readVault(destination)?.let { unlockVault(purpose, it, prefer) } ?: return 1
+        return action(destination, unlocked)
+    } finally {
+        destination.close()
+    }
+}
 
-internal fun unlockVault(purpose: String, file: LokotFile): Unlocked? {
+internal fun unlockVault(purpose: String, file: LokotFile, prefer: String = Authenticator.RP_ID): Unlocked? {
     val header = file.header
     if (header.credentials.isEmpty()) {
         println("$VAULT_FILE has no keys enrolled at all, so nothing can open it.")
@@ -27,7 +39,7 @@ internal fun unlockVault(purpose: String, file: LokotFile): Unlocked? {
     }
 
     val families = header.credentials.groupBy { it.rpId }
-    val order = families.keys.sortedWith(compareBy({ if (it == Authenticator.RP_ID) 0 else 1 }, { it }))
+    val order = families.keys.sortedWith(compareBy({ if (it == prefer) 0 else 1 }, { it }))
 
     val authenticator = openAuthenticator(purpose) ?: return null
     val secret = try {
@@ -88,8 +100,6 @@ private fun answer(
     return null
 }
 
-internal fun readVault(): LokotFile? = readVault(VAULT_FILE, Files.readBytes(VAULT_FILE))
-
 internal fun readVault(destination: Destination): LokotFile? =
     readVault(destination.vaultFile, destination.readBytes(destination.vaultFile))
 
@@ -106,12 +116,18 @@ private fun readVault(path: String, bytes: ByteArray?): LokotFile? {
     }
 }
 
-fun runEdit(): Int {
-    val unlocked = unlockVault("open the vault with") ?: return 1
+/** Writes the vault, reporting a failure itself, so a caller can `if (!writeVault(...)) return 1`. */
+internal fun writeVault(destination: Destination, bytes: ByteArray): Boolean {
+    if (destination.write(destination.vaultFile, bytes)) return true
+    println("Could not write ${destination.vaultFile}. Check that you can write it and the directory holding it.")
+    return false
+}
+
+fun runEdit(arguments: List<String>) = withVault(arguments, "open the vault with") { destination, unlocked ->
     val kek = unlocked.kek
     try {
         val header = unlocked.file.header
-        val schema = refreshedSchema(unlocked.body.schema)
+        val schema = refreshedSchema(destination, unlocked.body.schema)
 
         val declared = try {
             Schema.parse(schema)
@@ -141,32 +157,36 @@ fun runEdit(): Int {
             save = { text ->
                 try {
                     val body = VaultBody(schema, PlaintextFile.parse(text).asChars())
-                    Files.writeBytes(VAULT_FILE, LokotFile.build(header, body, kek))
-                    written++
-                    null
+                    // Not writeVault: its println would land on the editor's alternate screen.
+                    if (destination.write(destination.vaultFile, LokotFile.build(header, body, kek))) {
+                        written++
+                        null
+                    } else "could not write ${destination.vaultFile}"
                 } catch (failure: Exception) {
-                    failure.message ?: "could not write $VAULT_FILE"
+                    failure.message ?: "could not write ${destination.vaultFile}"
                 }
             },
         ).run()
 
-        println(if (written == 0) "Nothing written; $VAULT_FILE is as it was." else "Wrote $VAULT_FILE.")
-        return 0
+        val vault = destination.vaultFile
+        println(if (written == 0) "Nothing written; $vault is as it was." else "Wrote $vault.")
+        0
     } finally {
         kek.wipe()
     }
 }
 
-private fun refreshedSchema(stored: String): String {
-    val text = Files.readText(SCHEMA_FILE) ?: return stored
+private fun refreshedSchema(destination: Destination, stored: String): String {
+    val schema = destination.schemaFile
+    val text = destination.read(schema) ?: return stored
     try {
         Schema.parse(text)
     } catch (failure: Exception) {
-        println("$SCHEMA_FILE: ${failure.message}")
-        println("Keeping the schema already in $VAULT_FILE. Fix $SCHEMA_FILE and edit again.")
+        println("$schema: ${failure.message}")
+        println("Keeping the schema already in ${destination.vaultFile}. Fix $schema and edit again.")
         return stored
     }
-    if (text != stored) println("Taking the schema from $SCHEMA_FILE; it differs from the one in $VAULT_FILE.")
+    if (text != stored) println("Taking the schema from $schema; it differs from the vault's.")
     return text
 }
 

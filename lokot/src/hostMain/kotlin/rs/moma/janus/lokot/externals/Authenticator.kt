@@ -32,11 +32,12 @@ class Authenticator private constructor(val device: Device, private val handle: 
 
         try {
             ok(::fido_cred_set_type, credential, COSE_ES256)
-            ok(::fido_cred_set_rp, credential, rpId, "lokot")
+            ok(::fido_cred_set_rp, credential, rpId, "Lokot")
             ok(::fido_cred_set_clientdata, credential, CLIENT_DATA.uBytes, CLIENT_DATA.size())
 
             val userId = Crypto.sha256(project.encodeToByteArray()).copyOf(16)
-            ok(::fido_cred_set_user, credential, userId.uBytes, 16u, project, project, null)
+            val label = "kalauz for $project"
+            ok(::fido_cred_set_user, credential, userId.uBytes, 16u, label, label, null)
 
             ok(::fido_cred_set_extensions, credential, FIDO_EXT_HMAC_SECRET or FIDO_EXT_HMAC_SECRET_MC)
             ok(::fido_cred_set_hmac_salt, credential, prfSalt(salt).uBytes, HMAC_OUTPUT_SIZE.convert())

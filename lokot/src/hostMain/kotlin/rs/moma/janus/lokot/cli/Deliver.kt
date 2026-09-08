@@ -13,11 +13,8 @@ import rs.moma.janus.lokot.files.Sftp
 
 fun runUnlock(arguments: List<String>): Int {
     val initialising = arguments.any { it == "-i" || it == "--init" }
-    val target = target(arguments) ?: return 1
 
-    val destination = open(target) ?: return 1
-    try {
-        val unlocked = readVault(destination)?.let { unlockVault("use", it) } ?: return 1
+    return withVault(arguments, "use") { destination, unlocked ->
         unlocked.kek.wipe()
 
         val schema = try {
@@ -68,9 +65,7 @@ fun runUnlock(arguments: List<String>): Int {
         val held = schema.deliveries.size - chosen.size
         if (held > 0) println("${pluralize(held, "more file")} would be written by 'lokot unlock -i', on a first run.")
         println("Run 'lokot lock' when the containers are up; they read their files once, at start.")
-        return 0
-    } finally {
-        destination.close()
+        0
     }
 }
 
@@ -96,8 +91,11 @@ fun runLock(arguments: List<String>): Int {
 /** `user@host:/path/to/repo`, or nothing at all, which means this machine. */
 class Target(val host: String, val directory: String)
 
-private fun target(arguments: List<String>): Target? {
-    val rest = arguments.filterNot { it == "-i" || it == "--init" }
+internal fun target(arguments: List<String>): Target? {
+    val flag = arguments.indexOfFirst { it == "--rp" }
+    val rest = arguments.filterIndexed { index, argument ->
+        argument != "-i" && argument != "--init" && (flag < 0 || (index != flag && index != flag + 1))
+    }
     if (rest.size > 1) {
         println("One target at a time: ${rest.joinToString(" ")}")
         return null
@@ -105,22 +103,19 @@ private fun target(arguments: List<String>): Target? {
     val text = rest.firstOrNull() ?: return Target("", "")
 
     val separator = text.indexOf(':')
-    if (separator <= 0 || separator == text.length - 1) {
-        println("A target reads user@host:/path/to/repo, not '$text'.")
-        return null
-    }
+    if (separator <= 1 || separator == text.length - 1) return Target("", text)
     return Target(text.take(separator), text.drop(separator + 1))
 }
 
-private fun open(target: Target): Destination? {
-    if (target.host.isEmpty()) return LocalDestination(ENV_FILE, VAULT_FILE)
+internal fun open(target: Target): Destination? {
+    if (target.host.isEmpty()) return LocalDestination(target.directory, ENV_FILE, VAULT_FILE, SCHEMA_FILE)
 
     println("Connecting to ${target.host}. ssh will ask for whatever it needs.")
     val sftp = Sftp.connect(target.host) ?: run {
         println("Could not open an sftp session on ${target.host}.")
         return null
     }
-    return RemoteDestination(sftp, sftp.uid(), target.directory, ENV_FILE, VAULT_FILE)
+    return RemoteDestination(sftp, sftp.uid(), target.directory, ENV_FILE, VAULT_FILE, SCHEMA_FILE)
 }
 
 fun renderEnvironment(root: String, names: List<String>, values: Map<String, String>): String {

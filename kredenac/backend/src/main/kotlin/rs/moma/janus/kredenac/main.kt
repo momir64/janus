@@ -23,7 +23,7 @@ fun main() {
     )
     val port = Env.get("KTOR_PORT").toInt()
 
-    val gate = serve(keyStore, port) { configureUnlock(vault, Env.get("RP_ID")) }.start(wait = false)
+    val gate = serve(keyStore, port) { configureUnlock(vault) }.start(wait = false)
     vault.awaitUnlock()
     gate.stop(GRACE_MILLIS, TIMEOUT_MILLIS)
 

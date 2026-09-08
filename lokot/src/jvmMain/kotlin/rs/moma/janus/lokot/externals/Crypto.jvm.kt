@@ -44,7 +44,7 @@ private fun cipher(mode: Int, key: ByteArray, nonce: ByteArray, aad: ByteArray):
         if (aad.isNotEmpty()) updateAAD(aad)
     }
 
-actual fun ByteArray.wipe() = Arrays.fill(this, 0)
+public actual fun ByteArray.wipe(): Unit = Arrays.fill(this, 0)
 
 internal actual fun ByteArray.toChars(): CharArray {
     val decoded = Charsets.UTF_8.decode(ByteBuffer.wrap(this))

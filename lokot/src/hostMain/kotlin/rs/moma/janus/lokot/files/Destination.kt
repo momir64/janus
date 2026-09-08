@@ -10,6 +10,7 @@ interface Destination {
     val root: String
     val envFile: String
     val vaultFile: String
+    val schemaFile: String
 
     fun makeDirectory(path: String, mode: Int): Boolean
     fun write(path: String, bytes: ByteArray): Boolean
@@ -21,8 +22,14 @@ interface Destination {
     fun close() {}
 }
 
-class LocalDestination(override val envFile: String, override val vaultFile: String) : Destination {
-    override val root = secretsRoot()
+private fun beside(directory: String, path: String) =
+    if (directory.isEmpty() || path.startsWith("/")) path else "$directory/$path"
+
+class LocalDestination(directory: String, envFile: String, vaultFile: String, schemaFile: String) : Destination {
+    override val root = beside(directory, secretsRoot())
+    override val envFile = beside(directory, envFile)
+    override val vaultFile = beside(directory, vaultFile)
+    override val schemaFile = beside(directory, schemaFile)
 
     override fun makeDirectory(path: String, mode: Int) = Files.makeDirectory(path, mode)
     override fun write(path: String, bytes: ByteArray) = runCatching { Files.writeSecret(path, bytes) }.isSuccess
@@ -39,10 +46,12 @@ class RemoteDestination(
     directory: String,
     envFile: String,
     vaultFile: String,
+    schemaFile: String,
 ) : Destination {
     override val root = uid?.let { "/dev/shm/lokot-$it" } ?: "$directory/.lokot-secrets"
     override val envFile = "$directory/$envFile"
     override val vaultFile = "$directory/$vaultFile"
+    override val schemaFile = "$directory/$schemaFile"
 
     override fun makeDirectory(path: String, mode: Int) = sftp.makeDirectory(path, mode)
     override fun write(path: String, bytes: ByteArray) = sftp.write(path, bytes, FILE_MODE)

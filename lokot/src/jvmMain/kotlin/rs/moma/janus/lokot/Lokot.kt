@@ -14,7 +14,7 @@ import java.nio.file.Path
 private val urlEncoder = Base64.UrlSafe.withPadding(Base64.PaddingOption.ABSENT)
 private val urlDecoder = Base64.UrlSafe.withPadding(Base64.PaddingOption.PRESENT_OPTIONAL)
 
-class Lokot(private val vault: Path) {
+public class Lokot(private val vault: Path) {
     private val file = LokotFile.parse(vault.readBytes())
     private val guard = ReentrantLock()
     private val opened = guard.newCondition()
@@ -22,10 +22,11 @@ class Lokot(private val vault: Path) {
     private var kek: ByteArray? = null
     private var values: MutableMap<String, CharArray>? = null
 
-    fun isUnlocked(): Boolean = guard.withLock { values != null }
+    public fun isUnlocked(): Boolean = guard.withLock { values != null }
 
-    fun challenge(rpId: String): Challenge = Challenge(
+    public fun challenge(rpId: String, home: String = "/"): Challenge = Challenge(
         rpId = rpId,
+        home = home,
         salt = file.header.salt.copyOf(),
         credentialIds = file.header.credentialsFor(rpId).map { it.id.copyOf() },
     )
@@ -52,7 +53,7 @@ class Lokot(private val vault: Path) {
         return true
     }
 
-    fun unlock(body: String): Boolean {
+    public fun unlock(body: String): Boolean {
         if (body.length > MAX_BODY) return false
         val credentialId = field(body, "credentialId") ?: return false
         val output = decode(field(body, "output") ?: return false) ?: return false
@@ -68,12 +69,12 @@ class Lokot(private val vault: Path) {
      * because a String cannot be overwritten: it would sit in the heap until the collector
      * happened to come for it, and every substring or concatenation would leave another behind.
      */
-    fun get(name: String): CharArray = guard.withLock {
+    public fun get(name: String): CharArray = guard.withLock {
         val held = values ?: error("$vault is locked")
         (held[name] ?: error("$vault holds no value for $name")).copyOf()
     }
 
-    fun getBytes(name: String): ByteArray {
+    public fun getBytes(name: String): ByteArray {
         val chars = get(name)
         try {
             return Base64.decode(CharBuffer.wrap(chars))
@@ -82,9 +83,7 @@ class Lokot(private val vault: Path) {
         }
     }
 
-    fun clear(name: String) = guard.withLock { values?.remove(name)?.wipe(); Unit }
-
-    fun lock() = guard.withLock {
+    public fun lock(): Unit = guard.withLock {
         kek?.wipe()
         kek = null
         values?.values?.forEach { it.wipe() }
@@ -92,12 +91,12 @@ class Lokot(private val vault: Path) {
     }
 
     /** Blocks until someone unlocks it, so a caller waits rather than polls. */
-    fun awaitUnlock() = guard.withLock {
+    public fun awaitUnlock(): Unit = guard.withLock {
         while (values == null) opened.await()
     }
 
     /** As [awaitUnlock], but gives up. False if it is still locked when the time is out. */
-    fun awaitUnlock(timeout: Duration): Boolean = guard.withLock {
+    public fun awaitUnlock(timeout: Duration): Boolean = guard.withLock {
         var remaining = timeout.inWholeNanoseconds
         while (values == null && remaining > 0) remaining = opened.awaitNanos(remaining)
         values != null
@@ -108,12 +107,12 @@ class Lokot(private val vault: Path) {
 
     private fun decode(text: String): ByteArray? = runCatching { urlDecoder.decode(text) }.getOrNull()
 
-    companion object {
+    public companion object {
         private const val PAGE = "/lokot/unlock.html"
         private const val DEFAULT_BASE = "/lokot/"
         private const val MAX_BODY = 16 * 1024
 
-        fun page(base: String = DEFAULT_BASE): String {
+        public fun page(base: String = DEFAULT_BASE): String {
             require(base.startsWith("/") && base.none { it == '"' || it.isWhitespace() }) {
                 "the base has to be a path, like $DEFAULT_BASE, not '$base'"
             }
@@ -125,9 +124,14 @@ class Lokot(private val vault: Path) {
     }
 }
 
-class Challenge(val rpId: String, val salt: ByteArray, val credentialIds: List<ByteArray>) {
-    val json: String
-        get() = """{"rpId":"$rpId","salt":"${salt.url()}","credentialIds":[${
+public class Challenge(
+    public val rpId: String,
+    public val home: String,
+    public val salt: ByteArray,
+    public val credentialIds: List<ByteArray>,
+) {
+    public val json: String
+        get() = """{"rpId":"$rpId","home":"$home","salt":"${salt.url()}","credentialIds":[${
             credentialIds.joinToString(",") { "\"${it.url()}\"" }
         }]}"""
 
