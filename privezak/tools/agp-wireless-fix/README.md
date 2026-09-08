@@ -1,9 +1,10 @@
 # AGP wireless-adb test fix
 
-Local workaround for an AGP bug that makes `connectedAndroidTest` fail on any device whose adb
-serial contains a colon, which is every device connected with `adb connect host:port`. This 
-[issue](https://issuetracker.google.com/556780790) has been reported to Google and is in 
-process of being resolved.
+A local workaround for an AGP bug that makes `connectedAndroidTest` report failure on any device
+whose adb serial contains a colon, which is every device connected with `adb connect host:port`.
+The tests themselves pass. The bug is reported to Google as
+[issue 556780790](https://issuetracker.google.com/556780790), so check there before patching,
+since a fixed AGP makes all of this unnecessary.
 
 ## The bug
 
@@ -11,13 +12,13 @@ JUnit Platform's `UniqueIdFormat` percent-encodes `:` inside unique-id segment v
 that adb calls `192.168.0.7:5555` becomes `192.168.0.7%3A5555` everywhere the device id is read
 back out of a unique id. Two consumers then fail to recognise it:
 
-| where | what it does | symptom |
-| --- | --- | --- |
-| `DeviceTrackingListener` in `com.android.tools.utp:gradle-work-action` | keys `perDeviceAllTestsPassed` by the encoded id, while `AndroidTestEngineRunner` looks it up by the raw serial in `serials.all { perDeviceAllTestsPassed[it] ?: false }` | task writes exit code 1, and Gradle says "There were failing tests" while the HTML report says 100% successful |
-| `AndroidTestResultListener` in `com.android.tools.androidtest:android-test-engine-result-listener` | writes the encoded id into the streamed result protos | Android Studio can't match results to a device, renders nothing, dumps raw `<UTP_TEST_RESULT_ON_TEST_RESULT_EVENT>` blocks to the build console |
+| where                                                                                              | what it does                                                                                                                                                              | symptom                                                                                                                                         |
+|----------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------|
+| `DeviceTrackingListener` in `com.android.tools.utp:gradle-work-action`                             | keys `perDeviceAllTestsPassed` by the encoded id, while `AndroidTestEngineRunner` looks it up by the raw serial in `serials.all { perDeviceAllTestsPassed[it] ?: false }` | task writes exit code 1, and Gradle says "There were failing tests" while the HTML report says 100% successful                                  |
+| `AndroidTestResultListener` in `com.android.tools.androidtest:android-test-engine-result-listener` | writes the encoded id into the streamed result protos                                                                                                                     | Android Studio can't match results to a device, renders nothing, dumps raw `<UTP_TEST_RESULT_ON_TEST_RESULT_EVENT>` blocks to the build console |
 
-Both patches decode the id at the single point where it is extracted. Tests themselves were never
-failing. UTP's own `test-result.pb` records `PASSED` throughout.
+Both patches decode the id at the single point where it is extracted. Nothing else changes, and
+UTP's own `test-result.pb` records `PASSED` throughout, patched or not.
 
 Unaffected serials: USB, `emulator-NNNN`, and wireless-debugging mDNS pairings
 (`adb-<id>-<suffix>._adb-tls-connect._tcp`). Pairing over mDNS instead of `adb connect` avoids the
@@ -62,7 +63,7 @@ Push-Location ..\..; .\gradlew.bat --stop; Pop-Location
 Do this before diagnosing any real test failure, so you are not debugging a modified toolchain.
 
 ```powershell
-Get-ChildItem "$env:USERPROFILE\.gradle\caches" -Recurse -Filter "*.jar.orig" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName ($_.FullName -replace '\.orig$','') -Force; Write-Output "reverted $($_.FullName)" }
+Get-ChildItem "$env:USERPROFILE\.gradle\caches" -Recurse -Filter "*.jar.orig" -ErrorAction SilentlyContinue | ForEach-Object { Copy-Item $_.FullName ($_.FullName -replace '\.orig$', '') -Force; Write-Output "reverted $( $_.FullName )" }
 ```
 
 ## Verifying
