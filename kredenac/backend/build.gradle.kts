@@ -46,7 +46,8 @@ dependencies {
     testImplementation(libs.bouncycastle.pkix)
 }
 
-// todo: will need change when secrets manager is implemented
+// Lokot's own secrets stay in the vault; this only carries the plain compose settings
+// (hosts, ports, RP_ID and so on) that `./gradlew test` and an IDE run need from `../.env`.
 tasks.test {
     val envFile = rootProject.file("../.env")
     if (envFile.exists()) {

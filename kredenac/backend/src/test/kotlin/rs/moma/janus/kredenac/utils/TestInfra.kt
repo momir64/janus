@@ -41,7 +41,7 @@ object TestInfra {
         Path(Env.get("LOKOT_DIR"), service, name).let { it.takeIf { it.exists() } ?: Path("..", it.toString()) }
             .readText().trim()
 
-    private val host get() = Env.get("POSTGRES_HOST")
+    private val host get() = Env.get("POSTGRES_HOST", "localhost")
     private val port get() = Env.get("POSTGRES_PORT")
     private val user get() = delivered("postgres", "user")
     private val password get() = delivered("postgres", "password")
@@ -72,7 +72,7 @@ object TestInfra {
     }
 
     val redis: RedisCoroutinesCommands<String, String> by lazy {
-        val uri = RedisURI.Builder.redis(Env.get("REDIS_HOST"), Env.get("REDIS_PORT").toInt())
+        val uri = RedisURI.Builder.redis(Env.get("REDIS_HOST", "localhost"), Env.get("REDIS_PORT").toInt())
             .withSsl(true).withVerifyPeer(true)
             .withPassword(delivered("redis", "redis.conf").removePrefix("requirepass ").toCharArray())
             .withDatabase(TEST_REDIS_INDEX)

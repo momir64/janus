@@ -15,9 +15,9 @@ import rs.moma.janus.kredenac.common.Env
 import com.zaxxer.hikari.HikariConfig
 
 fun configureDatabase() {
-    val dbHost = Env.get("POSTGRES_HOST")
-    val dbPort = Env.get("POSTGRES_PORT")
+    val dbHost = Env.get("POSTGRES_HOST", "localhost")
     val dbName = vault.text("POSTGRES_DB")
+    val dbPort = Env.get("POSTGRES_PORT")
 
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = "jdbc:postgresql://$dbHost:$dbPort/$dbName"

@@ -21,13 +21,14 @@ fun main() {
         privateKey = Path(Env.get("BACKEND_TLS_KEY_PATH")),
         alias = "backend",
     )
+    val redisTrustManager = Tls.trustManager(Path(Env.get("REDIS_TLS_CA_PATH")))
     val port = Env.get("KTOR_PORT").toInt()
 
     val gate = serve(keyStore, port) { configureUnlock(vault) }.start(wait = false)
     vault.awaitUnlock()
     gate.stop(GRACE_MILLIS, TIMEOUT_MILLIS)
 
-    serve(keyStore, port, Application::module).start(wait = true)
+    serve(keyStore, port) { module(redisTrustManager) }.start(wait = true)
 }
 
 private fun serve(keyStore: KeyStore, port: Int, module: Application.() -> Unit) =
