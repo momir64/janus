@@ -9,6 +9,7 @@ import io.ktor.server.application.*
 import io.ktor.http.HttpStatusCode
 import kotlin.io.path.isDirectory
 import kotlin.io.path.pathString
+import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlin.io.path.Path
 import java.nio.file.Path
@@ -20,7 +21,8 @@ fun Application.configureRouting() {
 
     routing {
         host(Env.get("LOKOT_RP_ID")) {
-            route("{...}") { handle { call.error(HttpStatusCode.NotFound) } }
+            handle { call.respond(HttpStatusCode.NotFound) }
+            route("{...}") { handle { call.respond(HttpStatusCode.NotFound) } }
         }
 
         route(API_ROOT) {
