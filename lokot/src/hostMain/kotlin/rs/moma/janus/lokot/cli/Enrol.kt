@@ -172,10 +172,10 @@ fun runRekey(arguments: List<String>): Int {
         val header = unlocked.file.header
 
         val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
+        val salt = Crypto.randomBytes(LokotHeader.SALT_SIZE)
         try {
-            val opened = header.credentials.first { it.id.contentEquals(unlocked.secret.credentialId) }
-            val kept = mutableListOf(Kek.wrap(unlocked.secret.output, opened.id, opened.rpId, kek))
-            var remaining = header.credentials.filterNot { it.id.contentEquals(unlocked.secret.credentialId) }
+            val kept = mutableListOf<WrappedCredential>()
+            var remaining = header.credentials
 
             while (remaining.isNotEmpty()) {
                 val family = remaining.first().rpId
@@ -199,13 +199,19 @@ fun runRekey(arguments: List<String>): Int {
                 val secret = try {
                     println()
                     println("Touch the key to keep it.")
-                    authenticator.hmacSecret(authenticator.pin(), group.map { it.id }, header.salt, family)
+                    authenticator.hmacSecret(authenticator.pin(), group.map { it.id }, salt, family)
                 } finally {
                     authenticator.close()
                 }
 
                 kept += Kek.wrap(secret.output, secret.credentialId, family, kek)
                 remaining = remaining.filterNot { it.id.contentEquals(secret.credentialId) }
+            }
+
+            if (kept.isEmpty()) {
+                println()
+                println("No key was presented, so nothing could open the result. Nothing written.")
+                return 1
             }
 
             if (remaining.isNotEmpty()) {
@@ -218,7 +224,7 @@ fun runRekey(arguments: List<String>): Int {
                 }
             }
 
-            val rekeyed = LokotHeader(project = header.project, salt = header.salt, credentials = kept)
+            val rekeyed = LokotHeader(project = header.project, salt = salt, credentials = kept)
             destination.write(destination.vaultFile, LokotFile.build(rekeyed, unlocked.body, kek))
 
             println()
