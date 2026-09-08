@@ -5,15 +5,16 @@ import io.ktor.server.application.Application
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.engine.sslConnector
 import rs.moma.janus.kredenac.common.Env
+import rs.moma.janus.kredenac.common.Tls
 import io.ktor.server.netty.Netty
-import java.security.KeyStore
-import java.io.File
+import kotlin.io.path.Path
 
 fun main() {
-    val keyStoreFile = File(Env.get("BACKEND_TLS_KEYSTORE_PATH"))
-    val keyStore = KeyStore.getInstance("PKCS12").apply {
-        load(keyStoreFile.inputStream(), Env.get("BACKEND_TLS_KEYSTORE_PASSWORD").toCharArray())
-    }
+    val keyStore = Tls.keyStore(
+        certificate = Path(Env.get("BACKEND_TLS_CERT_PATH")),
+        privateKey = Path(Env.get("BACKEND_TLS_KEY_PATH")),
+        alias = "backend",
+    )
 
     embeddedServer(
         Netty,
@@ -22,11 +23,10 @@ fun main() {
             sslConnector(
                 keyStore = keyStore,
                 keyAlias = "backend",
-                keyStorePassword = { Env.get("BACKEND_TLS_KEYSTORE_PASSWORD").toCharArray() },
-                privateKeyPassword = { Env.get("BACKEND_TLS_KEYSTORE_PASSWORD").toCharArray() }
+                keyStorePassword = { Tls.password },
+                privateKeyPassword = { Tls.password }
             ) {
                 port = Env.get("KTOR_PORT").toInt()
-                keyStorePath = keyStoreFile
             }
         },
         module = Application::module

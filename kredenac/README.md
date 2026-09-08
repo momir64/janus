@@ -30,8 +30,8 @@ browser--> HTTPS--> Cloudflare--> tunnel--> cloudflared (container)
 Everything runs from one `docker-compose.yml`. The backend image builds the frontend with
 Node and the server with Gradle in separate stages and ships a JRE with the fat jar and the
 `dist` folder. `cloudflared` is a token-based connector: ingress rules live in the Cloudflare
-dashboard, and the origin is `https://backend:8080` verified against the local CA mounted at
-`/certs/ca.crt`.
+dashboard, and the origin is `https://backend:8080` verified against the local CA, which lokot
+delivers to the connector as `/run/secrets/ca.crt`.
 
 - [`backend/`](backend): the Ktor server, with WebAuthn, sessions, encryption at rest and
   the API.
@@ -39,7 +39,8 @@ dashboard, and the origin is `https://backend:8080` verified against the local C
 - `Dockerfile`: the three-stage build described above.
 - `docker-compose.yml`: the production stack. `docker-compose.dev.yml` publishes the data
   services on localhost so the backend can run from the IDE.
-- `generate-certs.ps1` / `generate-certs.sh`: the local CA and the leaf certificates.
+- `lokot.toml`: what the vault holds, which service gets which file, and the certificates
+  lokot issues. See [lokot](../lokot).
 
 ## Encryption at rest
 
@@ -53,38 +54,53 @@ is in [`backend/README.md`](backend/README.md#data-at-rest).
 
 ## Configuration
 
-The stack is configured entirely through environment variables. Compose reads them from a
-`.env` file next to `docker-compose.yml`, and the backend reads the same names from its
-environment. These are the variables in use:
+Secrets do not live in a file that anything reads by accident. [lokot](../lokot) keeps them in an
+encrypted vault that opens with a passkey, and `lokot unlock` writes each one as a file into a
+directory per service, on tmpfs where the platform has one. Compose mounts only that service's
+directory, so a container's mount namespace holds its own secrets and nothing else. `lokot lock`
+removes them again once the containers have started and read them.
 
-| Group | Variables |
+The generated `.env` beside `docker-compose.yml` therefore holds nothing sensitive: `LOKOT_DIR`,
+which is where the directories are, and the four container ports compose has to interpolate before
+anything is running.
+
+| Group | Where it comes from |
 | --- | --- |
-| Server | `KTOR_PORT`, `RP_ID`, `RP_ORIGIN`, `BACKEND_TLS_KEYSTORE_PATH`, `BACKEND_TLS_KEYSTORE_PASSWORD` |
-| Postgres | `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_HOST`, `POSTGRES_PORT` |
-| Redis | `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD`, `REDIS_TLS_TRUSTSTORE_PATH`, `REDIS_TLS_TRUSTSTORE_PASSWORD` |
-| MinIO | `MINIO_HOST`, `MINIO_PORT`, `MINIO_CONSOLE_PORT`, `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD`, `MINIO_BUCKET` |
-| Keys | `MASTER_KEY_BASE64`, `PII_ENCRYPTION_KEY_BASE64`, `TOKEN_ENCRYPTION_KEY_BASE64`, `JWT_SECRET`, `CSRF_SECRET`, `DB_HMAC_SECRET` |
-| Email | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` |
-| Tunnel | `CLOUDFLARE_TUNNEL_TOKEN` |
+| `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD` | files, read once by initdb and then baked into the volume, so changing one rotates nothing |
+| `MINIO_ROOT_USER`, `MINIO_ROOT_PASSWORD` | files, on every start, since MinIO keeps no root credentials of its own |
+| `REDIS_PASSWORD` | a generated `redis.conf`, since Redis has no `_FILE` convention |
+| `CLOUDFLARE_TUNNEL_TOKEN` | a file, through `TUNNEL_TOKEN_FILE` |
+| TLS certificates and keys | files, issued by lokot from an internal CA whose key it never writes down |
+| `POSTGRES_PORT`, `REDIS_PORT`, `MINIO_PORT`, `MINIO_CONSOLE_PORT` | the generated `.env` |
+| `POSTGRES_HOST`, `REDIS_HOST`, `MINIO_HOST`, `FRONTEND_DIST_PATH` | the compose file |
+| The backend's own keys, `RP_ID`, `RP_ORIGIN`, `MINIO_BUCKET`, Resend | the vault, read by the backend itself |
 
-`RP_ID` is the domain passkeys are scoped to and `RP_ORIGIN` the exact origin the browser
-will report, e.g. `kredenac.moma.rs` and `https://kredenac.moma.rs`. Compose overrides the
-`*_HOST` values and the certificate paths for the containers, so `.env` can hold the
-values for running the backend on the host.
+That last row is the one still in transit. Until the backend opens the vault directly, those values
+sit in `.env.backend`, which is git-ignored and merged after `.env` by compose. It disappears when
+the backend gets them from the vault.
 
-The keys are all random: 32 bytes, base64-encoded for the `*_BASE64` ones. Rotating
-`MASTER_KEY_BASE64` or `PII_ENCRYPTION_KEY_BASE64` makes existing rows unreadable, and
+`RP_ID` is the domain passkeys are scoped to and `RP_ORIGIN` the exact origin the browser will
+report, e.g. `kredenac.moma.rs` and `https://kredenac.moma.rs`.
+
+The keys are all random: 32 bytes, base64-encoded for the `*_BASE64` ones, and lokot generates them.
+Rotating `MASTER_KEY_BASE64` or `PII_ENCRYPTION_KEY_BASE64` makes existing rows unreadable, and
 rotating `DB_HMAC_SECRET` invalidates every email lookup and integrity hash, so treat them as
-permanent once there is data. The `.env` file is git-ignored. All secrets are stored encrypted using
-[lokot](../lokot). It is still in development, so there is nothing more to say about it
-here yet.
+permanent once there is data.
 
 ## Running it
 
 **Whole stack, as deployed:**
 
 ```bash
+lokot unlock
 docker compose up -d --build
+lokot lock
+```
+
+**From another machine**, with the vault and the passkey on the machine you are sitting at:
+
+```bash
+lokot unlock user@host:/path/to/kredenac
 ```
 
 **Backend from the IDE**, with the data services in Docker:

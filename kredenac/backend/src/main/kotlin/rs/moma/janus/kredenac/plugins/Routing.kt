@@ -7,13 +7,16 @@ import rs.moma.janus.kredenac.routes.authRoutes
 import rs.moma.janus.kredenac.common.Env
 import io.ktor.server.application.*
 import io.ktor.http.HttpStatusCode
+import kotlin.io.path.isDirectory
+import kotlin.io.path.pathString
 import io.ktor.server.routing.*
-import java.io.File
+import kotlin.io.path.Path
+import java.nio.file.Path
 
 const val API_ROOT = "/api"
 
 fun Application.configureRouting() {
-    val frontend = Env.getOrNull("FRONTEND_DIST_PATH")?.let(::File)?.takeIf { it.isDirectory }
+    val frontend = Env.getOrNull("FRONTEND_DIST_PATH")?.let(::Path)?.takeIf { it.isDirectory() }
 
     routing {
         route(API_ROOT) {
@@ -28,9 +31,9 @@ fun Application.configureRouting() {
     }
 }
 
-internal fun Route.serveFrontend(dist: File) {
+internal fun Route.serveFrontend(dist: Path) {
     singlePageApplication {
-        filesPath = dist.path
+        filesPath = dist.pathString
         defaultPage = "index.html"
         useResources = false
     }

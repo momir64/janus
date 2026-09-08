@@ -4,22 +4,25 @@ import rs.moma.janus.kredenac.plugins.serveFrontend
 import io.ktor.server.testing.testApplication
 import io.ktor.client.statement.bodyAsText
 import io.ktor.server.response.respondText
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.createDirectories
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import io.ktor.server.routing.route
 import io.ktor.http.HttpStatusCode
 import io.ktor.client.request.get
 import io.ktor.server.routing.get
+import kotlin.io.path.writeText
 import kotlin.test.assertEquals
+import java.nio.file.Path
 import kotlin.test.Test
-import java.io.File
 
 class StaticRoutingTest {
-    private fun dist(): File {
-        val dir = File.createTempFile("dist", "").let { it.delete(); it.mkdirs(); it }
-        File(dir, "index.html").writeText("SHELL")
-        File(dir, "assets").mkdirs()
-        File(dir, "assets/app.js").writeText("BUNDLE")
+    private fun dist(): Path {
+        val dir = createTempDirectory("dist")
+        dir.resolve("index.html").writeText("SHELL")
+        dir.resolve("assets").createDirectories()
+        dir.resolve("assets/app.js").writeText("BUNDLE")
         return dir
     }
 

@@ -19,7 +19,8 @@ import io.lettuce.core.SslOptions
 import kotlin.io.encoding.Base64
 import io.lettuce.core.RedisURI
 import java.sql.DriverManager
-import java.io.File
+import kotlin.io.path.exists
+import kotlin.io.path.Path
 
 // Real Postgres and Redis, but never the ones used by the app:
 // a separate database and a separate Redis index, both emptied before each test.
@@ -77,14 +78,14 @@ object TestInfra {
         client.options = ClientOptions.builder()
             .sslOptions(
                 SslOptions.builder().jdkSslProvider()
-                    .truststore(truststore, Env.get("REDIS_TLS_TRUSTSTORE_PASSWORD")).build()
+                    .truststore(truststore.toFile(), Env.get("REDIS_TLS_TRUSTSTORE_PASSWORD")).build()
             )
             .build()
         client.connect().coroutines()
     }
 
     // Paths in .env are relative to where the app runs, which is the directory above this one.
-    private fun resolve(path: String): File = File(path).takeIf { it.exists() } ?: File("..", path)
+    private fun resolve(path: String) = Path(path).takeIf { it.exists() } ?: Path("..", path)
 
     suspend fun reset() {
         transaction(database) {
