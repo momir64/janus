@@ -1,7 +1,9 @@
 package rs.moma.janus.lokot.checks
 
+import rs.moma.janus.lokot.externals.Certificates
 import rs.moma.janus.lokot.externals.fromHex
 import rs.moma.janus.lokot.externals.Crypto
+import rs.moma.janus.lokot.externals.Leaf
 
 internal fun cryptoChecks(): List<Check> {
     val cryptoBug = CheckGroup(CRYPTO_BUG)
@@ -10,6 +12,15 @@ internal fun cryptoChecks(): List<Check> {
     val hkdf = cryptoBug.section("HKDF-SHA-256 (RFC 5869)")
     val aes = cryptoBug.section("AES-256-GCM")
     val nonceBug = CheckGroup(NONCE_BUG).section("random")
+    val certificates = cryptoBug.section("certificates")
+
+    val issued by lazy {
+        Certificates.issue(
+            "lokot-selftest-ca",
+            listOf(Leaf("redis", "localhost", listOf("DNS:localhost", "DNS:redis", "IP:127.0.0.1"))),
+            days = 3650,
+        )
+    }
 
     val message = "the quick brown fox"
     val key = "0b".repeat(32).fromHex()
@@ -27,14 +38,11 @@ internal fun cryptoChecks(): List<Check> {
             Crypto.sha256("abc".encodeToByteArray())
         },
 
-        hmac.equal("test", "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7"
-        ) {
+        hmac.equal("test", "b0344c61d8db38535ca8afceaf0bf12b881dc200c9833da726e9376c2e32cff7") {
             Crypto.hmacSha256("0b".repeat(20).fromHex(), "Hi There".encodeToByteArray())
         },
 
-        hkdf.equal("case 1",
-            "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865"
-        ) {
+        hkdf.equal("case 1", "3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865") {
             Crypto.hkdf(
                 ikm = "0b".repeat(22).fromHex(),
                 salt = "000102030405060708090a0b0c".fromHex(),
@@ -42,7 +50,8 @@ internal fun cryptoChecks(): List<Check> {
                 length = 42,
             )
         },
-        hkdf.equal("case 2 (long inputs, multi-block expand)",
+        hkdf.equal(
+            "case 2 (long inputs, multi-block expand)",
             "b11e398dc80327a1c8e7f78c596a49344f012eda2d4efad8a050cc4c19afa97c59045a99cac7827271cb41" +
                     "c65e590e09da3275600c2f09b8367793a9aca3db71cc30c58179ec3e87c14c01d5c1f3434f1d87"
         ) {
@@ -53,13 +62,15 @@ internal fun cryptoChecks(): List<Check> {
                 length = 82,
             )
         },
-        hkdf.equal("case 3 (empty salt and info)",
+        hkdf.equal(
+            "case 3 (empty salt and info)",
             "8da4e775a563c18f715f802a063c5a31b8a11f5c5ee1879ec3454e5f3c738d2d9d201395faa4b61a96c8"
         ) {
             Crypto.hkdf(ikm = "0b".repeat(22).fromHex(), salt = ByteArray(0), info = ByteArray(0), length = 42)
         },
 
-        aes.equal("matches across crypto implementations",
+        aes.equal(
+            "matches across crypto implementations",
             "5cb224d3f0eee5c2b990be6f52afdc3cdb37d3ec89c985779415b43761f3aa41e16cf1"
         ) { sealed() },
 
@@ -91,7 +102,27 @@ internal fun cryptoChecks(): List<Check> {
         nonceBug.equals("returns the requested length", 48) { Crypto.randomBytes(48).size },
         nonceBug.holds("does not repeat") {
             !Crypto.randomBytes(32).contentEquals(Crypto.randomBytes(32))
-        }
+        },
+
+        certificates.holds("issues a CA and a leaf, both PEM") {
+            val leaf = issued.leaves.getValue("redis")
+            issued.authority.startsWith("-----BEGIN CERTIFICATE-----") &&
+                    leaf.certificate.startsWith("-----BEGIN CERTIFICATE-----") &&
+                    leaf.privateKey.startsWith("-----BEGIN PRIVATE KEY-----")
+        },
+        certificates.holds("the CA signed the leaf") {
+            Certificates.signedBy(issued.leaves.getValue("redis").certificate, issued.authority)
+        },
+        certificates.holds("the CA signed itself") { Certificates.signedBy(issued.authority, issued.authority) },
+        certificates.holds("the leaf carries every name it was given") {
+            val certificate = issued.leaves.getValue("redis").certificate
+            Certificates.matchesHost(certificate, "localhost") &&
+                    Certificates.matchesHost(certificate, "redis") &&
+                    !Certificates.matchesHost(certificate, "somewhere-else")
+        },
+        certificates.holds("the CA did not sign itself into a leaf") {
+            !Certificates.signedBy(issued.authority, issued.leaves.getValue("redis").certificate)
+        },
     )
 }
 

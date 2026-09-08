@@ -1,5 +1,7 @@
 package rs.moma.janus.lokot.schema
 
+import rs.moma.janus.lokot.externals.Leaf as CertificateLeaf
+import rs.moma.janus.lokot.externals.Certificates
 import rs.moma.janus.lokot.externals.fromHex
 import rs.moma.janus.lokot.externals.Crypto
 import rs.moma.janus.lokot.externals.toHex
@@ -10,8 +12,16 @@ class Schema(
     val secrets: Map<String, SecretSpec>,
     val deliveries: List<Delivery>,
     val compose: List<String>,
+    val authority: Authority,
 ) {
-    private val written: Set<String> = (deliveries.map { it.secret } + compose).toSet()
+    private val oneLine: Set<String> =
+        (deliveries.filter { it.prefix.isNotEmpty() }.map { it.secret } + compose).toSet()
+
+    fun issueCertificates(values: Map<String, String>): Map<String, String> {
+        val material = authority.material()
+        if (material.isEmpty() || material.keys.all { it in values }) return emptyMap()
+        return authority.issue()
+    }
 
     fun check(values: Map<String, String>): String? {
         secrets.keys.firstOrNull { it !in values }?.let { return "$it is declared in $SOURCE but has no value here" }
@@ -20,8 +30,8 @@ class Schema(
         values.forEach { (name, value) ->
             val problem = when {
                 value.isEmpty() -> "has no value"
-                name in written && value.any { it == '\n' || it == '\r' } ->
-                    "goes into a file of its own, one line long, so it cannot span lines"
+                name in oneLine && value.any { it == '\n' || it == '\r' } ->
+                    "is written onto a line of its own, so it cannot span lines"
                 else -> secrets.getValue(name).check(value)
             }
             problem?.let { return "$name $it" }
@@ -33,7 +43,7 @@ class Schema(
         const val SOURCE = "lokot.toml"
         private val NAME = Regex("[A-Z][A-Z0-9_]*")
         private val PROJECT = Regex("[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}")
-        private val PLANNED = setOf("certs", "bundles")
+        private val PLANNED = setOf("bundles")
 
         fun parse(text: String): Schema {
             val root = Toml.parse(text)
@@ -41,7 +51,7 @@ class Schema(
             root.keys.firstOrNull { it in PLANNED }?.let {
                 throw SchemaException("[$it] is not supported yet")
             }
-            root.unknownKeys(setOf("project", "secrets", "deliver", "compose")).firstOrNull()?.let {
+            root.unknownKeys(setOf("project", "secrets", "deliver", "compose", "certs")).firstOrNull()?.let {
                 throw SchemaException("unknown table '[$it]'")
             }
 
@@ -62,15 +72,21 @@ class Schema(
                 }
             }
 
+            val authority = Authority.parse(root.table("certs"), project)
+            val declared = secrets + authority.material()
+            secrets.keys.firstOrNull { it in authority.material() }?.let {
+                throw SchemaException("'$it' is declared in [secrets] and issued by [certs] too")
+            }
+
             val deliveries = Delivery.parseAll(root.table("deliver"))
-            deliveries.firstOrNull { it.secret !in secrets }?.let {
+            deliveries.firstOrNull { it.secret !in declared }?.let {
                 throw SchemaException("[deliver.${it.service}] names '${it.secret}', which is not in [secrets]")
             }
             deliveries.groupBy { it.path }.values.firstOrNull { it.size > 1 }?.let {
                 throw SchemaException("'${it[0].path}' is written twice, by ${it[0].secret} and ${it[1].secret}")
             }
 
-            return Schema(project, secrets, deliveries, compose(root.table("compose"), secrets.keys))
+            return Schema(project, declared, deliveries, compose(root.table("compose"), declared.keys), authority)
         }
 
         private fun compose(table: TomlTable?, declared: Set<String>): List<String> {
@@ -93,6 +109,76 @@ class Schema(
 }
 
 class SchemaException(message: String) : Exception(message)
+
+class Authority(val commonName: String, val days: Int, val leaves: List<Leaf>) {
+    class Leaf(val name: String, val commonName: String, val altNames: List<String>)
+
+    fun material(): Map<String, SecretSpec> = buildMap {
+        if (leaves.isEmpty()) return@buildMap
+        put(CERTIFICATE, SecretSpec.Material("certificate"))
+        leaves.forEach {
+            put(certificateOf(it.name), SecretSpec.Material("certificate"))
+            put(keyOf(it.name), SecretSpec.Material("private key"))
+        }
+    }
+
+    fun issue(): Map<String, String> {
+        val issued =
+            Certificates.issue(commonName, leaves.map { CertificateLeaf(it.name, it.commonName, it.altNames) }, days)
+        return buildMap {
+            put(CERTIFICATE, issued.authority)
+            issued.leaves.forEach { (name, certificate) ->
+                put(certificateOf(name), certificate.certificate)
+                put(keyOf(name), certificate.privateKey)
+            }
+        }
+    }
+
+    companion object {
+        const val CERTIFICATE = "CA_CRT"
+        private const val DEFAULT_DAYS = 3650
+        private val NAME = Regex("[a-z0-9][a-z0-9-]{0,31}")
+        private val ALT = Regex("(DNS|IP):[A-Za-z0-9.:*-]{1,253}")
+        private val HOST = Regex("[A-Za-z0-9][A-Za-z0-9.-]{0,252}")
+
+        fun certificateOf(name: String) = "${name.uppercase().replace('-', '_')}_CRT"
+        fun keyOf(name: String) = "${name.uppercase().replace('-', '_')}_KEY"
+
+        fun parse(table: TomlTable?, project: String): Authority {
+            if (table == null) return Authority("", DEFAULT_DAYS, emptyList())
+
+            val days = (table.integer("days") ?: DEFAULT_DAYS.toLong()).toInt()
+            if (days !in 1..7300) throw SchemaException("[certs] days must be between 1 and 7300")
+            table.unknownKeys(setOf("days")).firstOrNull { table.entries[it] !is TomlTable }?.let {
+                throw SchemaException("'$it' means nothing in [certs], which takes days and a table per certificate")
+            }
+
+            val leaves = table.keys.filter { table.entries[it] is TomlTable }.map { name ->
+                if (!NAME.matches(name))
+                    throw SchemaException("certificate '$name' must be lower case: letters, digits, dash")
+                leaf(name, table.table(name)!!)
+            }
+            if (leaves.isEmpty()) throw SchemaException("[certs] declares no certificates")
+
+            val commonName = table.string("cn") ?: "$project-internal-ca"
+            return Authority(commonName, days, leaves)
+        }
+
+        private fun leaf(name: String, declaration: TomlTable): Leaf {
+            declaration.unknownKeys(setOf("cn", "alt")).firstOrNull()?.let {
+                throw SchemaException("'$it' means nothing in [certs.$name], which takes cn and alt")
+            }
+            val commonName = declaration.string("cn") ?: throw SchemaException("[certs.$name] needs cn")
+            if (!HOST.matches(commonName)) throw SchemaException("[certs.$name] cn '$commonName' is not a host name")
+
+            val altNames = declaration.strings("alt").orEmpty()
+            altNames.firstOrNull { !ALT.matches(it) }?.let {
+                throw SchemaException("[certs.$name] alt '$it' should read DNS:name or IP:address")
+            }
+            return Leaf(name, commonName, altNames)
+        }
+    }
+}
 
 class Delivery(
     val service: String,
@@ -198,6 +284,12 @@ sealed interface SecretSpec {
 
     class Prompted(val hint: String?) : SecretSpec {
         override fun generate(): String? = null
+    }
+
+    class Material(private val kind: String) : SecretSpec {
+        override fun generate(): String? = null
+        override fun check(value: String): String? =
+            if (value.startsWith("-----BEGIN ")) null else "should be a PEM $kind, issued by 'lokot init'"
     }
 
     companion object {

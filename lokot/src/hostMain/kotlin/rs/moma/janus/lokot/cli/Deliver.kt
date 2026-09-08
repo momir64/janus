@@ -1,18 +1,17 @@
 package rs.moma.janus.lokot.cli
 
+import rs.moma.janus.lokot.files.RemoteDestination
+import rs.moma.janus.lokot.files.LocalDestination
+import rs.moma.janus.lokot.files.Destination
+import rs.moma.janus.lokot.schema.Delivery
 import rs.moma.janus.lokot.LokotException
 import rs.moma.janus.lokot.externals.wipe
-import rs.moma.janus.lokot.io.secretsRoot
-import rs.moma.janus.lokot.schema.Delivery
 import rs.moma.janus.lokot.schema.Schema
-import rs.moma.janus.lokot.files.Files
+import rs.moma.janus.lokot.files.Sftp
 
 fun runUnlock(arguments: List<String>): Int {
     val initialising = arguments.any { it == "-i" || it == "--init" }
-    arguments.firstOrNull { it != "-i" && it != "--init" }?.let {
-        println("'$it' is not something 'lokot unlock' understands. A remote target comes later.")
-        return 1
-    }
+    val target = target(arguments) ?: return 1
 
     val unlocked = unlockVault("use") ?: return 1
     unlocked.kek.wipe()
@@ -32,50 +31,94 @@ fun runUnlock(arguments: List<String>): Int {
     }
 
     val chosen = schema.deliveries.filter { initialising || !it.onlyAtInit }
-
-    val root = secretsRoot()
-    clear(root)
-    if (!Files.makeDirectory(root)) {
-        println("Cannot create $root, so there is nowhere to put the files.")
-        return 1
-    }
-
-    chosen.groupBy { it.service }.forEach { (service, deliveries) ->
-        if (!Files.makeDirectory("$root/$service")) {
-            println("Cannot create $root/$service.")
+    val destination = open(target) ?: return 1
+    try {
+        clear(destination) // an unlock leaves what the schema says now, and nothing it used to say
+        if (!destination.makeDirectory(destination.root)) {
+            println("Cannot create ${destination.root}, so there is nowhere to put the files.")
             return 1
         }
-        deliveries.forEach { write(root, it, unlocked.values.getValue(it.secret)) }
-    }
 
-    if (schema.compose.isNotEmpty()) {
-        val environment = try {
-            renderEnvironment(root, schema.compose, unlocked.values)
-        } catch (failure: LokotException) {
-            println(failure.message)
+        chosen.groupBy { it.service }.forEach { (service, deliveries) ->
+            if (!destination.makeDirectory("${destination.root}/$service")) {
+                println("Cannot create ${destination.root}/$service.")
+                return 1
+            }
+            deliveries.forEach { delivery ->
+                if (!write(destination, delivery, unlocked.values.getValue(delivery.secret))) {
+                    println("Cannot write ${destination.root}/${delivery.path}.")
+                    return 1
+                }
+            }
+        }
+
+        val environment = if (schema.compose.isEmpty()) null
+        else renderEnvironment(destination.root, schema.compose, unlocked.values)
+        if (environment != null && !destination.write(destination.envFile, environment.encodeToByteArray())) {
+            println("Cannot write ${destination.envFile}.")
             return 1
         }
-        Files.writeBytes(ENV_FILE, environment.encodeToByteArray())
-    }
 
-    println()
-    println("Wrote ${pluralize(chosen.size, "file")} under $root")
-    if (schema.compose.isNotEmpty()) println("Wrote ${pluralize(schema.compose.size + 1, "line")} to $ENV_FILE")
-    println("LOKOT_DIR=$root")
-    val held = schema.deliveries.size - chosen.size
-    if (held > 0) println("${pluralize(held, "more file")} would be written by 'lokot unlock -i', on a first run.")
-    println("Run 'lokot lock' when the containers are up; they read their files once, at start.")
-    return 0
+        println()
+        println("Wrote ${pluralize(chosen.size, "file")} under ${destination.root}")
+        if (environment != null)
+            println("Wrote ${pluralize(schema.compose.size + 1, "line")} to ${destination.envFile}")
+        val held = schema.deliveries.size - chosen.size
+        if (held > 0) println("${pluralize(held, "more file")} would be written by 'lokot unlock -i', on a first run.")
+        println("Run 'lokot lock' when the containers are up; they read their files once, at start.")
+        return 0
+    } finally {
+        destination.close()
+    }
 }
 
-fun runLock(): Int {
-    val root = secretsRoot()
-    val removed = clear(root)
-    println(if (removed == 0) "Nothing to remove; $root is already gone." else "Removed $removed from $root.")
+fun runLock(arguments: List<String>): Int {
+    val target = target(arguments) ?: return 1
+    val destination = open(target) ?: return 1
+    try {
+        val removed = clear(destination)
+        val root = destination.root
+        println(if (removed == 0) "Nothing to remove; $root is already gone." else "Removed $removed from $root.")
 
-    if (Files.readText(ENV_FILE)?.startsWith(GENERATED) == true && Files.delete(ENV_FILE))
-        println("Removed $ENV_FILE.")
-    return 0
+        // Only the one lokot wrote: an .env of someone's own is not lokot's to delete.
+        if (destination.read(destination.envFile)
+                ?.startsWith(GENERATED) == true && destination.delete(destination.envFile)
+        )
+            println("Removed ${destination.envFile}.")
+        return 0
+    } finally {
+        destination.close()
+    }
+}
+
+/** `user@host:/path/to/repo`, or nothing at all, which means this machine. */
+class Target(val host: String, val directory: String)
+
+private fun target(arguments: List<String>): Target? {
+    val rest = arguments.filterNot { it == "-i" || it == "--init" }
+    if (rest.size > 1) {
+        println("One target at a time: ${rest.joinToString(" ")}")
+        return null
+    }
+    val text = rest.firstOrNull() ?: return Target("", "")
+
+    val separator = text.indexOf(':')
+    if (separator <= 0 || separator == text.length - 1) {
+        println("A target reads user@host:/path/to/repo, not '$text'.")
+        return null
+    }
+    return Target(text.take(separator), text.drop(separator + 1))
+}
+
+private fun open(target: Target): Destination? {
+    if (target.host.isEmpty()) return LocalDestination(ENV_FILE)
+
+    println("Connecting to ${target.host}. ssh will ask for whatever it needs.")
+    val sftp = Sftp.connect(target.host) ?: run {
+        println("Could not open an sftp session on ${target.host}.")
+        return null
+    }
+    return RemoteDestination(sftp, sftp.uid(), target.directory)
 }
 
 fun renderEnvironment(root: String, names: List<String>, values: Map<String, String>): String {
@@ -94,17 +137,17 @@ fun renderEnvironment(root: String, names: List<String>, values: Map<String, Str
 
 private const val GENERATED = "# generated by lokot"
 
-private fun write(root: String, delivery: Delivery, value: String) {
-    Files.writeSecret("$root/${delivery.path}", (delivery.prefix + value).encodeToByteArray())
-}
+private fun write(destination: Destination, delivery: Delivery, value: String): Boolean =
+    destination.write("${destination.root}/${delivery.path}", (delivery.prefix + value).encodeToByteArray())
 
-private fun clear(root: String): Int {
+private fun clear(destination: Destination): Int {
     var removed = 0
-    Files.list(root).forEach { entry ->
+    val root = destination.root
+    destination.list(root).forEach { entry ->
         val path = "$root/$entry"
-        Files.list(path).forEach { if (Files.delete("$path/$it")) removed++ }
-        if (!Files.deleteDirectory(path) && Files.delete(path)) removed++
+        destination.list(path).forEach { if (destination.delete("$path/$it")) removed++ }
+        if (!destination.deleteDirectory(path) && destination.delete(path)) removed++
     }
-    Files.deleteDirectory(root)
+    destination.deleteDirectory(root)
     return removed
 }

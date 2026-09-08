@@ -20,13 +20,13 @@ class Unlocked(
 fun unlockVault(purpose: String): Unlocked? {
     val file = readVault() ?: return null
     val header = file.header
-
-    val usable = header.credentialsFor(Authenticator.RP_ID)
-    if (usable.isEmpty()) {
-        println("None of the ${pluralize(header.credentials.size, "key")} in $VAULT_FILE was enrolled by lokot")
-        println("itself, so none can be asked for here. Add one from a machine that still has one.")
+    if (header.credentials.isEmpty()) {
+        println("$VAULT_FILE has no keys enrolled at all, so nothing can open it.")
         return null
     }
+
+    val families = header.credentials.groupBy { it.rpId }
+    val order = families.keys.sortedWith(compareBy({ if (it == Authenticator.RP_ID) 0 else 1 }, { it }))
 
     val authenticator = openAuthenticator(purpose) ?: return null
     val secret = try {
@@ -35,13 +35,13 @@ fun unlockVault(purpose: String): Unlocked? {
         println()
         println("Touch the key to open ${header.project}.")
 
-        authenticator.hmacSecret(pin, usable.map { it.id }, header.salt)
+        answer(authenticator, pin, order, families, header.salt)
     } finally {
         authenticator.close()
-    }
+    } ?: return null
 
-    val credential = usable.firstOrNull { it.id.contentEquals(secret.credentialId) } ?: run {
-        println("The key that answered is not one of the ${usable.size} enrolled here.")
+    val credential = header.credentials.firstOrNull { it.id.contentEquals(secret.credentialId) } ?: run {
+        println("The key that answered is not one of the ${header.credentials.size} enrolled here.")
         return null
     }
     val kek = Kek.unwrap(secret.output, credential) ?: run {
@@ -61,6 +61,30 @@ fun unlockVault(purpose: String): Unlocked? {
         return null
     }
     return Unlocked(file, kek, body, secret)
+}
+
+private fun answer(
+    authenticator: Authenticator,
+    pin: String?,
+    order: List<String>,
+    families: Map<String, List<WrappedCredential>>,
+    salt: ByteArray,
+): HmacSecret? {
+    order.forEachIndexed { index, family ->
+        if (index > 0) {
+            println()
+            println("No key answered for '${order[index - 1]}'. Touch one enrolled for '$family'.")
+        }
+        try {
+            return authenticator.hmacSecret(pin, families.getValue(family).map { it.id }, salt, family)
+        } catch (failure: Exception) {
+            if (index == order.lastIndex) {
+                println(failure.message ?: "no key answered")
+                return null
+            }
+        }
+    }
+    return null
 }
 
 fun readVault(): LokotFile? {
@@ -92,7 +116,8 @@ fun runEdit(): Int {
 
         val filled = declared?.secrets.orEmpty()
             .filterKeys { it !in unlocked.values }
-            .mapNotNull { (name, spec) -> spec.generate()?.let { name to it } }
+            .mapNotNull { (name, spec) -> spec.generate()?.let { name to it } } +
+                declared?.issueCertificates(unlocked.values).orEmpty().toList()
         val stored = PlaintextFile.render(unlocked.values)
 
         Editor(

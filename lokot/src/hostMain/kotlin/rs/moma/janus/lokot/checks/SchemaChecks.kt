@@ -8,10 +8,11 @@ import rs.moma.janus.lokot.schema.Toml
 internal fun schemaChecks(): List<Check> {
     val schema = CheckGroup(SCHEMA_BUG)
     val toml = schema.section("toml")
+    val certificates = schema.section("certificates")
     val declaration = schema.section("schema")
     val delivery = schema.section("delivery")
-    val compose = schema.section("compose")
     val generate = schema.section("generate")
+    val compose = schema.section("compose")
     val values = schema.section("values")
 
     val document = """
@@ -96,7 +97,7 @@ internal fun schemaChecks(): List<Check> {
         },
         // Not "unknown table": these are planned, and the message should say so.
         declaration.rejects("rejects tables that are not implemented yet") {
-            Schema.parse(doc("A = { type = \"port\" }\n[certs.ca]\ncn = \"x\""))
+            Schema.parse(doc("A = { type = \"port\" }\n[bundles]\np12 = \"x\""))
         },
 
         delivery.holds("a secret in no group is written nowhere") {
@@ -166,6 +167,41 @@ internal fun schemaChecks(): List<Check> {
             Schema.parse(doc("A = { type = \"port\" }\n[compose]\nenv = \"A\""))
         },
 
+        certificates.holds("a leaf contributes its certificate and key, and the CA its own") {
+            val schema = Schema.parse(doc("A = { type = \"port\" }\n[certs.redis]\ncn = \"localhost\""))
+            schema.secrets.keys == setOf("A", "CA_CRT", "REDIS_CRT", "REDIS_KEY")
+        },
+        certificates.holds("names carry through to delivery") {
+            Schema.parse(
+                doc("A = { type = \"port\" }\n[certs.redis]\ncn = \"localhost\"\n[deliver.redis]\nREDIS_KEY = \"redis.key\"")
+            ).deliveries.single().secret == "REDIS_KEY"
+        },
+        certificates.holds("days defaults to ten years") {
+            Schema.parse(doc("A = { type = \"port\" }\n[certs.redis]\ncn = \"localhost\"")).authority.days == 3650
+        },
+        certificates.holds("no [certs] means no certificates") { parsed().authority.leaves.isEmpty() },
+        certificates.rejects("rejects [certs] with no certificate in it") {
+            Schema.parse(doc("A = { type = \"port\" }\n[certs]\ndays = 30"))
+        },
+        certificates.rejects("rejects a leaf with no cn") {
+            Schema.parse(doc("A = { type = \"port\" }\n[certs.redis]\nalt = [\"DNS:redis\"]"))
+        },
+        certificates.rejects("rejects a key that means nothing in a leaf") {
+            Schema.parse(doc("A = { type = \"port\" }\n[certs.redis]\ncn = \"localhost\"\nbits = 2048"))
+        },
+        // The names are joined into one string for libcrypto, so a separator in one is refused.
+        certificates.rejects("rejects an alternative name that is not DNS or IP") {
+            Schema.parse(doc("A = { type = \"port\" }\n[certs.redis]\ncn = \"localhost\"\nalt = [\"redis\"]"))
+        },
+        certificates.rejects("rejects a separator smuggled into a name") {
+            Schema.parse(
+                doc("A = { type = \"port\" }\n[certs.redis]\ncn = \"localhost\"\nalt = [\"DNS:a,DNS:b\"]")
+            )
+        },
+        certificates.rejects("rejects a name [secrets] already declares") {
+            Schema.parse(doc("CA_CRT = { type = \"prompt\" }\n[certs.redis]\ncn = \"localhost\""))
+        },
+
         values.holds("accepts what init would write") {
             val schema = parsed()
             schema.check(schema.secrets.mapValues { (_, spec) -> spec.generate() ?: "typed by hand" }) == null
@@ -199,9 +235,14 @@ internal fun schemaChecks(): List<Check> {
             schema.check(mapOf("A" to "x".repeat(24))) == null && schema.check(mapOf("A" to "x".repeat(23))) != null
         },
         // The prefix cannot name a second secret, and now the value cannot forge a second line.
-        values.holds("refuses a newline in a value that goes to a file") {
-            Schema.parse(doc("A = { type = \"prompt\" }\n[deliver.pg]\nA = \"a\""))
+        values.holds("refuses a newline where a prefix puts it on a line with something else") {
+            Schema.parse(doc("A = { type = \"prompt\" }\n[deliver.pg]\nA = { file = \"a\", prefix = \"x \" }"))
                 .check(mapOf("A" to "one\ntwo")) != null
+        },
+        // A certificate is exactly the file, so it may span as many lines as it likes.
+        values.holds("allows a newline where the value is the whole file") {
+            Schema.parse(doc("A = { type = \"prompt\" }\n[deliver.pg]\nA = \"a\""))
+                .check(mapOf("A" to PEM)) == null
         },
         values.holds("refuses a newline in a value that goes to .env") {
             Schema.parse(doc("A = { type = \"prompt\" }\n[compose]\nenv = [\"A\"]"))

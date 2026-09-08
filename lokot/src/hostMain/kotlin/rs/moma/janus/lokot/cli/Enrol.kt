@@ -12,7 +12,9 @@ import rs.moma.janus.lokot.files.*
 
 private const val authRpId = Authenticator.RP_ID
 
-fun runInit(): Int {
+fun runInit(arguments: List<String>): Int {
+    val rpId = relyingParty(arguments, "init") ?: return 1
+
     if (!Files.exists(SCHEMA_FILE)) {
         println("No $SCHEMA_FILE here. lokot needs one to know what the vault should contain.")
         return 1
@@ -56,6 +58,14 @@ fun runInit(): Int {
 
         schema.secrets.forEach { (name, spec) -> spec.generate()?.let { values[name] = it } }
 
+        val certificates = schema.issueCertificates(values)
+        if (certificates.isNotEmpty()) {
+            println()
+            println("Issuing ${pluralize(schema.authority.leaves.size, "certificate")} from a new CA.")
+            println("The CA key signs them and is then gone; it is never written anywhere.")
+            values += certificates
+        }
+
         schema.check(values)?.let {
             println()
             println("$it; nothing written.")
@@ -66,18 +76,18 @@ fun runInit(): Int {
 
         println()
         println("Touch the key to enrol.")
-        val enrolment = authenticator.enrol(pin, schema.project, salt)
+        val enrolment = authenticator.enrol(pin, schema.project, salt, rpId)
 
         val secret = enrolment.secret ?: run {
             println("Touch again to derive the key.")
-            authenticator.hmacSecret(pin, listOf(enrolment.credentialId), salt)
+            authenticator.hmacSecret(pin, listOf(enrolment.credentialId), salt, rpId)
         }
 
         val kek = Crypto.randomBytes(Crypto.KEY_SIZE)
         val header = LokotHeader(
             project = schema.project,
             salt = salt,
-            credentials = listOf(Kek.wrap(secret.output, secret.credentialId, authRpId, kek)),
+            credentials = listOf(Kek.wrap(secret.output, secret.credentialId, rpId, kek)),
         )
 
         Files.writeBytes(VAULT_FILE, LokotFile.build(header, VaultBody(declared, values), kek))
@@ -94,13 +104,21 @@ fun runInit(): Int {
     }
 }
 
-fun runAddKey(): Int {
+fun runAddKey(arguments: List<String>): Int {
+    val rpId = relyingParty(arguments, "add-key") ?: return 1
+    val browserFamily = rpId != Authenticator.RP_ID
+
     val unlocked = unlockVault("open the vault with") ?: return 1
     val kek = unlocked.kek
     try {
         val header = unlocked.file.header
 
         println()
+        if (browserFamily) {
+            println("The next key is enrolled for '$rpId', so a browser at that origin can use it.")
+            println("'lokot unlock' tries lokot's own keys first, and this one only if none answers.")
+            println()
+        }
         println(CONNECT_NEXT_KEY)
         readlnOrNull() ?: return 1
 
@@ -111,10 +129,10 @@ fun runAddKey(): Int {
             println()
             println("Touch the key to enrol.")
 
-            val enrolment = authenticator.enrol(pin, header.project, header.salt)
+            val enrolment = authenticator.enrol(pin, header.project, header.salt, rpId)
             enrolment.secret ?: run {
                 println("Touch again to derive the key.")
-                authenticator.hmacSecret(pin, listOf(enrolment.credentialId), header.salt)
+                authenticator.hmacSecret(pin, listOf(enrolment.credentialId), header.salt, rpId)
             }
         } finally {
             authenticator.close()
@@ -128,13 +146,14 @@ fun runAddKey(): Int {
         // The header is associated data, so adding a credential means resealing the body too.
         val extended = LokotHeader(
             project = header.project, salt = header.salt, credentials = header.credentials + Kek.wrap(
-                enrolment.output, enrolment.credentialId, authRpId, kek
+                enrolment.output, enrolment.credentialId, rpId, kek
             )
         )
         Files.writeBytes(VAULT_FILE, LokotFile.build(extended, unlocked.body, kek))
 
         println()
         println("$VAULT_FILE now opens with ${pluralize(extended.credentials.size, "key")}.")
+        if (browserFamily) println("${extended.credentialsFor(rpId).size} of them for '$rpId'.")
         return 0
     } finally {
         kek.wipe()
@@ -152,10 +171,15 @@ fun runRekey(): Int {
         var remaining = header.credentials.filterNot { it.id.contentEquals(unlocked.secret.credentialId) }
 
         while (remaining.isNotEmpty()) {
+            val family = remaining.first().rpId
+            val group = remaining.filter { it.rpId == family }
+
             println()
             println(
                 "${pluralize(kept.size, "key")} kept so far. ${pluralize(remaining.size, "other key")} still enrolled."
             )
+            if (family != authRpId)
+                println("${pluralize(group.size, "of them")} enrolled for '$family', which a browser uses.")
             println("Connect one and press Enter to keep it, or type 'done' to drop the rest.")
             if (readlnOrNull()?.trim()?.lowercase() == "done") break
 
@@ -163,12 +187,12 @@ fun runRekey(): Int {
             val secret = try {
                 println()
                 println("Touch the key to keep it.")
-                authenticator.hmacSecret(authenticator.pin(), remaining.map { it.id }, header.salt)
+                authenticator.hmacSecret(authenticator.pin(), group.map { it.id }, header.salt, family)
             } finally {
                 authenticator.close()
             }
 
-            kept += Kek.wrap(secret.output, secret.credentialId, authRpId, kek)
+            kept += Kek.wrap(secret.output, secret.credentialId, family, kek)
             remaining = remaining.filterNot { it.id.contentEquals(secret.credentialId) }
         }
 
@@ -192,3 +216,25 @@ fun runRekey(): Int {
         kek.wipe()
     }
 }
+
+private fun relyingParty(arguments: List<String>, command: String): String? {
+    val flag = arguments.indexOfFirst { it == "--rp" }
+    if (flag < 0) {
+        arguments.firstOrNull()?.let {
+            println("'$it' is not something 'lokot $command' understands. Only --rp <id>.")
+            return null
+        }
+        return Authenticator.RP_ID
+    }
+    val rpId = arguments.getOrNull(flag + 1) ?: run {
+        println("--rp needs the relying party id, like --rp kredenac.moma.rs")
+        return null
+    }
+    if (arguments.size > 2 || !RELYING_PARTY.matches(rpId)) {
+        println("A relying party id is a host name, like kredenac.moma.rs, not '$rpId'.")
+        return null
+    }
+    return rpId
+}
+
+private val RELYING_PARTY = Regex("[a-z0-9]([a-z0-9-]*[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*")

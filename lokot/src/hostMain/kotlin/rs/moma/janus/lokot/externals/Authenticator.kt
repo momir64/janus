@@ -27,12 +27,12 @@ class Authenticator private constructor(val device: Device, private val handle: 
     context(scope: MemScope)
     val ByteArray.uBytes: CPointer<UByteVar>; get() = this.toUBytes(scope)
 
-    fun enrol(pin: String?, project: String, salt: ByteArray): Enrolment = memScoped {
+    fun enrol(pin: String?, project: String, salt: ByteArray, rpId: String = RP_ID): Enrolment = memScoped {
         val credential = fido_cred_new() ?: error("fido_cred_new returned null")
 
         try {
             ok(::fido_cred_set_type, credential, COSE_ES256)
-            ok(::fido_cred_set_rp, credential, RP_ID, "lokot")
+            ok(::fido_cred_set_rp, credential, rpId, "lokot")
             ok(::fido_cred_set_clientdata, credential, CLIENT_DATA.uBytes, CLIENT_DATA.size())
 
             val userId = Crypto.sha256(project.encodeToByteArray()).copyOf(16)
@@ -58,16 +58,16 @@ class Authenticator private constructor(val device: Device, private val handle: 
         }
     }
 
-    /**
-     * One UV+UP assertion. [credentialIds] is offered to the authenticator, it picks
-     * whichever it holds. That's why every credential in a file shares one salt,
-     * since the salt has to be chosen before it is known which key will answer.
-     */
-    fun hmacSecret(pin: String?, credentialIds: List<ByteArray>, salt: ByteArray): HmacSecret = memScoped {
+    fun hmacSecret(
+        pin: String?,
+        credentialIds: List<ByteArray>,
+        salt: ByteArray,
+        rpId: String = RP_ID,
+    ): HmacSecret = memScoped {
         require(credentialIds.isNotEmpty()) { "no credentials to try" }
         val assertion = fido_assert_new() ?: error("fido_assert_new returned null")
         try {
-            ok(::fido_assert_set_rp, assertion, RP_ID)
+            ok(::fido_assert_set_rp, assertion, rpId)
             ok(::fido_assert_set_clientdata, assertion, CLIENT_DATA.uBytes, CLIENT_DATA.size())
             credentialIds.forEach { ok(::fido_assert_allow_cred, assertion, it.uBytes, it.size()) }
             ok(::fido_assert_set_extensions, assertion, FIDO_EXT_HMAC_SECRET)
