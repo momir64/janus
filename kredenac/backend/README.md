@@ -163,7 +163,7 @@ src/main/kotlin/rs/moma/janus/kredenac/
 src/main/resources/
   emails/                  HTML templates, filled with escaped values
   aaguid-names.json        AAGUID to authenticator name for the settings page
-libs/lokot-0.0.1.jar       lokot's JVM target, copied in from a lokot build
+libs/lokot.jar             lokot's JVM target, copied in from a lokot build
 ```
 
 `Owner` is a context parameter: a route body runs inside `context(Owner(userId, privezak))`

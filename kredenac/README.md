@@ -49,9 +49,9 @@ against the local CA, which lokot delivers to it as `/run/secrets/ca.crt`.
   lokot issues. See [lokot](../lokot).
 - `.env.lokot`: the vault itself, encrypted, and committed on purpose. Its plaintext header
   only says which passkeys can open it.
-- `backend/libs/lokot-0.0.1.jar`: lokot's JVM target. Refresh it with
-  `cd ../lokot && ./gradlew jvmJar && cp build/*/libs/lokot-jvm-0.0.1.jar
-  ../kredenac/backend/libs/lokot-0.0.1.jar`. The backend build warns when it has fallen behind.
+- `backend/libs/lokot.jar`: lokot's JVM target. Refresh it with
+  `cd ../lokot && ./gradlew jvmJar && cp build/*/libs/lokot.jar
+  ../kredenac/backend/libs/lokot.jar`. The backend build warns when it has fallen behind.
 
 ## Encryption at rest
 
