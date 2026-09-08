@@ -2,6 +2,9 @@ plugins {
     kotlin("multiplatform") version "2.4.0"
 }
 
+group = "rs.moma.janus"
+version = "0.0.1"
+
 repositories {
     mavenCentral()
 }
@@ -26,6 +29,10 @@ val sysroot: String =
 layout.buildDirectory.set(layout.projectDirectory.dir("build/${if (isWindows) "mingw" else "linux-$machine"}"))
 
 kotlin {
+    jvmToolchain(21)
+    jvm()
+    sourceSets.getByName("jvmTest").dependencies { implementation(kotlin("test")) }
+
     val hostTarget = when {
         isWindows -> mingwX64("host")
         hostOs != "Linux" -> throw GradleException("lokot has no target for host $hostOs")

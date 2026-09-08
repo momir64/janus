@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>lokot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@200;300;400;500&family=Spline+Sans+Mono:wght@300;400&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #121211;
+    --border: #6e6e6e;
+    --border-strong: #909090;
+    --text: #cecece;
+    --muted: #afafaf;
+    --edge: var(--border);
+    --edge-accent: var(--border-strong);
+    --label: var(--text);
+    --noise: 150px;
+    --mono: "Spline Sans Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+    --display: "Chakra Petch", ui-sans-serif, system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100dvh; background: var(--bg); color: var(--text);
+    font-family: var(--mono); font-weight: 300;
+    display: flex; align-items: center; justify-content: center; padding: 0 24px;
+  }
+  body::before {
+    content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none; mix-blend-mode: overlay;
+    background-repeat: repeat; background-size: var(--noise) var(--noise);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.35' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncG type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncB type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncA type='discrete' tableValues='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  main { position: relative; z-index: 1; width: 100%; max-width: 420px; text-align: center; }
+  button {
+    appearance: none; background: none; padding: 0; cursor: pointer;
+    position: relative; display: inline-flex; align-items: center; justify-content: center;
+    overflow: hidden; width: 100%; height: 86px;
+    border: 3px solid var(--edge); color: var(--label);
+    font-family: var(--display); font-weight: 500; font-size: 32px;
+    transition: border-color 0.15s ease, color 0.15s ease;
+  }
+  button::before, button::after { content: ""; position: absolute; width: 16px; height: 16px; }
+  button::before {
+    top: 8px; left: 8px;
+    border-top: 2.5px solid var(--edge); border-left: 2.5px solid var(--edge);
+  }
+  button::after {
+    bottom: 8px; right: 8px;
+    border-bottom: 2.5px solid var(--edge); border-right: 2.5px solid var(--edge);
+  }
+  button:focus-visible { outline: 1px solid var(--text); outline-offset: 2px; }
+  button:disabled { opacity: 0.5; cursor: default; }
+  @media (hover: hover) {
+    button:not(:disabled):hover { --edge: var(--border-strong); --edge-accent: var(--text); --label: #ffffff; }
+  }
+  button:not(:disabled):active { --edge: var(--border-strong); --edge-accent: var(--text); --label: #ffffff; }
+
+  p { color: var(--muted); font-size: 15px; min-height: 1.5rem; margin: 24px 0 0; overflow-wrap: anywhere; }
+
+  @media (min-width: 900px) {
+    :root { --noise: 240px; }
+    main { max-width: 560px; }
+    h1 { font-size: 112px; margin-bottom: 64px; }
+    button { height: 132px; border-width: 4px; font-size: 42px; }
+    button::before, button::after { width: 16px; height: 16px; border-width: 3px; }
+    button::before { top: 12px; left: 12px; }
+    button::after { bottom: 12px; right: 12px; }
+    p { font-size: 18px; margin-top: 32px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <button id="unlock">UNLOCK&nbsp; LOKOT</button>
+  <p id="message"></p>
+</main>
+<script>
+  const button = document.getElementById("unlock");
+  const message = document.getElementById("message");
+
+  const fromUrl = text => Uint8Array.from(atob(text.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+  const toUrl = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+  const say = text => { message.textContent = text; };
+
+  async function unlock() {
+    button.disabled = true;
+    try {
+      say("asking the vault what to sign");
+      const challenge = await (await fetch("challenge")).json();
+      if (!challenge.credentialIds.length) throw new Error("no passkey is enrolled for this origin");
+
+      say("waiting for your passkey");
+      const assertion = await navigator.credentials.get({
+        publicKey: {
+          challenge: crypto.getRandomValues(new Uint8Array(32)),
+          rpId: challenge.rpId,
+          userVerification: "required",
+          allowCredentials: challenge.credentialIds.map(id => ({ type: "public-key", id: fromUrl(id) })),
+          extensions: { prf: { eval: { first: fromUrl(challenge.salt) } } },
+        },
+      });
+
+      const prf = assertion.getClientExtensionResults().prf;
+      if (!prf || !prf.results) throw new Error("this browser did not evaluate the PRF extension");
+
+      say("opening");
+      const response = await fetch("unlock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ credentialId: toUrl(assertion.rawId), output: toUrl(prf.results.first) }),
+      });
+
+      if (!response.ok) throw new Error("that key did not open it");
+      say("unlocked");
+      button.remove();
+      setTimeout(() => location.replace("/"), 1200);
+    } catch (failure) {
+      say(failure.message || String(failure));
+      button.disabled = false;
+    }
+  }
+
+  button.addEventListener("click", unlock);
+</script>
+</body>
+</html>

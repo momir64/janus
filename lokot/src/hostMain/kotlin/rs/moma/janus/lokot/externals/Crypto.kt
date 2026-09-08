@@ -4,10 +4,9 @@ import kotlinx.cinterop.*
 import crypto.*
 
 @OptIn(ExperimentalForeignApi::class)
-object Crypto {
-    const val KEY_SIZE = 32
-    const val NONCE_SIZE = 12
-    const val TAG_SIZE = 16
+private object Native {
+    const val NONCE_SIZE = Crypto.NONCE_SIZE
+    const val TAG_SIZE = Crypto.TAG_SIZE
 
     context(scope: MemScope)
     val ByteArray.uBytes: CPointer<UByteVar>; get() = this.toUBytes(scope)
@@ -32,36 +31,8 @@ object Crypto {
         digest.readBytes(32)
     }
 
-    /**
-     * RFC 5869 HKDF. Extract folds [ikm] and [salt] into a pseudorandom key,
-     * expand stretches that to [length] bytes bound to [info].
-     */
-    fun hkdf(ikm: ByteArray, salt: ByteArray, info: ByteArray, length: Int): ByteArray {
-        require(length in 1..(255 * 32)) { "HKDF length $length out of range" }
-
-        // 2.2. Step 1: Extract - "If not provided, the salt is set to a string of HashLen zeros"
-        val prk = hmacSha256(if (salt.isEmpty()) ByteArray(32) else salt, ikm)
-        val output = ByteArray(length)
-        var previous = ByteArray(0)
-        var written = 0
-        var counter = 1
-
-        while (written < length) {
-            previous = hmacSha256(prk, previous + info + byteArrayOf(counter.toByte()))
-            val take = minOf(previous.size, length - written)
-            previous.copyInto(output, written, 0, take)
-            written += take
-            counter++
-        }
-
-        prk.wipe()
-        previous.wipe()
-        return output
-    }
-
     /** AES-256-GCM. Returns ciphertext with the 16-byte tag appended. */
     fun aesGcmSeal(key: ByteArray, nonce: ByteArray, plaintext: ByteArray, aad: ByteArray): ByteArray {
-        requireSizes(key, nonce)
         return memScoped {
             withCipherContext { ctx ->
                 val written = alloc<IntVar>()
@@ -86,9 +57,6 @@ object Crypto {
 
     /** Reverses [aesGcmSeal]. Returns null when the tag does not verify, either because of tampering or a wrong key. */
     fun aesGcmOpen(key: ByteArray, nonce: ByteArray, sealed: ByteArray, aad: ByteArray): ByteArray? {
-        requireSizes(key, nonce)
-        if (sealed.size < TAG_SIZE) return null
-
         val bodyLength = sealed.size - TAG_SIZE
         return memScoped {
             withCipherContext { ctx ->
@@ -124,20 +92,35 @@ object Crypto {
         }
     }
 
-    private fun requireSizes(key: ByteArray, nonce: ByteArray) {
-        require(key.size == KEY_SIZE) { "key must be $KEY_SIZE bytes, was ${key.size}" }
-        require(nonce.size == NONCE_SIZE) { "nonce must be $NONCE_SIZE bytes, was ${nonce.size}" }
-    }
-
     private fun check(result: Int, call: String) {
         if (result != 1) error("$call failed")
     }
 }
 
+internal actual fun platformRandomBytes(count: Int): ByteArray = Native.randomBytes(count)
+
+internal actual fun platformSha256(data: ByteArray): ByteArray = Native.sha256(data)
+
+internal actual fun platformHmacSha256(key: ByteArray, data: ByteArray): ByteArray = Native.hmacSha256(key, data)
+
+internal actual fun platformAesGcmSeal(
+    key: ByteArray,
+    nonce: ByteArray,
+    plaintext: ByteArray,
+    aad: ByteArray,
+): ByteArray = Native.aesGcmSeal(key, nonce, plaintext, aad)
+
+internal actual fun platformAesGcmOpen(
+    key: ByteArray,
+    nonce: ByteArray,
+    sealed: ByteArray,
+    aad: ByteArray,
+): ByteArray? = Native.aesGcmOpen(key, nonce, sealed, aad)
+
 fun ByteArray.size(): ULong = size.toULong()
 
 @OptIn(ExperimentalForeignApi::class)
-fun ByteArray.wipe() {
+actual fun ByteArray.wipe() {
     if (isEmpty()) return
     usePinned { OPENSSL_cleanse(it.addressOf(0), size()) }
 }
@@ -147,12 +130,4 @@ internal fun ByteArray.toUBytes(scope: MemScope): CPointer<UByteVar> {
     val buffer = scope.allocArray<UByteVar>(maxOf(size, 1))
     forEachIndexed { index, byte -> buffer[index] = byte.toUByte() }
     return buffer
-}
-
-fun ByteArray.toHex(): String = joinToString("") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }
-
-fun String.fromHex(): ByteArray {
-    val cleaned = filterNot { it.isWhitespace() }
-    require(cleaned.length % 2 == 0) { "hex string has odd length" }
-    return ByteArray(cleaned.length / 2) { cleaned.substring(it * 2, it * 2 + 2).toInt(16).toByte() }
 }
