@@ -1,6 +1,6 @@
 package rs.moma.janus.lokot.externals
 
-object Crypto {
+internal object Crypto {
     const val KEY_SIZE = 32
     const val NONCE_SIZE = 12
     const val TAG_SIZE = 16
@@ -50,9 +50,13 @@ object Crypto {
 
 expect fun ByteArray.wipe()
 
-fun ByteArray.toHex(): String = joinToString("") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }
+fun CharArray.wipe() = fill('\u0000')
 
-fun String.fromHex(): ByteArray {
+internal expect fun ByteArray.toChars(): CharArray
+
+internal fun ByteArray.toHex(): String = joinToString("") { (it.toInt() and 0xFF).toString(16).padStart(2, '0') }
+
+internal fun String.fromHex(): ByteArray {
     val cleaned = filterNot { it.isWhitespace() }
     require(cleaned.length % 2 == 0) { "hex string has odd length" }
     return ByteArray(cleaned.length / 2) { cleaned.substring(it * 2, it * 2 + 2).toInt(16).toByte() }

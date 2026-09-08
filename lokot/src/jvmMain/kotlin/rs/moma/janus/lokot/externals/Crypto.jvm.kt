@@ -5,6 +5,7 @@ import javax.crypto.AEADBadTagException
 import javax.crypto.spec.SecretKeySpec
 import java.security.MessageDigest
 import java.security.SecureRandom
+import java.nio.ByteBuffer
 import javax.crypto.Cipher
 import java.util.Arrays
 import javax.crypto.Mac
@@ -44,3 +45,8 @@ private fun cipher(mode: Int, key: ByteArray, nonce: ByteArray, aad: ByteArray):
     }
 
 actual fun ByteArray.wipe() = Arrays.fill(this, 0)
+
+internal actual fun ByteArray.toChars(): CharArray {
+    val decoded = Charsets.UTF_8.decode(ByteBuffer.wrap(this))
+    return CharArray(decoded.remaining()).also { decoded.get(it) }
+}

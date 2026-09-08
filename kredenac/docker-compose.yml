@@ -56,7 +56,6 @@ services:
     restart: unless-stopped
     env_file:
       - .env
-      - .env.backend
     environment:
       POSTGRES_HOST: postgres
       REDIS_HOST: redis
@@ -67,6 +66,7 @@ services:
       FRONTEND_DIST_PATH: /app/static
     volumes:
       - ${LOKOT_DIR}/backend:/run/secrets:ro
+      - ./.env.lokot:/app/.env.lokot:ro
     depends_on:
       - postgres
       - redis

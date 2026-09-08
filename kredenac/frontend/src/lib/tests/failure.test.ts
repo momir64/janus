@@ -18,6 +18,13 @@ describe("failure", () => {
     expect(offline).toBe(false);
   });
 
+  it("treats a server error as offline, which is what a locked vault answers", () => {
+    const { status, offline } = failure(new ApiError(503, "Service Unavailable"));
+
+    expect(status).toBe(503);
+    expect(offline).toBe(true);
+  });
+
   it("treats a failed fetch as offline, since that is what a TypeError means here", () => {
     expect(failure(new TypeError("Failed to fetch")).offline).toBe(true);
   });

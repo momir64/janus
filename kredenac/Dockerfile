@@ -9,6 +9,7 @@ FROM eclipse-temurin:21-jdk-alpine AS backend
 WORKDIR /src
 COPY backend/gradlew backend/settings.gradle.kts backend/build.gradle.kts ./
 COPY backend/gradle ./gradle
+COPY backend/libs ./libs
 COPY backend/src ./src
 RUN --mount=type=cache,target=/root/.gradle ./gradlew --no-daemon buildFatJar
 

@@ -31,7 +31,7 @@ internal fun formatChecks(): List<Check> {
 
     val secrets = mapOf("SECRET_A" to "<secret_value>", "SECRET_B" to PEM)
     val schema = "project = \"example\"\n[secrets]\nSECRET_A = { type = \"port\" }\n"
-    fun body() = VaultBody(schema, secrets)
+    fun body() = VaultBody(schema, secrets.asChars())
     val bodySize = body().encode().size
     fun file() = LokotFile.build(header(credential()), body(), kek)
     fun twoKeyFile() = LokotFile.build(header(credential(), secondCredential()), body(), kek)
@@ -40,9 +40,9 @@ internal fun formatChecks(): List<Check> {
 
     return listOf(
         encoding.holds("round trips"
-        ) { PlaintextFile.decode(PlaintextFile.encode(entries)) == entries },
+        ) { PlaintextFile.decode(PlaintextFile.encode(entries)).asText() == entries },
         encoding.holds("multi-line values survive") {
-            PlaintextFile.decode(PlaintextFile.encode(mapOf("CERT" to PEM)))["CERT"] == PEM
+            PlaintextFile.decode(PlaintextFile.encode(mapOf("CERT" to PEM))).asText()["CERT"] == PEM
         },
         encoding.rejects("rejects keys with separators") {
             PlaintextFile.encode(mapOf("a=b" to "x"))
@@ -68,7 +68,7 @@ internal fun formatChecks(): List<Check> {
             val parsed = LokotFile.parse(twoKeyFile())
             parsed.header.credentials.all { wrapped ->
                 val output = if (wrapped.id.contentEquals(credentialId)) hmacOutput else secondOutput
-                parsed.open(Kek.unwrap(output, wrapped)!!)?.values == secrets
+                parsed.open(Kek.unwrap(output, wrapped)!!)?.values?.asText() == secrets
             }
         },
         addKey.holds("the credentials keep their order and identity") {
@@ -85,14 +85,14 @@ internal fun formatChecks(): List<Check> {
         },
         rekeying.holds("the presented key opens the re-keyed file") {
             val rekeyed = LokotFile.parse(rekeyedFile())
-            rekeyed.open(Kek.unwrap(secondOutput, rekeyed.header.credentials.single())!!)?.values == secrets
+            rekeyed.open(Kek.unwrap(secondOutput, rekeyed.header.credentials.single())!!)?.values?.asText() == secrets
         },
         rekeying.holds("the revoked key opens nothing in it") {
             val rekeyed = LokotFile.parse(rekeyedFile())
             rekeyed.header.credentials.all { Kek.unwrap(hmacOutput, it) == null } && rekeyed.open(kek) == null
         },
 
-        lokotFile.holds("secrets round trip") { LokotFile.parse(file()).open(kek)?.values == secrets },
+        lokotFile.holds("secrets round trip") { LokotFile.parse(file()).open(kek)?.values?.asText() == secrets },
         lokotFile.holds("salt survives") {
             LokotFile.parse(file()).header.salt.contentEquals(ByteArray(LokotHeader.SALT_SIZE) { it.toByte() })
         },

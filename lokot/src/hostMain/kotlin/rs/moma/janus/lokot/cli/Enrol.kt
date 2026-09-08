@@ -90,7 +90,7 @@ fun runInit(arguments: List<String>): Int {
             credentials = listOf(Kek.wrap(secret.output, secret.credentialId, rpId, kek)),
         )
 
-        Files.writeBytes(VAULT_FILE, LokotFile.build(header, VaultBody(declared, values), kek))
+        Files.writeBytes(VAULT_FILE, LokotFile.build(header, VaultBody(declared, values.asChars()), kek))
         kek.wipe()
 
         println()

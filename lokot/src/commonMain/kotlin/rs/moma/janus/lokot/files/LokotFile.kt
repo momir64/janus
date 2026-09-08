@@ -29,7 +29,7 @@ import rs.moma.janus.lokot.externals.wipe
  * wrapped keys, and the RP id each was enrolled under are all covered by the tag: editing any of
  * them makes the body fail to open rather than silently changing behavior.
  */
-class LokotFile private constructor(
+internal class LokotFile private constructor(
     val header: LokotHeader,
     private val associatedData: ByteArray,
     private val nonce: ByteArray,
@@ -77,7 +77,7 @@ class LokotFile private constructor(
             require(bytes.size - bodyStart >= NONCE_SIZE + TAG_SIZE) { "not a lokot file: body truncated" }
 
             return LokotFile(
-                header = LokotHeader.fromMap(PlaintextFile.decode(bytes.copyOfRange(headerStart, bodyStart - 1))),
+                header = LokotHeader.fromMap(PlaintextFile.decodeText(bytes.copyOfRange(headerStart, bodyStart - 1))),
                 associatedData = bytes.copyOfRange(0, bodyStart),
                 nonce = bytes.copyOfRange(bodyStart, bodyStart + NONCE_SIZE),
                 body = bytes.copyOfRange(bodyStart + NONCE_SIZE, bytes.size),
@@ -86,7 +86,7 @@ class LokotFile private constructor(
     }
 }
 
-class LokotHeader(val project: String, val salt: ByteArray, val credentials: List<WrappedCredential>) {
+internal class LokotHeader(val project: String, val salt: ByteArray, val credentials: List<WrappedCredential>) {
     init {
         require(salt.size == SALT_SIZE) { "salt must be $SALT_SIZE bytes, was ${salt.size}" }
     }
@@ -129,9 +129,9 @@ class LokotHeader(val project: String, val salt: ByteArray, val credentials: Lis
     }
 }
 
-class WrappedCredential(val id: ByteArray, val rpId: String, val nonce: ByteArray, val sealed: ByteArray)
+internal class WrappedCredential(val id: ByteArray, val rpId: String, val nonce: ByteArray, val sealed: ByteArray)
 
-object Kek {
+internal object Kek {
     private const val WRAP_INFO = "lokot-kek-wrap-v1"
 
     private fun derive(hmacOutput: ByteArray) = hkdf(hmacOutput, ByteArray(0), WRAP_INFO.encodeToByteArray(), KEY_SIZE)

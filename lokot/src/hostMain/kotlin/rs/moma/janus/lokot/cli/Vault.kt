@@ -8,16 +8,16 @@ import rs.moma.janus.lokot.schema.Schema
 import rs.moma.janus.lokot.files.Files
 import rs.moma.janus.lokot.files.*
 
-class Unlocked(
+internal class Unlocked(
     val file: LokotFile,
     val kek: ByteArray,
     val body: VaultBody,
     val secret: HmacSecret,
 ) {
-    val values: Map<String, String> get() = body.values
+    val values: Map<String, String> get() = body.values.asText()
 }
 
-fun unlockVault(purpose: String): Unlocked? {
+internal fun unlockVault(purpose: String): Unlocked? {
     val file = readVault() ?: return null
     val header = file.header
     if (header.credentials.isEmpty()) {
@@ -87,7 +87,7 @@ private fun answer(
     return null
 }
 
-fun readVault(): LokotFile? {
+internal fun readVault(): LokotFile? {
     val bytes = Files.readBytes(VAULT_FILE) ?: run {
         println("No $VAULT_FILE here. Run 'lokot init' to create one.")
         return null
@@ -134,7 +134,7 @@ fun runEdit(): Int {
             },
             save = { text ->
                 try {
-                    val body = VaultBody(schema, PlaintextFile.parse(text))
+                    val body = VaultBody(schema, PlaintextFile.parse(text).asChars())
                     Files.writeBytes(VAULT_FILE, LokotFile.build(header, body, kek))
                     written++
                     null

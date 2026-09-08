@@ -125,6 +125,8 @@ actual fun ByteArray.wipe() {
     usePinned { OPENSSL_cleanse(it.addressOf(0), size()) }
 }
 
+internal actual fun ByteArray.toChars(): CharArray = decodeToString().toCharArray()
+
 @OptIn(ExperimentalForeignApi::class)
 internal fun ByteArray.toUBytes(scope: MemScope): CPointer<UByteVar> {
     val buffer = scope.allocArray<UByteVar>(maxOf(size, 1))

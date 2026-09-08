@@ -9,6 +9,7 @@ export interface Failure {
 
 export function failure(error: unknown): Failure {
   if (error instanceof DOMException) return { dom: error.name, offline: false };
-  if (error instanceof ApiError) return { status: error.status, code: error.code, offline: false };
+  if (error instanceof ApiError)
+    return { status: error.status, code: error.code, offline: error.status >= 500 };
   return { offline: error instanceof TypeError };
 }

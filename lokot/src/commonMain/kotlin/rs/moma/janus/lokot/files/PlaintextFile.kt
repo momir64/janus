@@ -1,14 +1,26 @@
 package rs.moma.janus.lokot.files
 
-/** Parsing and rendering of the plaintext format used for `lokot edit`.*/
-object PlaintextFile {
-    private val BLOCK = "\"".repeat(3)
+import rs.moma.janus.lokot.externals.toChars
+import rs.moma.janus.lokot.externals.wipe
+
+internal object PlaintextFile {
+    private const val BLOCK = "\"\"\""
     private val INDENT = " ".repeat(4)
 
     private fun isNameChar(character: Char) = character.isLetterOrDigit() || character in "_.-"
 
     fun encode(entries: Map<String, String>): ByteArray = render(entries).encodeToByteArray()
-    fun decode(bytes: ByteArray): Map<String, String> = parse(bytes.decodeToString())
+
+    fun decodeText(bytes: ByteArray): Map<String, String> = parse(bytes.decodeToString())
+
+    fun decode(bytes: ByteArray): Map<String, CharArray> {
+        val chars = bytes.toChars()
+        try {
+            return parse(chars)
+        } finally {
+            chars.wipe()
+        }
+    }
 
     fun render(entries: Map<String, String>): String {
         val width = entries.keys.maxOfOrNull { it.length } ?: 0
@@ -25,31 +37,34 @@ object PlaintextFile {
         }
     }
 
-    fun parse(text: String): Map<String, String> {
-        val lines = text.split("\n")
-        val entries = LinkedHashMap<String, String>()
+    fun parse(text: String): Map<String, String> = parse(text.toCharArray()).mapValues { it.value.concatToString() }
+
+    fun parse(chars: CharArray): Map<String, CharArray> {
+        val entries = LinkedHashMap<String, CharArray>()
+        val lines = lines(chars)
         var index = 0
 
         while (index < lines.size) {
             val number = index + 1
-            val line = lines[index].trim()
+            val line = lines[index].trim(chars)
             index++
-            if (line.isEmpty() || line.startsWith("#")) continue
+            if (line.isEmpty || chars[line.start] == '#') continue
 
-            val separator = line.indexOf('=')
+            val separator = line.indexOf(chars, '=')
             if (separator < 0) throw DocumentException(number, "this is not a 'NAME = value' line")
-            val name = line.take(separator).trim()
+
+            val name = chars.concatToString(line.start, separator).trim()
             if (name.isEmpty()) throw DocumentException(number, "there is no name before the '='")
             if (!name.all(::isNameChar))
                 throw DocumentException(number, "'$name' can hold only letters, digits, underscore, dot, or dash")
 
-            var value = line.drop(separator + 1).trim()
-            if (value == BLOCK) {
-                val block = mutableListOf<String>()
-                while (index < lines.size && lines[index].trim() != BLOCK) block += lines[index++]
+            val rest = Span(separator + 1, line.end).trim(chars)
+            val value = if (!rest.holds(chars, BLOCK)) rest.chars(chars) else {
+                val block = mutableListOf<Span>()
+                while (index < lines.size && !lines[index].trim(chars).holds(chars, BLOCK)) block += lines[index++]
                 if (index >= lines.size) throw DocumentException(number, "this $BLOCK is never closed")
                 index++ // the line that closes it
-                value = block.joinToString("\n").trimIndent()
+                undent(chars, block)
             }
 
             if (entries.put(name, value) != null) throw DocumentException(number, "'$name' is set more than once")
@@ -58,16 +73,71 @@ object PlaintextFile {
     }
 
     private fun isSimple(value: String) = !value.contains('\n') && value != BLOCK && !value.startsWith("#")
+
+    private fun lines(chars: CharArray): List<Span> {
+        val lines = mutableListOf<Span>()
+        var start = 0
+        chars.forEachIndexed { at, character ->
+            if (character == '\n') {
+                lines += Span(start, at)
+                start = at + 1
+            }
+        }
+        lines += Span(start, chars.size)
+        return lines
+    }
+
+    private fun undent(chars: CharArray, block: List<Span>): CharArray {
+        val blank = { line: Span -> line.trim(chars).isEmpty }
+        val body = block.dropWhile(blank).dropLastWhile(blank)
+        if (body.isEmpty()) return CharArray(0)
+
+        val indent = body.filterNot(blank).minOf { line -> line.trim(chars).start - line.start }
+        val kept = body.map { line -> if (blank(line)) Span(line.end, line.end) else Span(line.start + indent, line.end) }
+
+        val value = CharArray(kept.sumOf { it.length } + kept.size - 1)
+        var at = 0
+        kept.forEachIndexed { index, line ->
+            if (index > 0) value[at++] = '\n'
+            chars.copyInto(value, at, line.start, line.end)
+            at += line.length
+        }
+        return value
+    }
 }
 
-class DocumentException(val line: Int, message: String) : Exception(message) {
+private class Span(val start: Int, val end: Int) {
+    val length get() = end - start
+    val isEmpty get() = end <= start
+
+    fun trim(chars: CharArray): Span {
+        var first = start
+        var last = end
+        while (first < last && chars[first].isWhitespace()) first++
+        while (last > first && chars[last - 1].isWhitespace()) last--
+        return Span(first, last)
+    }
+
+    fun indexOf(chars: CharArray, character: Char): Int {
+        for (at in start until end) if (chars[at] == character) return at
+        return -1
+    }
+
+    fun holds(chars: CharArray, text: String): Boolean =
+        length == text.length && text.indices.all { chars[start + it] == text[it] }
+
+    fun chars(chars: CharArray): CharArray = chars.copyOfRange(start, end)
+}
+
+internal class DocumentException(val line: Int, message: String) : Exception(message) {
     val described: String get() = "line $line: $message"
 }
 
-class VaultBody(val schema: String, val values: Map<String, String>) {
+internal class VaultBody(val schema: String, val values: Map<String, CharArray>) {
     fun encode(): ByteArray {
         val schemaBytes = schema.encodeToByteArray()
-        return schemaBytes.size.toBigEndian() + schemaBytes + PlaintextFile.encode(values)
+        return schemaBytes.size.toBigEndian() + schemaBytes +
+                PlaintextFile.encode(values.mapValues { it.value.concatToString() })
     }
 
     companion object {

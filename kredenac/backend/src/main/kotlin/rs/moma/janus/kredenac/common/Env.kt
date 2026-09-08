@@ -4,11 +4,11 @@ import kotlin.io.encoding.Base64.PaddingOption.PRESENT_OPTIONAL
 import kotlin.io.encoding.Base64
 import kotlin.io.path.*
 
-private val dotenv: Map<String, String> by lazy { loadDotenv() }
+private val dotenv: Map<String, String> by lazy { load(".env") ?: load("../.env") ?: emptyMap() }
 
-private fun loadDotenv(): Map<String, String> {
-    val file = Path(".env")
-    if (!file.exists()) return emptyMap()
+private fun load(name: String): Map<String, String>? {
+    val file = Path(name)
+    if (!file.exists()) return null
 
     return file.readLines()
         .map { it.trim() }

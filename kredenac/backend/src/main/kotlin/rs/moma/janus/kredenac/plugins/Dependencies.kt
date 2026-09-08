@@ -4,7 +4,6 @@ import rs.moma.janus.kredenac.crypto.authentication.RefreshTokenService
 import rs.moma.janus.kredenac.crypto.authentication.MagicLinkService
 import rs.moma.janus.kredenac.repositories.RefreshTokenRepository
 import rs.moma.janus.kredenac.repositories.FileContentRepository
-import kotlin.io.encoding.Base64.PaddingOption.PRESENT_OPTIONAL
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
 import rs.moma.janus.kredenac.repositories.CredentialRepository
 import rs.moma.janus.kredenac.crypto.authentication.JwtService
@@ -19,6 +18,9 @@ import rs.moma.janus.kredenac.services.EmailService
 import rs.moma.janus.kredenac.services.FilesService
 import rs.moma.janus.kredenac.services.NotesService
 import rs.moma.janus.kredenac.services.UserService
+import rs.moma.janus.kredenac.common.vault
+import rs.moma.janus.kredenac.common.text
+import rs.moma.janus.lokot.externals.wipe
 import org.koin.core.module.dsl.singleOf
 import rs.moma.janus.kredenac.common.Env
 import rs.moma.janus.kredenac.common.Tls
@@ -28,7 +30,6 @@ import org.koin.core.qualifier.named
 import io.ktor.server.application.*
 import io.lettuce.core.RedisClient
 import io.lettuce.core.SslOptions
-import kotlin.io.encoding.Base64
 import org.koin.ktor.plugin.Koin
 import io.lettuce.core.RedisURI
 import kotlin.io.path.Path
@@ -41,28 +42,38 @@ fun Application.configureDependencies() {
             singleOf(::NotesRepository)
             singleOf(::FilesRepository)
 
-            val hmacSecret = Env.getBytes("DB_HMAC_SECRET")
-            val masterKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("MASTER_KEY_BASE64"))
-            val piiEncryptionKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("PII_ENCRYPTION_KEY_BASE64"))
-            val tokenEncryptionKey = Base64.withPadding(PRESENT_OPTIONAL).decode(Env.get("TOKEN_ENCRYPTION_KEY_BASE64"))
+            val hmacSecret = vault.getBytes("DB_HMAC_SECRET")
+            val masterKey = vault.getBytes("MASTER_KEY_BASE64")
+            val piiEncryptionKey = vault.getBytes("PII_ENCRYPTION_KEY_BASE64")
+            val tokenEncryptionKey = vault.getBytes("TOKEN_ENCRYPTION_KEY_BASE64")
+            val rpOrigin = vault.text("RP_ORIGIN")
+            val minioUser = vault.text("MINIO_ROOT_USER")
+            val minioPassword = vault.text("MINIO_ROOT_PASSWORD")
+            val minioBucket = vault.text("MINIO_BUCKET")
 
             single { RefreshTokenRepository(hmacSecret) }
 
-            single(named("rpOrigin")) { Env.get("RP_ORIGIN") }
+            single(named("rpOrigin")) { rpOrigin }
             single(named("rpId")) { Env.get("RP_ID") }
 
             val sslOptions = SslOptions.builder().jdkSslProvider()
                 .trustManager(Tls.trustManager(Path(Env.get("REDIS_TLS_CA_PATH")))).build()
 
             val redisUri = RedisURI.Builder.redis(Env.get("REDIS_HOST"), Env.get("REDIS_PORT").toInt())
-                .withSsl(true).withVerifyPeer(true).withPassword(Env.get("REDIS_PASSWORD").toCharArray()).build()
+                .withSsl(true).withVerifyPeer(true).withPassword(vault.get("REDIS_PASSWORD")).build()
             val redisClient = RedisClient.create(redisUri)
             redisClient.options = ClientOptions.builder().sslOptions(sslOptions).build()
             single<RedisCoroutinesCommands<String, String>> { redisClient.connect().coroutines() }
             single { TokenRepository(get(), tokenEncryptionKey, hmacSecret) }
 
-            single { JwtService(Env.getBytes("JWT_SECRET")) }
-            single { CsrfService(Env.getBytes("CSRF_SECRET")) }
+            val csrfSecret = vault.getBytes("CSRF_SECRET")
+            val jwtSecret = vault.getBytes("JWT_SECRET")
+            val csrfService = CsrfService(csrfSecret)
+            val jwtService = JwtService(jwtSecret)
+            csrfSecret.wipe()
+            jwtSecret.wipe()
+            single { csrfService }
+            single { jwtService }
             single { RefreshTokenService(get(), hmacSecret) }
 
             single { UserRepository(hmacSecret, piiEncryptionKey, masterKey) }
@@ -70,13 +81,13 @@ fun Application.configureDependencies() {
 
             single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get()) }
 
-            single { EmailService(Env.get("RESEND_API_KEY"), Env.get("RESEND_FROM_EMAIL"), get(named("rpOrigin"))) }
+            val emailService = EmailService(vault.text("RESEND_API_KEY"), vault.text("RESEND_FROM_EMAIL"), rpOrigin)
+            single { emailService }
             single { MagicLinkService(get(), get(), get(), get(named("rpOrigin"))) }
 
             single {
                 FileContentRepository(
-                    Env.get("MINIO_HOST"), Env.get("MINIO_PORT"), Env.get("MINIO_ROOT_USER"),
-                    Env.get("MINIO_ROOT_PASSWORD"), Env.get("MINIO_BUCKET")
+                    Env.get("MINIO_HOST"), Env.get("MINIO_PORT"), minioUser, minioPassword, minioBucket
                 )
             }
 

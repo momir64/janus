@@ -41,6 +41,9 @@ delivers to the connector as `/run/secrets/ca.crt`.
   services on localhost so the backend can run from the IDE.
 - `lokot.toml`: what the vault holds, which service gets which file, and the certificates
   lokot issues. See [lokot](../lokot).
+- `backend/libs/lokot-0.0.1.jar`: lokot's JVM target. Refresh it with
+  `cd ../lokot && ./gradlew jvmJar && cp build/*/libs/lokot-jvm-0.0.1.jar
+  ../kredenac/backend/libs/lokot-0.0.1.jar`; the build warns when it has fallen behind.
 
 ## Encryption at rest
 
@@ -71,13 +74,14 @@ anything is running.
 | `REDIS_PASSWORD` | a generated `redis.conf`, since Redis has no `_FILE` convention |
 | `CLOUDFLARE_TUNNEL_TOKEN` | a file, through `TUNNEL_TOKEN_FILE` |
 | TLS certificates and keys | files, issued by lokot from an internal CA whose key it never writes down |
-| `POSTGRES_PORT`, `REDIS_PORT`, `MINIO_PORT`, `MINIO_CONSOLE_PORT` | the generated `.env` |
+| `POSTGRES_PORT`, `REDIS_PORT`, `MINIO_PORT`, `MINIO_CONSOLE_PORT`, `KTOR_PORT`, `RP_ID` | the generated `.env`: the last two are needed before the vault can be opened at all |
 | `POSTGRES_HOST`, `REDIS_HOST`, `MINIO_HOST`, `FRONTEND_DIST_PATH` | the compose file |
-| The backend's own keys, `RP_ID`, `RP_ORIGIN`, `MINIO_BUCKET`, Resend | the vault, read by the backend itself |
+| The backend's own keys, `RP_ORIGIN`, `MINIO_BUCKET`, Resend | the vault, read by the backend itself |
 
-That last row is the one still in transit. Until the backend opens the vault directly, those values
-sit in `.env.backend`, which is git-ignored and merged after `.env` by compose. It disappears when
-the backend gets them from the vault.
+The backend opens the vault itself. While it is locked, it serves the unlock page at `/lokot`,
+answers `503` for the API and serves the frontend, which shows its ordinary server-down state. A
+passkey enrolled for this origin opens it in the browser, and only then does the backend build its
+database pool, its Redis client and everything else.
 
 `RP_ID` is the domain passkeys are scoped to and `RP_ORIGIN` the exact origin the browser will
 report, e.g. `kredenac.moma.rs` and `https://kredenac.moma.rs`.

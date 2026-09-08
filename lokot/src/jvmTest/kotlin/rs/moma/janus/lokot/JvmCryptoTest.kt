@@ -7,6 +7,8 @@ import rs.moma.janus.lokot.externals.Crypto
 import rs.moma.janus.lokot.externals.toHex
 import rs.moma.janus.lokot.files.LokotFile
 import rs.moma.janus.lokot.files.VaultBody
+import rs.moma.janus.lokot.files.asChars
+import rs.moma.janus.lokot.files.asText
 import rs.moma.janus.lokot.files.Kek
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -78,20 +80,22 @@ class JvmCryptoTest {
             salt = ByteArray(LokotHeader.SALT_SIZE) { it.toByte() },
             credentials = listOf(Kek.wrap(hmacOutput, credentialId, "lokot.localhost", kek)),
         )
-        val parsed = LokotFile.parse(LokotFile.build(header, VaultBody("project = \"example\"", secrets), kek))
+        val parsed = LokotFile.parse(
+            LokotFile.build(header, VaultBody("project = \"example\"", secrets.asChars()), kek)
+        )
 
         assertEquals("example", parsed.header.project)
         assertEquals("lokot.localhost", parsed.header.credentials.single().rpId)
 
         val unwrapped = Kek.unwrap(hmacOutput, parsed.header.credentials.single())
         assertTrue(unwrapped.contentEquals(kek))
-        assertEquals(secrets, parsed.open(unwrapped!!)?.values)
+        assertEquals(secrets, parsed.open(unwrapped!!)?.values?.asText())
         assertNull(parsed.open(ByteArray(Crypto.KEY_SIZE)))
     }
 
     @Test
     fun `the document format round trips`() {
         val entries = mapOf("PORT" to "8080", "EMPTY" to "", "ODD" to "a = b \\ c")
-        assertEquals(entries, PlaintextFile.decode(PlaintextFile.encode(entries)))
+        assertEquals(entries, PlaintextFile.decode(PlaintextFile.encode(entries)).asText())
     }
 }

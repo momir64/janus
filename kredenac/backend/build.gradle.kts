@@ -16,6 +16,8 @@ kotlin {
 }
 
 dependencies {
+    implementation(files("libs/lokot-0.0.1.jar"))
+
     implementation(ktorLibs.server.auth)
     implementation(ktorLibs.server.contentNegotiation)
     implementation(ktorLibs.server.core)
@@ -61,3 +63,24 @@ tasks.test {
             }
     }
 }
+
+val checkLokotJar = tasks.register("checkLokotJar") {
+    description = "Check for stale lokot build if sources are available."
+    val jar = layout.projectDirectory.file("libs/lokot-0.0.1.jar").asFile
+    val sources = layout.projectDirectory.dir("../../lokot/src").asFile
+    doLast {
+        if (!jar.isFile) throw GradleException("${jar.path} is missing: build lokot's jvmJar and copy it here")
+        if (!sources.isDirectory) return@doLast
+
+        val newer = sources.walkTopDown()
+            .filter { it.isFile && it.lastModified() > jar.lastModified() }
+            .map { it.name }.take(3).toList()
+        if (newer.isNotEmpty()) logger.warn(
+            "w: libs/${jar.name} is older than lokot's sources (${newer.joinToString()}). " +
+                    "Refresh it: cd ../lokot && ./gradlew jvmJar && " +
+                    "cp build/*/libs/lokot-jvm-0.0.1.jar ../kredenac/backend/libs/${jar.name}"
+        )
+    }
+}
+
+tasks.named("compileKotlin") { dependsOn(checkLokotJar) }

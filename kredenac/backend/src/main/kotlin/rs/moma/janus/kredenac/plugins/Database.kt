@@ -8,19 +8,21 @@ import rs.moma.janus.kredenac.tables.FilesTable
 import rs.moma.janus.kredenac.tables.NotesTable
 import rs.moma.janus.kredenac.tables.UserTable
 import org.jetbrains.exposed.v1.jdbc.Database
+import rs.moma.janus.kredenac.common.vault
 import com.zaxxer.hikari.HikariDataSource
+import rs.moma.janus.kredenac.common.text
 import rs.moma.janus.kredenac.common.Env
 import com.zaxxer.hikari.HikariConfig
 
 fun configureDatabase() {
     val dbHost = Env.get("POSTGRES_HOST")
     val dbPort = Env.get("POSTGRES_PORT")
-    val dbName = Env.get("POSTGRES_DB")
+    val dbName = vault.text("POSTGRES_DB")
 
     val hikariConfig = HikariConfig().apply {
         jdbcUrl = "jdbc:postgresql://$dbHost:$dbPort/$dbName"
-        username = Env.get("POSTGRES_USER")
-        password = Env.get("POSTGRES_PASSWORD")
+        username = vault.text("POSTGRES_USER")
+        password = vault.text("POSTGRES_PASSWORD")
         driverClassName = "org.postgresql.Driver"
         maximumPoolSize = 10
     }
