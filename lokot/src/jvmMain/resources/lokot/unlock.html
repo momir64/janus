@@ -2,9 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="darkreader-lock">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>lokot</title>
-<base href="/lokot/">
+<title>Lokot</title>
+<base href="/">
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@200;300;400;500&family=Spline+Sans+Mono:wght@300;400&display=swap" rel="stylesheet"/>
@@ -92,7 +93,7 @@
     try {
       say("asking the vault what to sign");
       const challenge = await (await fetch("challenge")).json();
-      if (!challenge.credentialIds.length) throw new Error("no passkey is enrolled for this origin");
+      if (!challenge.credentialIds.length) return fail("no passkey is enrolled for this origin");
 
       say("waiting for your passkey");
       const assertion = await navigator.credentials.get({
@@ -106,7 +107,7 @@
       });
 
       const prf = assertion.getClientExtensionResults().prf;
-      if (!prf || !prf.results) throw new Error("this browser did not evaluate the PRF extension");
+      if (!prf || !prf.results) return fail("this browser did not evaluate the PRF extension");
 
       say("opening");
       const response = await fetch("unlock", {
@@ -115,23 +116,29 @@
         body: JSON.stringify({ credentialId: toUrl(assertion.rawId), output: toUrl(prf.results.first) }),
       });
 
-      if (!response.ok) throw new Error("that key did not open it");
+      if (!response.ok) return fail("that key did not open it");
       button.remove();
       say("unlocked, waiting for the server");
       await waiting();
       location.replace(challenge.home || "/");
     } catch (failure) {
-      say(failure.message || String(failure));
-      button.disabled = false;
+      fail(failure.message || String(failure));
     }
   }
 
+  function fail(text) {
+    say(text);
+    button.disabled = false;
+  }
+
   async function waiting() {
-    for (let attempt = 0; attempt < 100; attempt++) {
+    for (let attempt = 0; attempt < 400; attempt++) {
       await new Promise(resume => setTimeout(resume, 300));
       try {
         const response = await fetch("challenge", { cache: "no-store" });
-        if (!(response.headers.get("content-type") || "").includes("json")) return;
+        if (response.status >= 500) continue;
+        const json = (response.headers.get("content-type") || "").includes("json");
+        if (!(response.ok && json)) return;
       } catch (unreachable) {
       }
     }
