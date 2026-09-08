@@ -120,7 +120,7 @@ fun runAddKey(arguments: List<String>): Int {
             println()
             if (browserFamily) {
                 println("The next key is enrolled for '$rpId', so a browser at that origin can use it.")
-                println("'lokot unlock' tries lokot's own keys first, and this one only if none answers.")
+                println("'lokot unlock' will ask which key to use, with lokot's own offered first.")
                 println()
             }
             println(CONNECT_NEXT_KEY)
