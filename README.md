@@ -1,6 +1,6 @@
 # Janus
 
-<img align="right" src="https://github.com/user-attachments/assets/3fa04a84-116c-4316-8181-be16d5207700" alt="janus" height="200">
+<img align="right" src="https://github.com/user-attachments/assets/3fa04a84-116c-4316-8181-be16d5207700" alt="janus" height="220px">
 
 Janus is not only the Roman god of doors and passages, it's also the name of my bachelor thesis about 
 passkeys. It's made out of three parts. Privezak is an Android passkey manager that keeps every key in 
