@@ -1,0 +1,63 @@
+package rs.moma.janus.kredenac.services
+
+import rs.moma.janus.kredenac.common.MAX_NOTE_CONTENT_LENGTH
+import rs.moma.janus.kredenac.common.MAX_NOTE_TITLE_LENGTH
+import rs.moma.janus.kredenac.repositories.NotesRepository
+import rs.moma.janus.kredenac.common.BadRequestException
+import rs.moma.janus.kredenac.common.MAX_NOTES_PER_USER
+import rs.moma.janus.kredenac.crypto.algorithms.AesUtil
+import rs.moma.janus.kredenac.common.ConflictException
+import rs.moma.janus.kredenac.common.NotFoundException
+import rs.moma.janus.kredenac.repositories.StoredNote
+import rs.moma.janus.kredenac.common.Owner
+import rs.moma.janus.kredenac.dtos.NoteDto
+import kotlin.uuid.Uuid
+
+class NotesService(private val notesRepository: NotesRepository, private val userService: UserService) {
+    context(owner: Owner)
+    suspend fun list(): List<NoteDto> {
+        val encryptionKey = userService.getEncryptionKey()
+        return notesRepository.findAll().map { it.toDto(encryptionKey) }
+    }
+
+    context(owner: Owner)
+    suspend fun create(title: String, content: String) {
+        checkLengths(title, content)
+        if (notesRepository.count() >= MAX_NOTES_PER_USER)
+            throw ConflictException("Account is limited to $MAX_NOTES_PER_USER notes", "note_limit")
+
+        val encryptionKey = userService.getEncryptionKey()
+        val title = AesUtil.encrypt(encryptionKey, title.toByteArray())
+        val content = AesUtil.encrypt(encryptionKey, content.toByteArray())
+        notesRepository.insert(title.ciphertext, title.iv, content.ciphertext, content.iv)
+    }
+
+    context(owner: Owner)
+    suspend fun update(noteId: Uuid, title: String, content: String) {
+        checkLengths(title, content)
+        val encryptionKey = userService.getEncryptionKey()
+        val title = AesUtil.encrypt(encryptionKey, title.toByteArray())
+        val content = AesUtil.encrypt(encryptionKey, content.toByteArray())
+        if (!notesRepository.update(noteId, title.ciphertext, title.iv, content.ciphertext, content.iv))
+            throw NotFoundException("Note not found")
+    }
+
+    context(owner: Owner)
+    suspend fun delete(noteId: Uuid) {
+        if (!notesRepository.delete(noteId))
+            throw NotFoundException("Note not found")
+    }
+
+    private fun checkLengths(title: String, content: String) {
+        if (title.length > MAX_NOTE_TITLE_LENGTH)
+            throw BadRequestException("Title is longer than $MAX_NOTE_TITLE_LENGTH characters")
+        if (content.length > MAX_NOTE_CONTENT_LENGTH)
+            throw BadRequestException("Note is longer than $MAX_NOTE_CONTENT_LENGTH characters")
+    }
+
+    private fun StoredNote.toDto(encryptionKey: ByteArray): NoteDto {
+        val title = String(AesUtil.decrypt(encryptionKey, encryptedTitle, encryptedTitleIv))
+        val content = String(AesUtil.decrypt(encryptionKey, encryptedContent, encryptedContentIv))
+        return NoteDto(id.toString(), title, content, updatedAt.toString())
+    }
+}

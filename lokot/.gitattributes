@@ -1,0 +1,8 @@
+* text=auto
+
+*.lokot binary
+
+*.dll binary
+*.lib binary
+
+gradlew text eol=lf

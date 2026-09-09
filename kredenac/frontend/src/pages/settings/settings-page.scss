@@ -1,0 +1,173 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+.settings-scroll {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @include mobile-only {
+    margin-bottom: 52px;
+  }
+}
+
+.settings-page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 48px 16px 0;
+
+  @include desktop {
+    max-width: 1364px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 44px 56px 0;
+  }
+}
+
+.settings-page__heading {
+  margin-left: 2px;
+  font-family: $font-display;
+  font-weight: 400;
+  color: $color-text-muted;
+  font-size: 18px;
+  line-height: 32px;
+
+  @include desktop {
+    margin-left: 0;
+    font-size: 40px;
+  }
+}
+
+.settings-page__rule {
+  margin-top: 2.5px;
+  width: 260px;
+  height: 0;
+  border-top: 1px solid $color-border;
+
+  @include desktop {
+    margin: 27px -20px 0;
+    width: calc(100% + 40px);
+    border-top-width: 2px;
+  }
+}
+
+.settings-page__layout {
+  margin-top: 35.5px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 42px;
+
+  @include mobile-only {
+    overflow-x: clip;
+    overflow-y: auto;
+  }
+
+  @include desktop {
+    margin-top: 0;
+    overflow: hidden;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 48px;
+  }
+}
+
+.settings-page__passkeys {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 16px;
+
+  @include desktop {
+    overflow-y: auto;
+    padding-top: 47px;
+    padding-bottom: 64px;
+    gap: 24px;
+  }
+}
+
+.settings-page__cards {
+  @include desktop {
+    align-self: stretch;
+    margin-top: -1px;
+  }
+
+  @include mobile-only {
+    flex: none;
+  }
+
+  @include desktop {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 720px;
+  }
+
+  .scroll-list__bar {
+    @include desktop {
+      top: 47px;
+    }
+  }
+}
+
+.settings-page__danger {
+  @include mobile-only {
+    flex: none;
+  }
+
+  @include desktop {
+    margin-top: 47px;
+    flex: 1 1 auto;
+    max-width: 360px;
+    min-width: 300px;
+  }
+
+  // Side by side the pair needs 580 for the cards, 48 for the gap and 112 of
+  // page padding, which leaves the button its 300px minimum only from 1040 up.
+  // Below that it narrows to 160 and stacks its label onto two lines, a total
+  // of 900 - the width the desktop layout itself starts at.
+  @media (min-width: $breakpoint-desktop) and (max-width: 1039px) {
+    min-width: 160px;
+
+    .btn {
+      height: 112px;
+    }
+
+    .btn__label {
+      width: min-content;
+      line-height: 1.15;
+      text-align: center;
+    }
+  }
+}
+
+.settings-page__message {
+  position: static;
+  flex: 1;
+  min-width: 0;
+
+  @include mobile-only {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    text-align: right;
+  }
+}
+
+.settings-page__layout.is-cut {
+  @include desktop {
+    box-shadow: none;
+  }
+}
+
+.settings-page__passkeys.is-cut {
+  @include mobile-only {
+    box-shadow: none;
+  }
+}

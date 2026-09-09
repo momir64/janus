@@ -1,0 +1,40 @@
+@use "../../../styles/constants" as *;
+@use "../../../styles/mixins" as *;
+
+.dropzone {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 280px;
+  padding: 28px 12px;
+  border: 2.5px dashed $color-border;
+  color: $color-text-muted;
+  font-family: $font-display;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+
+  &--active:not(.dropzone--uploading) {
+    border-color: $color-border-strong;
+    color: $color-text;
+  }
+
+  &:not(.dropzone--uploading) {
+    @include hover-or-active {
+      border-color: $color-border-strong;
+      color: $color-text;
+    }
+  }
+
+  .icon {
+    width: 100px;
+    height: 100px;
+  }
+
+  > span {
+    margin-top: 12px;
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 32px;
+  }
+}

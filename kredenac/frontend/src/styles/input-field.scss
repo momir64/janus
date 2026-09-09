@@ -1,0 +1,61 @@
+@use "constants" as *;
+@use "mixins" as *;
+
+.field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 18px;
+  border: 1.5px solid $color-border;
+
+  @include desktop {
+    height: 56px;
+  }
+
+  input,
+  textarea {
+    display: block;
+    width: 100%;
+    font-family: $font-mono;
+    font-weight: 400;
+    font-size: 12px;
+    color: $color-text;
+
+    &::placeholder {
+      color: $color-text-muted;
+    }
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    @include desktop {
+      font-size: 20px;
+    }
+  }
+}
+
+.field--body {
+  height: 360px;
+  padding: 20px 18px;
+  align-items: flex-start;
+
+  @include desktop {
+    height: 378px;
+  }
+
+  textarea {
+    height: 100%;
+    resize: none;
+    font-weight: 300;
+    font-size: 11px;
+    line-height: 18px;
+
+    @include desktop {
+      font-size: 16px;
+      line-height: 28px;
+    }
+  }
+}

@@ -1,0 +1,49 @@
+package rs.moma.janus.kredenac
+
+import rs.moma.janus.kredenac.plugins.serveFrontend
+import io.ktor.server.testing.testApplication
+import io.ktor.client.statement.bodyAsText
+import io.ktor.server.response.respondText
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.createDirectories
+import io.ktor.server.response.respond
+import io.ktor.server.routing.routing
+import io.ktor.server.routing.route
+import io.ktor.http.HttpStatusCode
+import io.ktor.client.request.get
+import io.ktor.server.routing.get
+import kotlin.io.path.writeText
+import kotlin.test.assertEquals
+import java.nio.file.Path
+import kotlin.test.Test
+
+class StaticRoutingTest {
+    private fun dist(): Path {
+        val dir = createTempDirectory("dist")
+        dir.resolve("index.html").writeText("SHELL")
+        dir.resolve("assets").createDirectories()
+        dir.resolve("assets/app.js").writeText("BUNDLE")
+        return dir
+    }
+
+    @Test
+    fun `built files are served and client routes fall back to the shell`() = testApplication {
+        val dir = dist()
+        application {
+            routing {
+                route("/api") {
+                    get("/notes") { call.respondText("NOTES") }
+                    get("{...}") { call.respond(HttpStatusCode.NotFound) }
+                }
+                serveFrontend(dir)
+            }
+        }
+
+        assertEquals("BUNDLE", client.get("/assets/app.js").bodyAsText(), "a built asset was shadowed")
+        assertEquals("SHELL", client.get("/").bodyAsText(), "the root did not serve the shell")
+        assertEquals("SHELL", client.get("/settings").bodyAsText(), "a client route did not fall back")
+        assertEquals("SHELL", client.get("/verify/abc123").bodyAsText(), "a nested client route did not fall back")
+        assertEquals("NOTES", client.get("/api/notes").bodyAsText(), "an api route was shadowed")
+        assertEquals(HttpStatusCode.NotFound, client.get("/api/unknown").status, "an unknown api path fell back")
+    }
+}

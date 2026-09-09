@@ -1,0 +1,122 @@
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "20m"
+    max-file: "5"
+    compress: "true"
+
+services:
+  lokot-check:
+    container_name: lokot-check
+    logging: *logging
+    image: alpine:3
+    volumes:
+      - ${LOKOT_DIR:?LOKOT_DIR not set; run lokot unlock first}:/vault:ro
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e; missing=0
+        for f in postgres/db postgres/user postgres/password \
+                 redis/redis.conf redis/redis.crt redis/redis.key redis/ca.crt \
+                 minio/root_user minio/root_password \
+                 backend/backend.crt backend/backend.key backend/ca.crt \
+                 cloudflared/token; do
+          [ -s "/vault/$$f" ] || { echo "missing: $$f"; missing=1; }
+        done
+        [ "$$missing" = 0 ] || {
+          printf '\033[31mLokot vault is not unlocked for this host.\033[0m\n'
+          printf '\033[31mRun lokot unlock against it, then retry.\033[0m\n'
+          exit 1
+        }
+
+  postgres:
+    container_name: postgres
+    logging: *logging
+    image: postgres:17
+    restart: unless-stopped
+    depends_on:
+      lokot-check:
+        condition: service_completed_successfully
+    environment:
+      POSTGRES_DB_FILE: /run/secrets/db
+      POSTGRES_USER_FILE: /run/secrets/user
+      POSTGRES_PASSWORD_FILE: /run/secrets/password
+    command: -p ${POSTGRES_PORT:?POSTGRES_PORT not set; run lokot unlock first}
+    volumes:
+      - ${LOKOT_DIR:?LOKOT_DIR not set; run lokot unlock first}/postgres:/run/secrets:ro
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    container_name: redis
+    logging: *logging
+    image: redis:8-alpine
+    restart: unless-stopped
+    depends_on:
+      lokot-check:
+        condition: service_completed_successfully
+    volumes:
+      - ${LOKOT_DIR:?LOKOT_DIR not set; run lokot unlock first}/redis:/run/secrets:ro
+    command: >
+      redis-server /run/secrets/redis.conf
+      --port 0
+      --tls-port ${REDIS_PORT:?REDIS_PORT not set; run lokot unlock first}
+      --tls-cert-file /run/secrets/redis.crt
+      --tls-key-file /run/secrets/redis.key
+      --tls-ca-cert-file /run/secrets/ca.crt
+      --tls-auth-clients no
+
+  minio:
+    container_name: minio
+    logging: *logging
+    image: minio/minio
+    restart: unless-stopped
+    command: server /data --address ":${MINIO_PORT:?MINIO_PORT not set; run lokot unlock first}" --console-address ":${MINIO_CONSOLE_PORT:?MINIO_CONSOLE_PORT not set; run lokot unlock first}"
+    depends_on:
+      lokot-check:
+        condition: service_completed_successfully
+    environment:
+      MINIO_ROOT_USER_FILE: /run/secrets/root_user
+      MINIO_ROOT_PASSWORD_FILE: /run/secrets/root_password
+    volumes:
+      - ${LOKOT_DIR:?LOKOT_DIR not set; run lokot unlock first}/minio:/run/secrets:ro
+      - miniodata:/data
+
+  backend:
+    container_name: backend
+    logging: *logging
+    build: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: postgres
+      REDIS_HOST: redis
+      MINIO_HOST: minio
+      BACKEND_TLS_CERT_PATH: /run/secrets/backend.crt
+      BACKEND_TLS_KEY_PATH: /run/secrets/backend.key
+      REDIS_TLS_CA_PATH: /run/secrets/ca.crt
+      FRONTEND_DIST_PATH: /app/static
+    volumes:
+      - ${LOKOT_DIR:?LOKOT_DIR not set; run lokot unlock first}/backend:/run/secrets:ro
+      - ./.env.lokot:/app/.env.lokot:ro
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  cloudflared:
+    container_name: cloudflared
+    logging: *logging
+    image: cloudflare/cloudflared:latest
+    command: tunnel run
+    environment:
+      TUNNEL_TOKEN_FILE: /run/secrets/token
+    volumes:
+      - ${LOKOT_DIR:?LOKOT_DIR not set; run lokot unlock first}/cloudflared:/run/secrets:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  miniodata:

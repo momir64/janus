@@ -1,0 +1,69 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+.chevron-trail {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  height: 12.27px;
+  width: auto;
+  color: var(--edge-accent, #{$color-border-strong});
+
+  @include desktop {
+    right: 12px;
+    bottom: 12px;
+    height: 22px;
+  }
+
+  polyline {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+    transition: opacity 0.2s ease, transform 0.3s ease;
+  }
+
+  polyline.chevron-trail__corner {
+    transform-box: fill-box;
+    transform-origin: center;
+    transform: rotate(45deg);
+  }
+}
+
+.hatch-marks {
+  line {
+    stroke: $color-border;
+    stroke-width: 1;
+  }
+}
+
+.corner-hatch {
+  --hatch-size: 27px;
+
+  position: absolute;
+  width: var(--hatch-size);
+  height: var(--hatch-size);
+  pointer-events: none;
+  overflow: hidden;
+
+  @include desktop {
+    --hatch-size: 30.98px;
+  }
+
+  line {
+    stroke: var(--edge, #{$color-border});
+    stroke-width: 1;
+  }
+
+  &--tl {
+    top: calc(-1 * var(--hatch-edge, 1px));
+    left: calc(-1 * var(--hatch-edge, 1px));
+  }
+
+  &--br {
+    right: calc(-1 * var(--hatch-edge, 1px));
+    bottom: calc(-1 * var(--hatch-edge, 1px));
+    transform: rotate(180deg);
+  }
+}

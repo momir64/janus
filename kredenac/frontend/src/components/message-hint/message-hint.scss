@@ -1,0 +1,48 @@
+@use "sass:color";
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+.message-hint {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: color.adjust($color-danger, $lightness: 12%);
+  font-family: $font-display;
+  font-size: 14px;
+  line-height: 1.4;
+
+  @include desktop {
+    top: calc(100% + 12px);
+    font-size: 18px;
+  }
+}
+
+.message-hint--notice {
+  color: $color-text-muted;
+}
+
+.message-hint__probe {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.message-hint--inline {
+  position: static;
+  align-self: stretch;
+
+  &:empty {
+    display: none;
+  }
+
+  @include mobile-only {
+    margin: -24px 0 -12px;
+  }
+}
+
+.dropzone .message-hint {
+  margin-top: 12px;
+}

@@ -1,0 +1,88 @@
+@use "../../../styles/constants" as *;
+@use "../../../styles/mixins" as *;
+
+.note-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  border: 1.5px solid $color-border;
+  --hatch-edge: 1.5px;
+  overflow: hidden;
+  padding: 26px 16px 16px 26px;
+
+  @include desktop {
+    padding: 32px 22px 22px 32px;
+  }
+
+  &__title,
+  &__body {
+    padding-right: 10px;
+  }
+
+  &__date {
+    position: absolute;
+    right: 6.5px;
+    top: 14.5px;
+    transform: translateY(-50%);
+    font-size: 10px;
+    font-weight: 300;
+    color: $color-text-muted;
+    white-space: nowrap;
+
+    @include desktop {
+      right: 9px;
+      top: 21.5px;
+      font-size: 14px;
+    }
+  }
+
+  &__title {
+    font-weight: 400;
+    font-size: 16px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @include desktop {
+      font-size: 20px;
+    }
+  }
+
+  &__body {
+    margin-top: 4px;
+    font-weight: 300;
+    font-size: 12px;
+    line-height: 18px;
+    white-space: pre-wrap;
+
+    @include desktop {
+      font-size: 16px;
+      line-height: 22px;
+    }
+  }
+
+  &__title + &__body {
+    margin-top: 16px;
+
+    @include desktop {
+      margin-top: 20px;
+    }
+  }
+
+  &__actions {
+    align-self: flex-end;
+    margin-top: 12px;
+    display: flex;
+    gap: 12px;
+
+    @include desktop {
+      margin-top: 16px;
+      gap: 18px;
+    }
+
+    .icon {
+      width: 28px;
+      height: 28px;
+    }
+  }
+}

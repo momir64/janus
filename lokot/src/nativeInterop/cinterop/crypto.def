@@ -1,0 +1,27 @@
+headers = openssl/evp.h openssl/sha.h openssl/rand.h openssl/hmac.h openssl/crypto.h openssl/x509.h openssl/x509v3.h openssl/pem.h openssl/rsa.h openssl/bn.h openssl/bio.h
+headerFilter = openssl/**
+package = crypto
+
+---
+// Opaque handles in the real headers (forward-declared only). Giving them a body here
+// makes cinterop emit real classes instead of unresolvable cnames.structs placeholders.
+struct evp_cipher_ctx_st { char opaque; };
+struct X509_extension_st { char opaque; };
+struct bio_method_st { char opaque; };
+struct evp_cipher_st { char opaque; };
+struct X509_name_st { char opaque; };
+struct bn_gencb_st { char opaque; };
+struct X509_req_st { char opaque; };
+struct X509_crl_st { char opaque; };
+struct evp_pkey_st { char opaque; };
+struct bignum_st { char opaque; };
+struct evp_md_st { char opaque; };
+struct engine_st { char opaque; };
+struct x509_st { char opaque; };
+struct rsa_st { char opaque; };
+struct bio_st { char opaque; };
+
+// LibreSSL leaves this one incomplete, glibc's OpenSSL defines it through the LHASH_OF macro.
+#ifdef _WIN32
+struct lhash_st_CONF_VALUE { char opaque; };
+#endif

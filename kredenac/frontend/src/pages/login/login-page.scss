@@ -1,0 +1,295 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+$login-pad-left: clamp(2%, calc(19.8332% - 160.5px), 6.4583%);
+$login-pad-right: 11.0417%;
+$login-column-min: 480px;
+
+.login-page {
+  --pad-l: #{$login-pad-left};
+  --pad-r: max(#{$login-pad-left}, calc(#{$login-pad-right} - (1920px - 100%) * 0.1234));
+  --split: max(0px, min(54.375%, calc(100% - #{$login-column-min} - var(--pad-l) - var(--pad-r))));
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.login-page__cabinet {
+  display: none;
+
+  @include desktop {
+    display: block;
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: var(--split);
+    overflow: hidden;
+  }
+
+  img {
+    position: absolute;
+    top: 0;
+    left: calc(50% + max(0px, (1920px - 100vw) * 0.05));
+    height: 100%;
+    width: auto;
+    max-width: none;
+    transform: translateX(-41.3%);
+  }
+}
+
+.login-page__divider {
+  display: none;
+
+  @include desktop {
+    display: block;
+    position: absolute;
+    left: var(--split);
+    top: 9.677%;
+    bottom: 9.677%;
+    width: 1px;
+    background: $color-border;
+  }
+}
+
+.login-page__content {
+  position: relative;
+  z-index: 1;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  --shortfall: calc((720px - 100dvh) * 0.02);
+  --pad-t: calc(100dvh * 0.108333 + var(--shortfall));
+  --pad-b: max(0px, 100dvh * 0.233333 - var(--shortfall));
+  padding: var(--pad-t) 32px var(--pad-b);
+
+  @include mobile-only {
+    max-width: 420px;
+    margin-inline: auto;
+  }
+
+  @include desktop {
+    margin-left: var(--split);
+    padding: 48px var(--pad-r) 120px var(--pad-l);
+  }
+}
+
+.login-page__bracket {
+  width: 18px;
+  height: 18px;
+  border-top: 1.5px solid $color-border;
+  border-left: 1.5px solid $color-border;
+
+  @include desktop {
+    width: 28px;
+    height: 28px;
+    border-width: 2px;
+  }
+}
+
+.login-page__mark {
+  margin-left: 20px;
+  font-family: $font-display;
+  font-weight: 500;
+  font-size: 32px;
+
+  @include desktop {
+    margin-left: 32px;
+    font-size: 48px;
+  }
+}
+
+.login-page__tagline {
+  margin: clamp(6px, 2.2222dvh, 16px) 0 0 20px;
+  color: $color-text-muted;
+  font-size: 11px;
+  line-height: 20px;
+
+  @include desktop {
+    margin: clamp(6px, 2.5806dvh, 24px) 0 0 32px;
+    font-size: 18px;
+    line-height: 32px;
+  }
+}
+
+.login-page__actions {
+  margin-top: clamp(22px, 5dvh, 36px);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  @include desktop {
+    margin-top: clamp(28px, 5.5914dvh, 52px);
+    gap: 28px;
+  }
+}
+
+.login-page__footer {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: 36px;
+  text-align: center;
+
+  @include desktop {
+    left: calc(var(--split) + var(--pad-l));
+    right: var(--pad-r);
+    bottom: 75px;
+  }
+
+  button {
+    @include reset-button;
+    @include focus-ring;
+    color: $color-border-strong;
+    font-family: $font-display;
+    font-size: 16px;
+    text-decoration: underline;
+    text-decoration-thickness: auto;
+    text-underline-offset: 14.5%;
+    cursor: pointer;
+    transition: color 0.15s ease;
+
+    @include hover-or-active {
+      color: $color-text;
+    }
+
+    @include desktop {
+      font-size: 22px;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      cursor: default;
+    }
+  }
+}
+
+.login-page__corner {
+  position: absolute;
+  z-index: 1;
+  width: 20px;
+  height: 20px;
+
+  @include desktop {
+    width: 32px;
+    height: 32px;
+  }
+
+  &::before,
+  &::after {
+    content: "";
+    position: absolute;
+    background: $color-border;
+  }
+
+  &::before {
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 1px;
+    transform: translateY(-50%);
+  }
+
+  &::after {
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    transform: translateX(-50%);
+  }
+
+  &--tl {
+    top: 20px;
+    left: 20px;
+
+    @include desktop {
+      top: 48px;
+      left: 48px;
+    }
+  }
+
+  &--tr {
+    top: 20px;
+    right: 20px;
+
+    @include desktop {
+      top: 48px;
+      right: 48px;
+    }
+  }
+
+  &--bl {
+    bottom: 20px;
+    left: 20px;
+
+    @include desktop {
+      bottom: 48px;
+      left: 48px;
+    }
+  }
+
+  &--br {
+    bottom: 20px;
+    right: 20px;
+
+    @include desktop {
+      bottom: 48px;
+      right: 48px;
+    }
+  }
+}
+
+.hatch-marks {
+  position: absolute;
+  z-index: 1;
+  top: 24px;
+  left: 56px;
+  width: 96.87px;
+  height: 14.5px;
+
+  @include desktop {
+    top: 54px;
+    left: 112px;
+    width: 152.44px;
+    height: 22.5px;
+  }
+}
+
+.login-page__rule {
+  display: none;
+
+  @include desktop {
+    display: block;
+    position: absolute;
+    z-index: 1;
+  }
+
+  &--v {
+    @include desktop {
+      left: 65px;
+      top: 120px;
+      bottom: 120px;
+      width: 1px;
+      background-image: repeating-linear-gradient(
+              to bottom,
+              $color-border 0 10px,
+              transparent 10px 20px
+      );
+    }
+  }
+
+  &--h {
+    @include desktop {
+      left: 122px;
+      right: calc(100% - var(--split) + 62px);
+      bottom: 64px;
+      height: 1px;
+      background-image: repeating-linear-gradient(
+              to right,
+              $color-border 0 10px,
+              transparent 10px 20px
+      );
+    }
+  }
+}

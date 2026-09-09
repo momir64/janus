@@ -1,0 +1,80 @@
+project = "kredenac"
+
+[secrets]
+POSTGRES_DB       = { type = "prompt", hint = "database name" }
+POSTGRES_USER     = { type = "prompt", hint = "database user" }
+POSTGRES_PASSWORD = { type = "random", chars = 32 }
+
+MINIO_ROOT_USER     = { type = "random", chars = 20 }
+MINIO_ROOT_PASSWORD = { type = "random", chars = 40 }
+MINIO_BUCKET        = { type = "prompt", hint = "bucket name" }
+
+REDIS_PASSWORD = { type = "random", chars = 40 }
+
+CLOUDFLARE_TUNNEL_TOKEN = { type = "prompt", hint = "token from cloudflare dashboard" }
+
+# Ports
+POSTGRES_PORT      = { type = "port" }
+REDIS_PORT         = { type = "port" }
+MINIO_PORT         = { type = "port" }
+MINIO_CONSOLE_PORT = { type = "port" }
+KTOR_PORT          = { type = "prompt", hint = "backend port tunnel expects" }
+
+# Used in backend
+MASTER_KEY_BASE64           = { type = "random", bytes = 32 }
+JWT_SECRET                  = { type = "random", bytes = 32 }
+CSRF_SECRET                 = { type = "random", bytes = 32 }
+DB_HMAC_SECRET              = { type = "random", bytes = 32 }
+PII_ENCRYPTION_KEY_BASE64   = { type = "random", bytes = 32 }
+TOKEN_ENCRYPTION_KEY_BASE64 = { type = "random", bytes = 32 }
+
+RP_ID             = { type = "prompt", hint = "relying party id, e.g. example.com" }
+LOKOT_RP_ID       = { type = "prompt", hint = "unlock page domain, e.g. lokot.example.com" }
+RP_ORIGIN         = { type = "prompt", hint = "origin, e.g. https://example.com" }
+RESEND_API_KEY    = { type = "prompt", hint = "Resend API key (re_...)" }
+RESEND_FROM_EMAIL = { type = "prompt", hint = "e.g. Example <example@example.com>" }
+
+[certs.redis]
+cn  = "localhost"
+alt = ["DNS:localhost", "DNS:redis", "IP:127.0.0.1"]
+
+[certs.backend]
+cn  = "localhost"
+alt = ["DNS:localhost", "DNS:backend", "DNS:host.docker.internal", "IP:127.0.0.1"]
+
+# For moutning with tmpfs into docker compose
+[deliver.postgres]
+POSTGRES_DB       = "db"
+POSTGRES_USER     = "user"
+POSTGRES_PASSWORD = "password"
+
+[deliver.redis]
+REDIS_PASSWORD = { file = "redis.conf", prefix = "requirepass " }
+REDIS_CRT      = "redis.crt"
+REDIS_KEY      = "redis.key"
+CA_CRT         = "ca.crt"
+
+[deliver.minio]
+MINIO_ROOT_USER     = "root_user"
+MINIO_ROOT_PASSWORD = "root_password"
+
+[deliver.backend]
+BACKEND_CRT = "backend.crt"
+BACKEND_KEY = "backend.key"
+CA_CRT      = "ca.crt"
+
+[deliver.cloudflared]
+CLOUDFLARE_TUNNEL_TOKEN = "token"
+CA_CRT                  = "ca.crt"
+
+# Will be rendered into .env file so that docker compose can use it
+[compose]
+env = [
+    "POSTGRES_PORT",
+    "REDIS_PORT",
+    "MINIO_PORT",
+    "MINIO_CONSOLE_PORT",
+    "KTOR_PORT",
+    "RP_ID",
+    "LOKOT_RP_ID",
+]

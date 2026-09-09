@@ -1,0 +1,130 @@
+@use "../../../styles/constants" as *;
+@use "../../../styles/mixins" as *;
+
+.login-email-field__field {
+  justify-content: flex-start;
+  align-items: center;
+
+  &:focus-within {
+    @include control-lift;
+  }
+
+  cursor: text;
+  padding-right: 20px;
+
+  @include desktop {
+    padding-right: 40px;
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    right: 6px;
+    bottom: 6px;
+    width: 9px;
+    height: 9px;
+    border-right: 1px solid var(--edge-accent, #{$color-border-strong});
+    border-bottom: 1px solid var(--edge-accent, #{$color-border-strong});
+    opacity: 0;
+
+    @include desktop {
+      right: 12px;
+      bottom: 12px;
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+    }
+  }
+
+  &--settled::after {
+    opacity: 1;
+  }
+}
+
+.login-email-field__input {
+  --caret-cap: 0.75em;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  font-family: $font-mono;
+  font-size: 14px;
+  font-weight: 400;
+  color: $color-text;
+  caret-color: transparent;
+
+  .login-email-field__field--caret & {
+    caret-color: auto;
+  }
+
+  @include desktop {
+    font-size: 22px;
+  }
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
+
+  &::placeholder {
+    color: var(--label, #{$color-text});
+    font-size: 16px;
+    font-weight: 300;
+
+    @include desktop {
+      font-size: 25px;
+    }
+  }
+
+  .login-email-field__field--typing &::placeholder {
+    color: $color-border-strong;
+    font-size: 14px;
+    font-weight: 400;
+
+    @include desktop {
+      font-size: 22px;
+    }
+  }
+}
+
+.login-email-field__close {
+  @include reset-button;
+  @include focus-ring;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 14px;
+  height: 14px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+
+  @include desktop {
+    top: 12px;
+    right: 12px;
+    width: 20px;
+    height: 20px;
+  }
+
+  .login-email-field__field--settled & {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  color: $color-border-strong;
+
+  @include hover-or-active {
+    color: $color-text;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  line {
+    stroke: currentColor;
+    stroke-width: 2;
+    transition: stroke 0.15s ease;
+  }
+}

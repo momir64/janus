@@ -1,0 +1,43 @@
+@use "../../../styles/constants" as *;
+@use "../../../styles/mixins" as *;
+.note-editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+
+  > .field:not(.note-editor__body) {
+    flex: none;
+  }
+
+  > .note-editor__body {
+    flex: 0 1 auto;
+    min-height: 72px;
+  }
+}
+
+.note-editor__body {
+  margin-top: 12px;
+
+  @include desktop {
+    margin-top: 24px;
+  }
+}
+
+.note-editor__actions {
+  margin-top: 12px;
+  display: flex;
+  gap: 12px;
+
+  @include desktop {
+    margin-top: 24px;
+    gap: 24px;
+  }
+}
+
+.note-editor__message {
+  top: -12px;
+  transform: translateY(-100%);
+  text-align: left;
+}

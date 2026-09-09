@@ -1,0 +1,54 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+@use "../../styles/noise" as *;
+
+.top-nav {
+  display: none;
+
+  @include desktop {
+    display: flex;
+    justify-content: space-between;
+    padding: 36px 36px 0;
+  }
+}
+
+.bottom-nav {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  @include noise-surface;
+
+  @include desktop {
+    display: none;
+  }
+
+  .btn--nav {
+    border: none;
+    border-top: 1px solid $color-border;
+
+    &:not(:first-child) {
+      border-left: 1px solid $color-border;
+    }
+
+    .icon {
+      opacity: 0.55;
+    }
+
+    @include hover-or-active {
+      .icon {
+        opacity: 0.85;
+        filter: brightness(1.45);
+      }
+    }
+
+    &.is-active .icon {
+      opacity: 1;
+      filter: brightness(1.45);
+    }
+  }
+}

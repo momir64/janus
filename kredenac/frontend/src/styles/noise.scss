@@ -1,0 +1,38 @@
+@use "constants" as *;
+@use "mixins" as *;
+
+:root {
+  --noise-size: 240px;
+
+  @include mobile-only {
+    --noise-size: 150px;
+  }
+}
+
+$noise-tile: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.35' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncG type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncB type='linear' slope='0.8' intercept='-0.1765'/%3E%3CfeFuncA type='discrete' tableValues='1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E");
+
+@mixin noise-surface {
+  background-color: $color-bg;
+  background-image: $noise-tile;
+  background-repeat: repeat;
+  background-size: var(--noise-size) var(--noise-size);
+  background-attachment: fixed;
+  background-blend-mode: overlay;
+}
+
+.noise-bg {
+  position: relative;
+  background-color: $color-bg;
+
+  &::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    background-repeat: repeat;
+    background-size: var(--noise-size) var(--noise-size);
+    background-image: $noise-tile;
+  }
+}

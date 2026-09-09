@@ -1,0 +1,14 @@
+@use "constants" as *;
+@use "mixins" as *;
+
+.icon-btn {
+  @include reset-button;
+  @include focus-ring;
+  display: inline-flex;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+
+  @include hover-or-active {
+    opacity: 1;
+  }
+}

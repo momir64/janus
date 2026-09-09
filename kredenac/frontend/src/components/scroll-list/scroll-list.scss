@@ -1,0 +1,60 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+.scroll-list {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+
+  > *:first-child {
+    flex: 1;
+    min-height: 0;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+}
+
+.scroll-list__bar {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  margin-left: 4px;
+  width: 3px;
+  display: none;
+
+  .scroll-list--scrollable & {
+    display: block;
+
+    @include mobile-only {
+      display: none;
+    }
+  }
+
+  .scroll-list--inside & {
+    left: auto;
+    right: 4px;
+    margin-left: 0;
+  }
+}
+
+.scroll-list__thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: $color-border;
+  cursor: default;
+
+  &:hover,
+  &:active {
+    background: $color-border-strong;
+  }
+}
+
+.is-cut {
+  box-shadow: inset 0 var(--cut-width, 1px) 0 0 var(--cut-color, #{$color-border});
+}

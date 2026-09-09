@@ -1,0 +1,26 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+.icon {
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+
+@media (hover: hover) {
+  .icon-btn:hover .icon,
+  .btn:hover .icon,
+  .dropzone:hover .icon,
+  .dialog__close:hover .icon {
+    filter: brightness(1.45);
+  }
+}
+
+.icon-btn:active .icon,
+.btn:active .icon,
+.dropzone:active .icon,
+.dialog__close:active .icon {
+  filter: brightness(1.45);
+}
+
+.icon--settings {
+  transform: rotate(30deg);
+}

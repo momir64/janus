@@ -1,0 +1,83 @@
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+.verify-page {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px 75px;
+  text-align: center;
+
+  @include desktop {
+    padding: 0 24px 48px;
+  }
+}
+
+.verify-page__illustration {
+  width: 160px;
+  height: 160px;
+
+  @include desktop {
+    width: 280px;
+    height: 280px;
+  }
+}
+
+.verify-page__message {
+  margin-top: -1px;
+  font-family: $font-display;
+  font-weight: 200;
+  font-size: 18px;
+  line-height: 23px;
+  color: $color-text;
+  max-width: 100%;
+
+  @include desktop {
+    margin-top: -5px;
+    font-size: 32px;
+    line-height: 48px;
+  }
+
+  .verify-page__email {
+    font-weight: 400;
+  }
+
+  strong,
+  b {
+    font-weight: 400;
+  }
+
+  a {
+    text-decoration: underline;
+    text-decoration-thickness: 2.5%;
+    text-underline-offset: 14.5%;
+    text-decoration-skip-ink: none;
+    cursor: pointer;
+    transition: color 0.15s ease;
+
+    @include hover-or-active {
+      color: #ffffff;
+    }
+  }
+}
+
+.verify-page--invalid .verify-page__message {
+  margin-top: 11px;
+
+  @include desktop {
+    margin-top: 19px;
+  }
+}
+
+.verify-page__action {
+  position: relative;
+  margin-top: 48px;
+  width: 270px;
+
+  @include desktop {
+    margin-top: 76px;
+    width: 440px;
+  }
+}

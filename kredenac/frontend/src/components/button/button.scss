@@ -1,0 +1,309 @@
+@use "sass:color";
+@use "../../styles/constants" as *;
+@use "../../styles/mixins" as *;
+
+.btn {
+  @include reset-button;
+  @include focus-ring;
+  --edge: #{$color-border};
+  --edge-accent: #{$color-border-strong};
+  --label: #{$color-text};
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid var(--edge);
+  overflow: hidden;
+  color: var(--label);
+  font-family: $font-mono;
+  font-weight: 300;
+  --caret-cap: 0.75em;
+  transition: border-color 0.15s ease, color 0.15s ease;
+
+  &:not(:disabled) {
+    @include hover-or-active {
+      @include control-lift;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+.btn--arrow {
+  justify-content: flex-start;
+  width: 100%;
+  height: 48px;
+  padding: 0 30.5px;
+  border-width: 1.5px;
+  font-size: 16px;
+
+  @include desktop {
+    height: 82px;
+    padding: 0 56px;
+    border-width: 2px;
+    font-size: 25px;
+  }
+
+  &::before {
+    @include corner-bracket(10px, 1px);
+    top: 6px;
+    left: 6px;
+
+    @include desktop {
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+      top: 12px;
+      left: 12px;
+    }
+  }
+}
+
+.btn--framed {
+  justify-content: center;
+  width: 100%;
+  height: 48px;
+  border-width: 1.5px;
+  font-size: 16px;
+
+  @include desktop {
+    height: 80px;
+    border-width: 2px;
+    font-size: 24px;
+  }
+
+  &::before {
+    @include corner-bracket(10px, 1px);
+    top: 4.5px;
+    left: 4.5px;
+
+    @include desktop {
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+      top: 12px;
+      left: 12px;
+    }
+  }
+
+  &::after {
+    @include corner-bracket(10px, 1px, var(--edge-accent, #{$color-border-strong}), bottom-right);
+    bottom: 4.5px;
+    right: 4.5px;
+
+    @include desktop {
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+      bottom: 12px;
+      right: 12px;
+    }
+  }
+}
+
+@mixin block-button {
+  height: 48px;
+  border-width: 2px;
+  font-family: $font-display;
+  font-weight: 500;
+  font-size: 16px;
+
+  @include desktop {
+    height: 72px;
+    border-width: 3px;
+    font-size: 26px;
+  }
+
+  &::before,
+  &::after {
+    width: 10px;
+    height: 10px;
+    border-width: 1.5px;
+
+    @include desktop {
+      width: 20px;
+      height: 20px;
+      border-width: 2.5px;
+    }
+  }
+
+  &::before {
+    top: 6px;
+    left: 6px;
+
+    @include desktop {
+      top: 9px;
+      left: 9px;
+    }
+  }
+
+  &::after {
+    bottom: 6px;
+    right: 6px;
+
+    @include desktop {
+      bottom: 9px;
+      right: 9px;
+    }
+  }
+}
+
+.btn--danger {
+  @include block-button;
+  --edge: #{$color-danger-border};
+  --edge-accent: #{$color-danger-border};
+  --label: #{$color-danger};
+  margin-bottom: 56px;
+
+  &:not(:disabled) {
+    @include hover-or-active {
+      --edge: #{$color-danger};
+      --edge-accent: #{$color-danger};
+      --label: #{color.adjust($color-danger, $lightness: 12%)};
+    }
+  }
+}
+
+.btn--block {
+  @include block-button;
+  font-weight: 400;
+  margin-bottom: 24px;
+
+  @include mobile-only {
+    margin-bottom: 16px;
+  }
+}
+
+.btn--dialog {
+  justify-content: center;
+  flex: none;
+  width: 86px;
+  height: 36px;
+  font-size: 13px;
+  border-width: 1px;
+
+  @include desktop {
+    width: 160px;
+    height: 56px;
+    border-width: 1.5px;
+    --hatch-edge: 1.5px;
+    font-size: 22px;
+  }
+
+  .corner-hatch {
+    --hatch-size: 17px;
+
+    @include desktop {
+      --hatch-size: 31px;
+    }
+  }
+}
+
+.note-editor__actions .btn--dialog {
+  flex: 1;
+  width: auto;
+  height: 48px;
+
+  @include desktop {
+    height: 56px;
+  }
+
+  .corner-hatch {
+    --hatch-size: 27px;
+
+    @include desktop {
+      --hatch-size: 31px;
+    }
+  }
+}
+
+.btn--corners {
+  justify-content: center;
+  width: 100%;
+  height: 56px;
+  border-width: 1.5px;
+  font-family: $font-display;
+  font-size: 18px;
+  font-weight: 400;
+
+  &::before {
+    @include corner-bracket(12px, 1px);
+    top: 8px;
+    left: 8px;
+  }
+
+  &::after {
+    @include corner-bracket(12px, 1px, var(--edge-accent, #{$color-border-strong}), bottom-right);
+    bottom: 8px;
+    right: 8px;
+  }
+}
+
+.btn--corners.btn--uploading {
+  font-size: 16px;
+}
+
+.btn--icon {
+  justify-content: center;
+  width: 100%;
+  height: 72px;
+  font-family: $font-display;
+  font-weight: 400;
+  font-size: 24px;
+
+  .icon {
+    position: absolute;
+    right: 15px;
+    width: 42px;
+    height: 42px;
+  }
+}
+
+.btn--nav {
+  justify-content: center;
+  gap: 12px;
+  height: 52px;
+  border-width: 1.5px;
+  font-family: $font-display;
+  font-weight: 300;
+  font-size: 18px;
+
+  .icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  @include desktop {
+    width: 153px;
+    justify-content: flex-start;
+    padding-left: 14px;
+    gap: 14px;
+
+    .icon {
+      width: 24px;
+      height: 24px;
+    }
+  }
+}
+
+.btn--nav--trailing {
+  @include desktop {
+    justify-content: space-between;
+    padding: 0 14px 0 32px;
+    gap: 0;
+  }
+}
+
+.btn--nav--gear {
+  @include desktop {
+    padding-left: 16.5px;
+    gap: 16px;
+
+    .icon {
+      width: 18.949px;
+      height: 20px;
+    }
+  }
+}
