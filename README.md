@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/6120a935-4900-4a92-a627-482c4ed82455" alt="janus" width="480">
+</p>
+
 # Janus
 
 Janus is not only the Roman god of doors and passages, it's also the name of my bachelor thesis about passkeys.
