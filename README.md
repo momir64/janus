@@ -1,16 +1,14 @@
-<p align="center">
-  <img src="https://github.com/user-attachments/assets/6120a935-4900-4a92-a627-482c4ed82455" alt="janus" width="480">
-</p>
-
 # Janus
+
+<img align="right" src="https://github.com/user-attachments/assets/3fa04a84-116c-4316-8181-be16d5207700" alt="janus" height="200">
 
 Janus is not only the Roman god of doors and passages, it's also the name of my bachelor thesis about passkeys.
 It's made out of three parts. Privezak is an Android passkey manager that keeps every key in the
 phone's secure hardware and can prove it. Kredenac is a web app for notes and files with no
 passwords, only passkeys, and it trusts the ones kept on Privezak a bit more than the rest.
 Lokot is a command-line vault that keeps Kredenac's own secrets behind a passkey too. What started
-as "replace the password field" became the most interesting thing I have worked on. FIDO2 turned 
-out to be full of details that are easy to skip and rewarding to actually understand, from parsing 
+as "replace the password field" became the most interesting thing I have worked on. FIDO2 turned
+out to be full of details that are easy to skip and rewarding to actually understand, from parsing
 an attestation certificate chain to deriving encryption keys from a passkey.
 
 ## The parts
