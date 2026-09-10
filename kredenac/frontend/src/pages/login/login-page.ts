@@ -33,7 +33,11 @@ export async function loginPage(): Promise<Node> {
 
   const message = messageHint({ onLayout: placeFooter });
 
+  let signingIn = false;
   async function handleLogin(): Promise<void> {
+    if (signingIn) return;
+    signingIn = true;
+    const lift = setTimeout(() => (signingIn = false), 4_000);
     try {
       await login();
       navigate("/");
@@ -49,6 +53,9 @@ export async function loginPage(): Promise<Node> {
       else if (status === 400) message.show(LOGIN_MESSAGES.passkeyRetry);
       else if (status === 429) message.show(LOGIN_MESSAGES.tooManyLogins);
       else message.show(LOGIN_MESSAGES.serverError);
+    } finally {
+      clearTimeout(lift);
+      signingIn = false;
     }
   }
 
