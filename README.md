@@ -134,7 +134,7 @@ janus/
   privezak/        Android app (Gradle, Kotlin, Compose)
   kredenac/        web app: backend/ (Ktor), frontend/ (Vite), compose files, lokot.toml
   lokot/           secrets vault: CLI (Kotlin/Native) and JVM library
-  docs/            GitHub Pages site for privezak.moma.rs
+  docs/            GitHub Pages site for Privezak Privacy Policy
   LICENSE
 ```
 

@@ -75,7 +75,7 @@ PIN --> PBKDF2-HMAC-SHA512 (220k) --> KEK --> wraps --> data key --> AES-GCM -->
 
 Beyond the keys, the app opts out of cloud backup and device-to-device transfer, disables
 screenshots and screen recording, and excludes itself from autofill. The privacy policy that
-goes with all of this is published at [privezak.moma.rs/privacy](https://privezak.moma.rs/privacy)
+goes with all of this is published at [janus.moma.rs/privacy](https://janus.moma.rs/privacy)
 and lives in [`../docs/privacy`](../docs/privacy).
 
 ## How a ceremony flows
