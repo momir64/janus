@@ -7,6 +7,8 @@ but unlike Google it stores passkeys strictly locally. The private half of every
 kept in the phone's trusted execution environment, or in StrongBox where the device has one,
 which means hardware-backed protection and, just as usefully, an attestation to prove it.
 
+<a href="https://play.google.com/store/apps/details?id=rs.moma.janus.privezak"><img align="right" src="https://github.com/user-attachments/assets/8022549f-98c7-4b86-9fed-b0bbd68f3014" alt="privezak" height="100px"></a>
+
 Privezak is one side of the coin, the other side is [kredenac](../kredenac), a web storage app.
 Kredenac can cryptographically tell whether a passkey was created by a genuine Privezak build.
 If it was it gives such sessions access to features it withholds from other authenticators.
