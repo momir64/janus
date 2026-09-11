@@ -87,11 +87,17 @@ passkey first (`reauth/*`, `credentials/add/verify`), which yields a 2-minute to
 to the session.
 
 **Privezak detection** happens once, at registration. If the attestation format is
-`android-key`, the chain verifies up to Google's hardware attestation root, the leaf key is
-the credential's key, the attestation challenge is this registration's client-data hash,
-and the key description names package `rs.moma.janus.privezak` signed by a certificate in
+`android-key`, the chain verifies up to one of Google's attestation roots and carries no
+certificate Google has revoked, the leaf key is the credential's key, the attestation challenge
+is this registration's client-data hash, and the key description, which has to be the one
+nearest the root, names package `rs.moma.janus.privezak` signed by a certificate in
 `PRIVEZAK_SIGNERS`, the credential is stored with `privezak = true`. Routes registered with
 `privezakOnly = true` (all of `/files`) refuse other sessions with `403`.
+
+Neither list is pinned here. `AttestationTrust` reads the roots and the revocation list from
+`android.googleapis.com/attestation` once a day, which is how long Google caches them for.
+Until the first read succeeds nothing can be attested, so a passkey registered in that window
+is stored as an ordinary one.
 
 ## Data at rest
 
@@ -153,7 +159,8 @@ src/main/kotlin/rs/moma/janus/kredenac/
   main.kt                  the gate, then the real server, both on the TLS connector
   Application.kt           plugin order, and the vault lock at the end
   plugins/                 unlock routes, auth provider and the authenticated* route builders,
-                           rate limits, security headers, DB bootstrap, Koin module, hourly cleanup
+                           rate limits, security headers, DB bootstrap, Koin module, hourly cleanup,
+                           daily attestation refresh
   routes/                  auth, notes, files
   services/                UserService, NotesService, FilesService, EmailService (Resend)
   repositories/            Exposed tables as encrypted rows, Redis tokens, MinIO blobs

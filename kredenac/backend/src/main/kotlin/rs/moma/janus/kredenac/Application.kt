@@ -4,6 +4,7 @@ import rs.moma.janus.kredenac.plugins.configureSecurityHeaders
 import rs.moma.janus.kredenac.plugins.configureAuthentication
 import rs.moma.janus.kredenac.plugins.configureSerialization
 import rs.moma.janus.kredenac.plugins.configureDependencies
+import rs.moma.janus.kredenac.plugins.configureAttestation
 import rs.moma.janus.kredenac.plugins.configureStatusPages
 import rs.moma.janus.kredenac.plugins.configureRateLimit
 import rs.moma.janus.kredenac.plugins.configureDatabase
@@ -22,6 +23,7 @@ fun Application.module(redisTrustManager: TrustManagerFactory) {
     configureSecurityHeaders()
     configureAuthentication()
     configureRouting()
+    configureAttestation()
     configureCleanup()
 
     vault.lock()

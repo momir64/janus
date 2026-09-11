@@ -1,6 +1,7 @@
 package rs.moma.janus.kredenac
 
 import rs.moma.janus.kredenac.repositories.CredentialRepository
+import rs.moma.janus.kredenac.crypto.webauthn.AttestationTrust
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
 import rs.moma.janus.kredenac.repositories.TokenRepository
 import rs.moma.janus.kredenac.common.BadRequestException
@@ -27,7 +28,8 @@ class TokenLifecycleTest {
         "https://kredenac.moma.rs",
         TestInfra.hmacSecret,
         tokens,
-        CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey)
+        CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey),
+        AttestationTrust.pinned()
     )
 
     @BeforeTest

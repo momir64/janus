@@ -3,6 +3,7 @@ package rs.moma.janus.kredenac
 import rs.moma.janus.kredenac.crypto.webauthn.verifyRegistration
 import rs.moma.janus.kredenac.crypto.webauthn.ParsedAttestation
 import rs.moma.janus.kredenac.repositories.CredentialRepository
+import rs.moma.janus.kredenac.crypto.webauthn.AttestationTrust
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
 import rs.moma.janus.kredenac.common.UnauthorizedException
 import rs.moma.janus.kredenac.crypto.webauthn.LoginOutcome
@@ -38,7 +39,7 @@ class CeremonyTest {
     private val privezak = KeyAttestation()
     private val webAuthn = WebAuthnService(
         "kredenac.moma.rs", "https://kredenac.moma.rs",
-        TestInfra.hmacSecret, tokens, credentials, privezak.root
+        TestInfra.hmacSecret, tokens, credentials, AttestationTrust.pinned(privezak.root)
     )
 
     private val device = Authenticator()

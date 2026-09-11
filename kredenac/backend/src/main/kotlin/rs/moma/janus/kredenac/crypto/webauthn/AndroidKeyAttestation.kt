@@ -3,26 +3,7 @@ package rs.moma.janus.kredenac.crypto.webauthn
 import rs.moma.janus.kredenac.crypto.webauthn.CborValue.Companion.get
 import rs.moma.janus.kredenac.crypto.algorithms.VerifyUtil
 import java.security.cert.CertificateFactory
-import java.security.spec.X509EncodedKeySpec
 import java.security.cert.X509Certificate
-import kotlin.io.encoding.Base64
-import java.security.KeyFactory
-import java.security.PublicKey
-
-private const val GOOGLE_ATTESTATION_ROOT = """
-    MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAr7bHgiuxpwHsK7Qui8xU
-    FmOr75gvMsd/dTEDDJdSSxtf6An7xyqpRR90PL2abxM1dEqlXnf2tqw1Ne4Xwl5j
-    lRfdnJLmN0pTy/4lj4/7tv0Sk3iiKkypnEUtR6WfMgH0QZfKHM1+di+y9TFRtv6y
-    //0rb+T+W8a9nsNL/ggjnar86461qO0rOs2cXjp3kOG1FEJ5MVmFmBGtnrKpa73X
-    pXyTqRxB/M0n1n/W9nGqC4FSYa04T6N5RIZGBN2z2MT5IKGbFlbC8UrW0DxW7AYI
-    mQQcHtGl/m00QLVWutHQoVJYnFPlXTcHYvASLu+RhhsbDmxMgJJ0mcDpvsC4PjvB
-    +TxywElgS70vE0XmLD+OJtvsBslHZvPBKCOdT0MS+tgSOIfga+z1Z1g7+DVagf7q
-    uvmag8jfPioyKvxnK/EgsTUVi2ghzq8wm27ud/mIM7AY2qEORR8Go3TVB4HzWQgp
-    Zrt3i5MIlCaY504LzSRiigHCzAPlHws+W0rB5N+er5/2pJKnfBSDiCiFAVtCLOZ7
-    gLiMm0jhO2B6tUXHI/+MRPjy02i59lINMRRev56GKtcd9qO/0kUJWdZTdA2XoS82
-    ixPvZtXQpUpuL12ab+9EaDK8Z4RHJYYfCT3Q5vNAXaiWQ+8PTWm2QgBR/bkwSWc+
-    NpUFgNPN9PvQi8WEg5UmAGMCAwEAAQ==
-"""
 
 private const val PRIVEZAK_PACKAGE = "rs.moma.janus.privezak"
 
@@ -36,12 +17,9 @@ private const val ATTESTATION_APPLICATION_ID_TAG = 709L
 private const val ATTESTATION_CHALLENGE_INDEX = 4
 private const val SOFTWARE_ENFORCED_INDEX = 6
 
-fun googleAttestationRoot(): PublicKey = KeyFactory.getInstance("RSA")
-    .generatePublic(X509EncodedKeySpec(Base64.Mime.decode(GOOGLE_ATTESTATION_ROOT)))
-
-internal fun isPrivezakAttestation(
+internal suspend fun isPrivezakAttestation(
     attestation: CborValue.Map, authData: ByteArray, clientDataHash: ByteArray,
-    credentialPublicKey: ByteArray, root: PublicKey
+    credentialPublicKey: ByteArray, trust: AttestationTrust
 ): Boolean = runCatching {
     if (attestation["fmt"]?.let { (it as? CborValue.TextStr)?.value } != "android-key") return false
     val attStmt = attestation["attStmt"] as? CborValue.Map ?: return false
@@ -50,16 +28,20 @@ internal fun isPrivezakAttestation(
 
     val certificates = chain.map { it.toCertificate() }
     val leaf = certificates.first()
+    val lists = trust.current()
 
     certificates.zipWithNext().forEach { (certificate, issuer) -> certificate.verify(issuer.publicKey) }
-    if (!certificates.last().publicKey.encoded.contentEquals(root.encoded)) return false
+    val root = lists.roots.find { it.encoded.contentEquals(certificates.last().publicKey.encoded) } ?: return false
     certificates.last().verify(root)
+
+    if (certificates.any { lists.revocationOf(it) != null }) return false
     if (!leaf.publicKey.encoded.contentEquals(credentialPublicKey)) return false
 
     val algorithm = VerifyUtil(attStmt["alg"]?.asInteger() ?: return false)
     val signature = attStmt["sig"]?.asByteStr() ?: return false
     if (!algorithm.verify(leaf.publicKey.encoded, authData + clientDataHash, signature)) return false
 
+    if (certificates.indexOfLast { it.getExtensionValue(KEY_DESCRIPTION_OID) != null } != 0) return false
     val description = leaf.getExtensionValue(KEY_DESCRIPTION_OID)?.let { Der(it).read().content }
     val fields = Der(description ?: return false).read().children()
 

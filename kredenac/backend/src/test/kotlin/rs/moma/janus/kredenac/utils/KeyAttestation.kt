@@ -1,13 +1,13 @@
 package rs.moma.janus.kredenac.utils
 
-import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
-import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
 import rs.moma.janus.kredenac.crypto.webauthn.PRIVEZAK_SIGNERS
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
-import org.bouncycastle.asn1.DERTaggedObject
 import java.security.spec.ECGenParameterSpec
 import java.security.spec.X509EncodedKeySpec
+import org.bouncycastle.asn1.DERTaggedObject
 import org.bouncycastle.asn1.ASN1Enumerated
 import org.bouncycastle.asn1.DEROctetString
 import org.bouncycastle.asn1.x500.X500Name
@@ -16,8 +16,8 @@ import org.bouncycastle.asn1.ASN1Integer
 import org.bouncycastle.asn1.DERSequence
 import java.security.KeyPairGenerator
 import org.bouncycastle.asn1.DERSet
-import java.security.PrivateKey
 import java.security.KeyFactory
+import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.KeyPair
 import java.math.BigInteger
@@ -25,17 +25,19 @@ import java.util.Date
 
 class KeyAttestation(
     private val packageName: String = "rs.moma.janus.privezak",
-    private val signer: String = PRIVEZAK_SIGNERS.first()
+    private val signer: String = PRIVEZAK_SIGNERS.first(),
+    val serial: BigInteger = BigInteger.valueOf(System.currentTimeMillis())
 ) {
     private val rootPair = keyPair()
     val root: PublicKey get() = rootPair.public
 
-    fun chain(attestedKey: ByteArray, challenge: ByteArray): List<ByteArray> {
+    fun chain(attestedKey: ByteArray, challenge: ByteArray, describeIntermediate: Boolean = false): List<ByteArray> {
         val intermediatePair = keyPair()
         val attested = KeyFactory.getInstance("EC").generatePublic(X509EncodedKeySpec(attestedKey))
+        val above = challenge.takeIf { describeIntermediate }
 
         val leaf = certificate("CN=Attested Key", attested, "CN=Intermediate", intermediatePair.private, challenge)
-        val intermediate = certificate("CN=Intermediate", intermediatePair.public, "CN=Root", rootPair.private)
+        val intermediate = certificate("CN=Intermediate", intermediatePair.public, "CN=Root", rootPair.private, above)
         val rootCertificate = certificate("CN=Root", rootPair.public, "CN=Root", rootPair.private)
         return listOf(leaf, intermediate, rootCertificate).map { it.encoded }
     }
@@ -46,7 +48,7 @@ class KeyAttestation(
     ): X509Certificate {
         val now = System.currentTimeMillis()
         val builder = JcaX509v3CertificateBuilder(
-            X500Name(issuer), BigInteger.valueOf(now), Date(now - 3600_000), Date(now + 3600_000),
+            X500Name(issuer), serial, Date(now - 3600_000), Date(now + 3600_000),
             X500Name(subject), subjectKey
         )
         if (challenge != null)

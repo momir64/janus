@@ -7,6 +7,7 @@ import rs.moma.janus.kredenac.repositories.FileContentRepository
 import rs.moma.janus.kredenac.crypto.authentication.CsrfService
 import rs.moma.janus.kredenac.repositories.CredentialRepository
 import rs.moma.janus.kredenac.crypto.authentication.JwtService
+import rs.moma.janus.kredenac.crypto.webauthn.AttestationTrust
 import io.lettuce.core.api.coroutines.RedisCoroutinesCommands
 import rs.moma.janus.kredenac.crypto.webauthn.WebAuthnService
 import rs.moma.janus.kredenac.repositories.FilesRepository
@@ -77,7 +78,8 @@ fun Application.configureDependencies(redisTrustManager: TrustManagerFactory) {
             single { UserRepository(hmacSecret, piiEncryptionKey, masterKey) }
             single { CredentialRepository(hmacSecret, piiEncryptionKey) }
 
-            single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get()) }
+            single { AttestationTrust() }
+            single { WebAuthnService(get(named("rpId")), get(named("rpOrigin")), hmacSecret, get(), get(), get()) }
 
             val emailService = EmailService(vault.text("RESEND_API_KEY"), vault.text("RESEND_FROM_EMAIL"), rpOrigin)
             single { emailService }

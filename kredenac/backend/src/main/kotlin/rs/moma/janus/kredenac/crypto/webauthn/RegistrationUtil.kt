@@ -31,7 +31,7 @@ suspend fun WebAuthnService.verifyRegistration(
     return parseAttestation(attestationObject, clientDataHash) to bond
 }
 
-private fun WebAuthnService.parseAttestation(
+private suspend fun WebAuthnService.parseAttestation(
     attestationObject: Base64Url, clientDataHash: ByteArray
 ): ParsedAttestation {
     val attestationObject = attestationObject.decode()
@@ -42,7 +42,7 @@ private fun WebAuthnService.parseAttestation(
     verifyUserVerified(authData)
 
     val parsed = parseAuthData(authData)
-    val privezak = isPrivezakAttestation(attestationMap, authData, clientDataHash, parsed.publicKey, attestationRoot)
+    val privezak = isPrivezakAttestation(attestationMap, authData, clientDataHash, parsed.publicKey, attestationTrust)
     return ParsedAttestation(parsed.credentialId, parsed.publicKey, parsed.algorithm, parsed.aaguid, privezak)
 }
 
