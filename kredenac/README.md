@@ -29,8 +29,9 @@ browser --> HTTPS --> Cloudflare --> tunnel --> cloudflared (container)
                         v                           v                           v
                     postgres                   redis (TLS)                    minio
                 users, credentials,          challenges, magic              encrypted
-                refresh tokens,              links, reauth                 file blobs
-                notes, file metadata         tokens (short TTLs)
+                refresh tokens,              links, reauth and             file blobs
+                notes, file metadata         successor tokens
+                                             (short TTLs)
 ```
 
 Everything runs from one `docker-compose.yml`. The backend image builds the frontend with

@@ -4,8 +4,10 @@ import rs.moma.janus.kredenac.crypto.authentication.RefreshTokenService
 import rs.moma.janus.kredenac.repositories.RefreshTokenRepository
 import rs.moma.janus.kredenac.repositories.CredentialRepository
 import rs.moma.janus.kredenac.common.UnauthorizedException
+import rs.moma.janus.kredenac.repositories.TokenRepository
 import rs.moma.janus.kredenac.repositories.UserRepository
 import rs.moma.janus.kredenac.crypto.algorithms.HmacUtil
+import io.lettuce.core.ExperimentalLettuceCoroutinesApi
 import rs.moma.janus.kredenac.utils.TestInfra
 import kotlin.time.Duration.Companion.ZERO
 import kotlin.time.Duration.Companion.days
@@ -22,11 +24,13 @@ import kotlin.uuid.Uuid
 
 // Rotation is what makes a stolen refresh token detectable: presenting one twice
 // must take down the whole chain rather than mint another session.
+@OptIn(ExperimentalLettuceCoroutinesApi::class)
 class RefreshTokenTest {
     private val users = UserRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey, TestInfra.masterKey)
     private val credentials = CredentialRepository(TestInfra.hmacSecret, TestInfra.piiEncryptionKey)
     private val repository = RefreshTokenRepository(TestInfra.hmacSecret)
-    private val service = RefreshTokenService(repository, TestInfra.hmacSecret)
+    private val tokens = TokenRepository(TestInfra.redis, TestInfra.tokenEncryptionKey, TestInfra.hmacSecret)
+    private val service = RefreshTokenService(repository, tokens, TestInfra.hmacSecret)
 
     private var owner = Owner(Uuid.NIL)
     private var credentialId = Uuid.NIL
@@ -52,13 +56,14 @@ class RefreshTokenTest {
     @Test
     fun `a repeat inside the grace period is tolerated, for a retried request`(): Unit = runBlocking {
         val issued = service.issue(owner.userId, credentialId)
-        service.rotate(issued.refreshToken)
-        service.rotate(issued.refreshToken)
+        val (_, first) = service.rotate(issued.refreshToken)
+        val (_, second) = service.rotate(issued.refreshToken)
+        assertEquals(first.refreshToken, second.refreshToken, "the grace period forked the chain")
     }
 
     @Test
     fun `presenting a rotated token later revokes the whole chain`(): Unit = runBlocking {
-        val strict = RefreshTokenService(repository, TestInfra.hmacSecret, rotationGracePeriod = ZERO)
+        val strict = RefreshTokenService(repository, tokens, TestInfra.hmacSecret, rotationGracePeriod = ZERO)
         val issued = strict.issue(owner.userId, credentialId)
         val (_, second) = strict.rotate(issued.refreshToken)
 

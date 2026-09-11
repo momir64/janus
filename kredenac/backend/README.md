@@ -73,9 +73,11 @@ authenticators that do not count. A successful login yields:
 - `access_token`: an HS256 JWT cookie (`HttpOnly`, `Secure`, `SameSite=Strict`, path `/`)
   valid for 5 minutes, with claims `sub` (user), `sid` (session), `cid` (credential) and
   `pzk` (Privezak-attested).
-- `refresh_token`: an opaque cookie scoped to `/api/auth`, valid 30 days, stored as an HMAC.
-  Refreshing rotates it within a chain, and presenting a rotated token again after a 5-second
-  grace period is treated as theft and revokes the chain.
+- `refresh_token`: an opaque cookie scoped to `/api/auth`, valid 24 hours, stored as an HMAC.
+  Refreshing rotates it within a chain, and presenting a rotated token again after a 2-second
+  grace period is treated as theft and revokes the chain. Inside that window the successor
+  already issued is handed back instead of a second one, so two tabs racing converge on one
+  token rather than forking the chain into two branches that reuse detection could never catch.
 - a CSRF token in the response body, `HMAC(sid)`, that must come back as `X-CSRF-Token` on
   every non-safe method. The cookies are `SameSite=Strict` already, so this is a second line
   rather than the only one.
@@ -95,15 +97,15 @@ and the key description names package `rs.moma.janus.privezak` signed by a certi
 
 The database and object store hold nothing readable:
 
-| What                        | How                                                                                                                              |
-|-----------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| Email                       | AES-GCM under `PII_ENCRYPTION_KEY`, plus an HMAC under `DB_HMAC_SECRET` for lookup                                               |
-| Last-used IP and location   | AES-GCM under `PII_ENCRYPTION_KEY`                                                                                               |
-| Per-user data key           | random 256-bit key, wrapped by `MASTER_KEY` (envelope encryption)                                                                |
-| Notes                       | title and body AES-GCM under the user's key                                                                                      |
-| Files                       | name and content AES-GCM under the user's key, with content bound to the file ID via AAD and streamed to MinIO without buffering |
-| Credentials, refresh tokens | an HMAC over every column, checked on read                                                                                       |
-| Redis entries               | keyed by HMAC of the token, with the value (bound email, user or challenge) AES-GCM under `TOKEN_ENCRYPTION_KEY`                 |
+| What                        | How                                                                                                                               |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| Email                       | AES-GCM under `PII_ENCRYPTION_KEY`, plus an HMAC under `DB_HMAC_SECRET` for lookup                                                |
+| Last-used IP and location   | AES-GCM under `PII_ENCRYPTION_KEY`                                                                                                |
+| Per-user data key           | random 256-bit key, wrapped by `MASTER_KEY` (envelope encryption)                                                                 |
+| Notes                       | title and body AES-GCM under the user's key                                                                                       |
+| Files                       | name and content AES-GCM under the user's key, with content bound to the file ID via AAD and streamed to MinIO without buffering  |
+| Credentials, refresh tokens | an HMAC over every column, checked on read                                                                                        |
+| Redis entries               | keyed by HMAC of the token, with the value (bound email, user, challenge or successor token) AES-GCM under `TOKEN_ENCRYPTION_KEY` |
 
 A failed GCM tag or integrity hash raises `CompromisedException`, which is logged in full
 and surfaces to the client as an unremarkable `500`. Nothing enforces that a new column is

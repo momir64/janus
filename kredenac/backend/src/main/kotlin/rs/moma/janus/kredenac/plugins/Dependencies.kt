@@ -72,7 +72,7 @@ fun Application.configureDependencies(redisTrustManager: TrustManagerFactory) {
             jwtSecret.wipe()
             single { csrfService }
             single { jwtService }
-            single { RefreshTokenService(get(), hmacSecret) }
+            single { RefreshTokenService(get(), get(), hmacSecret) }
 
             single { UserRepository(hmacSecret, piiEncryptionKey, masterKey) }
             single { CredentialRepository(hmacSecret, piiEncryptionKey) }
