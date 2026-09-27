@@ -8,7 +8,8 @@ import java.security.cert.X509Certificate
 private const val PRIVEZAK_PACKAGE = "rs.moma.janus.privezak"
 
 internal val PRIVEZAK_SIGNERS = setOf(
-    "879473bbf61bbf6dd29eb5563ff64f48ded861283287144eb9768cdd1df06572", // release
+    "930afabeed1437723cb1a963989b4f6d26e0d8b6378e60e86a6d057267f1b29a", // play app signing key
+    "879473bbf61bbf6dd29eb5563ff64f48ded861283287144eb9768cdd1df06572", // upload key, so a sideloaded release counts
 //    "054ff4645233b6d8d86403649f13f0f606844db812a03cefb11dc25ab706bb39", // debug
 )
 
