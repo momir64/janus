@@ -72,12 +72,14 @@ class PasskeyStore(context: Context, dataKey: ByteArray) {
         save(load().filterNot { it.id == id })
     }
 
-    fun sign(id: String, data: ByteArray): ByteArray =
-        Signature.getInstance("SHA256withECDSA").run {
-            initSign(keyStore().getKey(signingAlias(id), null) as PrivateKey)
+    fun sign(id: String, data: ByteArray): ByteArray? {
+        val privateKey = keyStore().getKey(signingAlias(id), null) as? PrivateKey ?: return null
+        return Signature.getInstance("SHA256withECDSA").run {
+            initSign(privateKey)
             update(data)
             sign()
         }
+    }
 
     fun recordUse(id: String): Int {
         val passkeys = load()

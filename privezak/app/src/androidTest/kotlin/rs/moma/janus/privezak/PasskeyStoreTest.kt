@@ -57,7 +57,7 @@ class PasskeyStoreTest {
                 initVerify(store.publicKey(passkey.id))
                 update(data)
             }
-            assertTrue(verifier.verify(store.sign(passkey.id, data)))
+            assertTrue(verifier.verify(store.sign(passkey.id, data)!!))
 
             val salt = ByteArray(32) { 7 }
             assertArrayEquals(
