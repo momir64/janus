@@ -65,7 +65,7 @@ The kredenac one also documents the whole deployed stack and how it is configure
 
 The main things Janus does. All of it is in the code, so you can go and read how it works.
 
-- Kredenac has no password field anywhere. You sign in by answering a passkey challenge, and the passkey itself tells the server who you are, so there is no username to type either. The email link only exists to register a new passkey.
+- Kredenac has no password field anywhere. You sign in by answering a passkey challenge, and the passkey itself tells the server who you are, so there is no username to type. The email link only exists to register a new passkey.
 - Privezak can prove where its keys live. A registration comes with an Android key attestation, and Kredenac checks the whole certificate chain up to Google's hardware root. Sessions that pass get a `pzk` claim, and that is what unlocks the file storage (`AndroidKeyAttestation.kt`).
 - Copied keys get caught. Passkeys keep a signature counter, and if Kredenac ever sees it fail to go up, it assumes the key was cloned, deletes the credential and emails the owner (`AssertionUtil.kt`).
 - A passkey can also be an encryption key. Through the PRF extension (`hmac-secret` on a security key) it hands back a secret that only it can produce. Privezak answers those requests (`provider/Prf.kt`), and Lokot turns the result into the key that opens its vault, from a terminal with a security key or from a page in the browser.
@@ -76,7 +76,7 @@ The main things Janus does. All of it is in the code, so you can go and read how
 
 The specs, articles and documentation the project draws on, with a note on where each one shows up.
 
-- [A Tour of WebAuthn](https://www.imperialviolet.org/tourofwebauthn/tourofwebauthn.html) by Adam Langley. The mental model behind all of it, from U2F to passkeys and the hybrid transport.
+- [A Tour of WebAuthn](https://www.imperialviolet.org/tourofwebauthn/tourofwebauthn.html) by Adam Langley. The big picture, from U2F to passkeys and hybrid transport.
 - [WebAuthn Level 3](https://www.w3.org/TR/webauthn-3/). The API itself: ceremonies, attestation formats, the PRF extension and the signal methods.
 - [CTAP 2.2](https://fidoalliance.org/specs/fido-v2.2-ps-20250714/fido-client-to-authenticator-protocol-v2.2-ps-20250714.html). How Lokot talks to a security key through libfido2, and where `hmac-secret` comes from.
 - [Android key attestation](https://developer.android.com/privacy-and-security/security-key-attestation). The certificate chain Privezak returns and Kredenac verifies.
