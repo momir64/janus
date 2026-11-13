@@ -1,15 +1,18 @@
 package rs.moma.janus.kredenac
 
+import io.ktor.server.plugins.autohead.AutoHeadResponse
 import rs.moma.janus.kredenac.plugins.serveFrontend
 import io.ktor.server.testing.testApplication
 import io.ktor.client.statement.bodyAsText
 import io.ktor.server.response.respondText
 import kotlin.io.path.createTempDirectory
+import io.ktor.server.application.install
 import kotlin.io.path.createDirectories
 import io.ktor.server.response.respond
 import io.ktor.server.routing.routing
 import io.ktor.server.routing.route
 import io.ktor.http.HttpStatusCode
+import io.ktor.client.request.head
 import io.ktor.client.request.get
 import io.ktor.server.routing.get
 import kotlin.io.path.writeText
@@ -45,5 +48,20 @@ class StaticRoutingTest {
         assertEquals("SHELL", client.get("/verify/abc123").bodyAsText(), "a nested client route did not fall back")
         assertEquals("NOTES", client.get("/api/notes").bodyAsText(), "an api route was shadowed")
         assertEquals(HttpStatusCode.NotFound, client.get("/api/unknown").status, "an unknown api path fell back")
+    }
+
+    @Test
+    fun `head probes of the shell and client routes answer 200 without a body`() = testApplication {
+        val dir = dist()
+        application {
+            install(AutoHeadResponse)
+            routing { serveFrontend(dir) }
+        }
+
+        for (path in listOf("/", "/settings", "/assets/app.js")) {
+            val response = client.head(path)
+            assertEquals(HttpStatusCode.OK, response.status, "HEAD $path was not answered")
+            assertEquals("", response.bodyAsText(), "HEAD $path carried a body")
+        }
     }
 }

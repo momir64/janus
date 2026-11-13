@@ -1,6 +1,7 @@
 package rs.moma.janus.kredenac.plugins
 
 import io.ktor.server.http.content.singlePageApplication
+import io.ktor.server.plugins.autohead.AutoHeadResponse
 import rs.moma.janus.kredenac.routes.filesRoutes
 import rs.moma.janus.kredenac.routes.notesRoutes
 import rs.moma.janus.kredenac.routes.authRoutes
@@ -18,6 +19,8 @@ const val API_ROOT = "/api"
 
 fun Application.configureRouting() {
     val frontend = Env.getOrNull("FRONTEND_DIST_PATH")?.let(::Path)?.takeIf { it.isDirectory() }
+
+    install(AutoHeadResponse)
 
     routing {
         host(Env.get("LOKOT_RP_ID")) {

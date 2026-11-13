@@ -24,6 +24,7 @@ dependencies {
     implementation(ktorLibs.server.netty)
     implementation(ktorLibs.server.statusPages)
     implementation(ktorLibs.server.defaultHeaders)
+    implementation(ktorLibs.server.autoHeadResponse)
     implementation(ktorLibs.serialization.kotlinx.json)
     implementation(ktorLibs.server.rateLimit)
     implementation(ktorLibs.client.core)
